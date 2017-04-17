@@ -5,3 +5,6 @@ Swoole Chinese Docset for Dash
 
 ![demo](https://github.com/halfstring/swoole-chinese-docset/blob/master/demo.gif)
 ![dash-demo](https://github.com/halfstring/swoole-chinese-docset/blob/master/dash-demo.png)
+
+
+![Kapeli/Dash-User-Contributions](https://github.com/Kapeli/Dash-User-Contributions/tree/master/docsets/Swoole_Chinese)
