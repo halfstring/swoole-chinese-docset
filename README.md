@@ -6,7 +6,7 @@ Swoole Chinese Docset for Dash
 
 [generation method](./src/README.md)
 
-[Swooke Wiki](http://wiki.swoole.com/)
+[Swoole Wiki](https://wiki.swoole.com/)
 
 ![demo](https://github.com/halfstring/swoole-chinese-docset/blob/master/demo.gif)
 
