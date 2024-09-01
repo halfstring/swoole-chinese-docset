@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>Coroutine\System</h1>
+<p>系统相关<code>API</code>的协程封装。此模块在<code>v4.4.6</code>正式版本后可用。大部分<code>API</code>基于<code>AIO</code>线程池实现。
+!&gt; <code>v4.4.6</code>以前的版本, 请使用<code>Co</code>短名或<code>Swoole\Coroutine</code>调用, 如: <code>Co::sleep</code> 或 <code>Swoole\Coroutine::sleep</code><br />
+<code>v4.4.6</code>及以后版本官方<strong>推荐使用</strong><code>Co\System::sleep</code>或<code>Swoole\Coroutine\System::sleep</code><br />
+此修改旨在规范命名空间, 但同时也保证向下兼容 (也就是说<code>v4.4.6</code>版本以前的写法也是可以的, 无需修改)
+<a name="方法"></a></p>
+<h2>方法</h2>
+<p><a name="statvfs"></a></p>
+<h3>statvfs()</h3>
+<p>获取文件系统信息。
+!&gt; Swoole版本 &gt;= v4.2.5 可用</p>
+<pre><code class="language-php">Swoole\Coroutine\System::statvfs(string $path): array|false</code></pre>
+<ul>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>string $path</code></strong>
+<ul>
+<li><strong>功能</strong>：文件系统挂载的目录【如<code>/</code>，可以使用df和<code>mount -l</code>命令获取】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+</ul></li>
+<li><strong>使用示例</strong>
+<pre><code class="language-php">Swoole\Coroutine\run(function () {
+    var_dump(Swoole\Coroutine\System::statvfs('/'));
+});</code></pre></li>
+<li>
+<p><strong>输出示例</strong></p>
+<pre><code class="language-php">array(11) {
+  ["bsize"]=&gt;
+  int(4096)
+  ["frsize"]=&gt;
+  int(4096)
+  ["blocks"]=&gt;
+  int(61068098)
+  ["bfree"]=&gt;
+  int(45753580)
+  ["bavail"]=&gt;
+  int(42645728)
+  ["files"]=&gt;
+  int(15523840)
+  ["ffree"]=&gt;
+  int(14909927)
+  ["favail"]=&gt;
+  int(14909927)
+  ["fsid"]=&gt;
+  int(1002377915335522995)
+  ["flag"]=&gt;
+  int(4096)
+  ["namemax"]=&gt;
+  int(255)
+}</code></pre>
+<p><a name="fread"></a></p>
+<h3>fread()</h3>
+<p>协程方式读取文件。</p>
+<pre><code class="language-php">Swoole\Coroutine\System::fread(resource $handle, int $length = 0): string|false</code></pre>
+<p>!&gt; <code>v4.0.4</code>以下版本<code>fread</code>方法不支持非文件类型的<code>stream</code>，如<code>STDIN</code>、<code>Socket</code>，请勿使用<code>fread</code>操作此类资源。<br />
+<code>v4.0.4</code>以上版本<code>fread</code>方法支持了非文件类型的<code>stream</code>资源，底层会自动根据<code>stream</code>类型选择使用<code>AIO</code>线程池或<a href="/learn?id=什么是eventloop">EventLoop</a>实现。
+!&gt; 此方法已在 <code>5.0</code> 版本中废弃，<code>6.0</code> 版本已移除</p>
+</li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>resource $handle</code></strong>
+<ul>
+<li><strong>功能</strong>：文件句柄【必须是<code>fopen</code>打开的文件类型<code>stream</code>资源】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $length</code></strong>
+<ul>
+<li><strong>功能</strong>：读取的长度【默认为<code>0</code>，表示读取文件的全部内容】</li>
+<li><strong>默认值</strong>：<code>0</code></li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+</ul></li>
+<li><strong>返回值</strong> 
+<ul>
+<li>读取成功返回字符串内容，读取失败返回<code>false</code></li>
+</ul></li>
+<li><strong>使用示例</strong>  
+<pre><code class="language-php">$fp = fopen(__FILE__, "r");
+Swoole\Coroutine\run(function () use ($fp)
+{
+    $r = Swoole\Coroutine\System::fread($fp);
+    var_dump($r);
+});</code></pre>
+<p><a name="fwrite"></a></p>
+<h3>fwrite()</h3>
+<p>协程方式向文件写入数据。</p>
+<pre><code class="language-php">Swoole\Coroutine\System::fwrite(resource $handle, string $data, int $length = 0): int|false</code></pre>
+<p>!&gt; <code>v4.0.4</code>以下版本<code>fwrite</code>方法不支持非文件类型的<code>stream</code>，如<code>STDIN</code>、<code>Socket</code>，请勿使用<code>fwrite</code>操作此类资源。<br />
+<code>v4.0.4</code>以上版本<code>fwrite</code>方法支持了非文件类型的<code>stream</code>资源，底层会自动根据<code>stream</code>类型选择使用<code>AIO</code>线程池或<a href="/learn?id=什么是eventloop">EventLoop</a>实现。
+!&gt; 此方法已在 <code>5.0</code> 版本中废弃，<code>6.0</code> 版本已移除</p></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>resource $handle</code></strong>
+<ul>
+<li><strong>功能</strong>：文件句柄【必须是<code>fopen</code>打开的文件类型<code>stream</code>资源】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>string $data</code></strong>
+<ul>
+<li><strong>功能</strong>：要写入的数据内容【可以是文本或二进制数据】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $length</code></strong>
+<ul>
+<li><strong>功能</strong>：读取的长度【默认为<code>0</code>，表示写入<code>$data</code>的全部内容，<code>$length</code>必须小于<code>$data</code>的长度】</li>
+<li><strong>默认值</strong>：<code>0</code></li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+</ul></li>
+<li><strong>返回值</strong> 
+<ul>
+<li>写入成功返回数据长度，读取失败返回<code>false</code></li>
+</ul></li>
+<li><strong>使用示例</strong>  
+<pre><code class="language-php">$fp = fopen(__DIR__ . "/test.data", "a+");
+Swoole\Coroutine\run(function () use ($fp)
+{
+    $r = Swoole\Coroutine\System::fwrite($fp, "hello world\n", 5);
+    var_dump($r);
+});</code></pre>
+<p><a name="fgets"></a></p>
+<h3>fgets()</h3>
+<p>协程方式按行读取文件内容。
+底层使用了<code>php_stream</code>缓存区，默认大小为<code>8192</code>字节，可使用<code>stream_set_chunk_size</code>设置缓存区尺寸。</p>
+<pre><code class="language-php">Swoole\Coroutine\System::fgets(resource $handle): string|false</code></pre>
+<p>!&gt; <code>fgets</code>函数仅可用于文件类型的<code>stream</code>资源，Swoole版本 &gt;= <code>v4.4.4</code> 可用
+!&gt; 此方法已在 <code>5.0</code> 版本中废弃，<code>6.0</code> 版本已移除</p></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>resource $handle</code></strong>
+<ul>
+<li><strong>功能</strong>：文件句柄【必须是<code>fopen</code>打开的文件类型<code>stream</code>资源】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+</ul></li>
+<li><strong>返回值</strong> 
+<ul>
+<li>读取到<code>EOL</code>（<code>\r</code>或<code>\n</code>）将返回一行数据，包括<code>EOL</code></li>
+<li>未读取到<code>EOL</code>，但内容长度超过<code>php_stream</code>缓存区<code>8192</code>字节，将返回<code>8192</code>字节的数据，不包含<code>EOL</code></li>
+<li>达到文件末尾<code>EOF</code>时，返回空字符串，可用<code>feof</code>判断文件是否已读完</li>
+<li>读取失败返回<code>false</code>，使用<a href="/functions?id=swoole_last_error">swoole_last_error</a>函数获取错误码</li>
+</ul></li>
+<li><strong>使用示例</strong>  
+<pre><code class="language-php">$fp = fopen(__DIR__ . "/defer_client.php", "r");
+Swoole\Coroutine\run(function () use ($fp)
+{
+    $r = Swoole\Coroutine\System::fgets($fp);
+    var_dump($r);
+});</code></pre>
+<p><a name="readFile"></a></p>
+<h3>readFile()</h3>
+<p>协程方式读取文件。</p>
+<pre><code class="language-php">Swoole\Coroutine\System::readFile(string $filename): string|false</code></pre></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>string $filename</code></strong>
+<ul>
+<li><strong>功能</strong>：文件名</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+</ul></li>
+<li><strong>返回值</strong> 
+<ul>
+<li>读取成功返回字符串内容，读取失败返回<code>false</code>，可使用<a href="/functions?id=swoole_last_error">swoole_last_error</a>获取错误信息</li>
+<li><code>readFile</code>方法没有尺寸限制，读取的内容会存放在内存中，因此读取超大文件时可能会占用过多内存</li>
+</ul></li>
+<li><strong>使用示例</strong>  
+<pre><code class="language-php">$filename = __DIR__ . "/defer_client.php";
+Swoole\Coroutine\run(function () use ($filename)
+{
+    $r = Swoole\Coroutine\System::readFile($filename);
+    var_dump($r);
+});</code></pre>
+<p><a name="writeFile"></a></p>
+<h3>writeFile()</h3>
+<p>协程方式写入文件。</p>
+<pre><code class="language-php">Swoole\Coroutine\System::writeFile(string $filename, string $fileContent, int $flags): bool</code></pre></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>string $filename</code></strong>
+<ul>
+<li><strong>功能</strong>：文件名【必须有可写权限，文件不存在会自动创建。打开文件失败会立即返回<code>false</code>】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>string $fileContent</code></strong>
+<ul>
+<li><strong>功能</strong>：写入到文件的内容【最大可写入<code>4M</code>】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $flags</code></strong>
+<ul>
+<li><strong>功能</strong>：写入的选项【默认会清空当前文件内容，可以使用<code>FILE_APPEND</code>表示追加到文件末尾】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+</ul></li>
+<li><strong>返回值</strong> 
+<ul>
+<li>写入成功返回<code>true</code></li>
+<li>写入失败返回<code>false</code></li>
+</ul></li>
+<li><strong>使用示例</strong>  
+<pre><code class="language-php">$filename = __DIR__ . "/defer_client.php";
+Swoole\Coroutine\run(function () use ($filename)
+{
+    $w = Swoole\Coroutine\System::writeFile($filename, "hello swoole!");
+    var_dump($w);
+});</code></pre>
+<p><a name="sleep"></a></p>
+<h3>sleep()</h3>
+<p>进入等待状态。
+相当于<code>PHP</code>的<code>sleep</code>函数，不同的是<code>Coroutine::sleep</code>是<a href="/coroutine?id=协程调度">协程调度</a>器实现的，底层会<code>yield</code>当前协程，让出时间片，并添加一个异步定时器，当超时时间到达时重新<code>resume</code>当前协程，恢复运行。
+使用<code>sleep</code>接口可以方便地实现超时等待功能。</p>
+<pre><code class="language-php">Swoole\Coroutine\System::sleep(float $seconds): void</code></pre></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>float $seconds</code></strong>
+<ul>
+<li><strong>功能</strong>：睡眠的时间【必须大于<code>0</code>，最大不得超过一天时间（<code>86400</code>秒）】</li>
+<li><strong>值单位</strong>：秒，最小精度为毫秒（<code>0.001</code>秒）</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+</ul></li>
+<li><strong>使用示例</strong>  
+<pre><code class="language-php">$server = new Swoole\Http\Server("127.0.0.1", 9502);
+$server-&gt;on('Request', function($request, $response) {
+    //等待200ms后向浏览器发送响应
+    Swoole\Coroutine\System::sleep(0.2);
+    $response-&gt;end("&lt;h1&gt;Hello Swoole!&lt;/h1&gt;");
+});
+$server-&gt;start();</code></pre>
+<p><a name="exec"></a></p>
+<h3>exec()</h3>
+<p>执行一条shell指令。底层自动进行<a href="/coroutine?id=协程调度">协程调度</a>。</p>
+<pre><code class="language-php">Swoole\Coroutine\System::exec(string $cmd): array</code></pre></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>string $cmd</code></strong>
+<ul>
+<li><strong>功能</strong>：要执行的<code>shell</code>指令</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+</ul></li>
+<li><strong>返回值</strong>
+<ul>
+<li>执行失败返回<code>false</code>，执行成功返回数组，包含了进程退出的状态码、信号、输出内容。
+<pre><code class="language-php">array(
+'code'   =&gt; 0,  // 进程退出的状态码
+'signal' =&gt; 0,  // 信号
+'output' =&gt; '', // 输出内容
+);</code></pre></li>
+</ul></li>
+<li><strong>使用示例</strong>  
+<pre><code class="language-php">Swoole\Coroutine\run(function() {
+    $ret = Swoole\Coroutine\System::exec("md5sum ".__FILE__);
+});</code></pre></li>
+<li><strong>注意</strong>
+!&gt;如果执行脚本命令时间过长，会引发超时退出，在这种情况下可以通过加大<a href="/coroutine_client/init?id=超时规则">socket_read_timeout</a>解决这个问题。
+<a name="gethostbyname"></a>
+<h3>gethostbyname()</h3>
+<p>将域名解析为IP。基于同步的线程池模拟实现，底层自动进行<a href="/coroutine?id=协程调度">协程调度</a>。</p>
+<pre><code class="language-php">Swoole\Coroutine\System::gethostbyname(string $domain, int $family = AF_INET, float $timeout = -1): string|false</code></pre></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>string $domain</code></strong>
+<ul>
+<li><strong>功能</strong>：域名</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $family</code></strong>
+<ul>
+<li><strong>功能</strong>：域族【<code>AF_INET</code>表示返回<code>IPv4</code>地址，使用<code>AF_INET6</code>时返回<code>IPv6</code>地址】</li>
+<li><strong>默认值</strong>：<code>AF_INET</code></li>
+<li><strong>其它值</strong>：<code>AF_INET6</code></li>
+</ul></li>
+<li><strong><code>float $timeout</code></strong>
+<ul>
+<li><strong>功能</strong>：超时时间</li>
+<li><strong>值单位</strong>：秒，最小精度为毫秒（<code>0.001</code>秒）</li>
+<li><strong>默认值</strong>：<code>-1</code></li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+</ul></li>
+<li><strong>返回值</strong>
+<ul>
+<li>成功返回域名对应的<code>IP</code>地址，失败返回<code>false</code>，可使用<a href="/functions?id=swoole_last_error">swoole_last_error</a>获取错误信息
+<pre><code class="language-php">array(
+'code'   =&gt; 0,  // 进程退出的状态码
+'signal' =&gt; 0,  // 信号
+'output' =&gt; '', // 输出内容
+);</code></pre></li>
+</ul></li>
+<li>
+<p><strong>扩展</strong></p>
+<ul>
+<li>
+<p><strong>超时控制</strong>
+<code>$timeout</code>参数可以控制协程等待的超时时间，在规定的时间内未返回结果，协程会立即返回<code>false</code>并继续向下执行。底层实现中会将该异步任务标记为<code>cancel</code>，<code>gethostbyname</code>还是会在<code>AIO</code>线程池中继续执行。</p>
+<p>可修改<code>/etc/resolv.conf</code>设置<code>gethostbyname</code>和<code>getaddrinfo</code>底层<code>C</code>函数的超时时间。具体请参考 <a href="/learn_other?id=设置dns解析超时和重试">设置 DNS 解析超时和重试</a></p>
+</li>
+</ul>
+</li>
+<li><strong>使用示例</strong>  
+<pre><code class="language-php">Swoole\Coroutine\run(function () {
+    $ip = Swoole\Coroutine\System::gethostbyname("www.baidu.com", AF_INET, 0.5);
+    echo $ip;
+});</code></pre>
+<p><a name="getaddrinfo"></a></p>
+<h3>getaddrinfo()</h3>
+<p>进行DNS解析，查询域名对应的<code>IP</code>地址。
+与<code>gethostbyname</code>不同，<code>getaddrinfo</code>支持更多参数设置，而且会返回多个<code>IP</code>结果。</p>
+<pre><code class="language-php">Swoole\Coroutine\System::getaddrinfo(string $domain, int $family = AF_INET, int $socktype = SOCK_STREAM, int $protocol = STREAM_IPPROTO_TCP, string $service = null, float $timeout = -1): array|false</code></pre></li>
+<li>
+<p><strong>参数</strong> </p>
+<ul>
+<li><strong><code>string $domain</code></strong>
+<ul>
+<li><strong>功能</strong>：域名</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li>
+<p><strong><code>int $family</code></strong></p>
+<ul>
+<li><strong>功能</strong>：域族【<code>AF_INET</code>表示返回<code>IPv4</code>地址，使用<code>AF_INET6</code>时返回<code>IPv6</code>地址】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul>
+<p>!&gt; 其他参数设置请参考<code>man getaddrinfo</code>文档</p>
+</li>
+<li><strong><code>int $socktype</code></strong>
+<ul>
+<li><strong>功能</strong>：协议类型</li>
+<li><strong>默认值</strong>：<code>SOCK_STREAM</code></li>
+<li><strong>其它值</strong>：<code>SOCK_DGRAM</code>、<code>SOCK_RAW</code></li>
+</ul></li>
+<li><strong><code>int $protocol</code></strong>
+<ul>
+<li><strong>功能</strong>：协议</li>
+<li><strong>默认值</strong>：<code>STREAM_IPPROTO_TCP</code></li>
+<li><strong>其它值</strong>：<code>STREAM_IPPROTO_UDP</code>、<code>STREAM_IPPROTO_STCP</code>、<code>STREAM_IPPROTO_TIPC</code>、<code>0</code></li>
+</ul></li>
+<li><strong><code>string $service</code></strong>
+<ul>
+<li><strong>功能</strong>：</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>float $timeout</code></strong>
+<ul>
+<li><strong>功能</strong>：超时时间</li>
+<li><strong>值单位</strong>：秒，最小精度为毫秒（<code>0.001</code>秒）</li>
+<li><strong>默认值</strong>：<code>-1</code></li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+</ul>
+</li>
+<li><strong>返回值</strong>
+<ul>
+<li>成功返回多个<code>IP</code>地址组成的数组，失败返回<code>false</code></li>
+</ul></li>
+<li><strong>使用示例</strong>  
+<pre><code class="language-php">Swoole\Coroutine\run(function () {
+    $ips = Swoole\Coroutine\System::getaddrinfo("www.baidu.com");
+    var_dump($ips);
+});</code></pre>
+<p><a name="dnsLookup"></a></p>
+<h3>dnsLookup()</h3>
+<p>域名地址查询。
+与<code>Coroutine\System::gethostbyname</code>不同，<code>Coroutine\System::dnsLookup</code>是直接基于<code>UDP</code>客户端网络通信实现的，而不是使用<code>libc</code>提供的<code>gethostbyname</code>函数。
+!&gt; Swoole 版本 &gt;= <code>v4.4.3</code> 可用，底层会读取<code>/etc/resolve.conf</code>获取<code>DNS</code>服务器地址，目前仅支持<code>AF_INET(IPv4)</code>域名解析。Swoole 版本 &gt;= <code>v4.7</code> 时可使用第三个参数来支持<code>AF_INET6(IPv6)</code></p>
+<pre><code class="language-php">Swoole\Coroutine\System::dnsLookup(string $domain, float $timeout = 5, int $type = AF_INET): string|false</code></pre></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>string $domain</code></strong>
+<ul>
+<li><strong>功能</strong>：域名</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>float $timeout</code></strong>
+<ul>
+<li><strong>功能</strong>：超时时间</li>
+<li><strong>值单位</strong>：秒，最小精度为毫秒（<code>0.001</code>秒）</li>
+<li><strong>默认值</strong>：<code>5</code></li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $type</code></strong>
+<ul>
+<li><strong>值单位</strong>：秒，最小精度为毫秒（<code>0.001</code>秒）</li>
+<li><strong>默认值</strong>：<code>AF_INET</code></li>
+<li><strong>其它值</strong>：<code>AF_INET6</code>
+!&gt; <code>$type</code>参数在 Swoole 版本 &gt;= <code>v4.7</code> 可用。</li>
+</ul></li>
+</ul></li>
+<li><strong>返回值</strong>
+<ul>
+<li>解析成功返回对应的IP地址</li>
+<li>失败返回<code>false</code>，可以使用<a href="/functions?id=swoole_last_error">swoole_last_error</a>获取错误信息</li>
+</ul></li>
+<li><strong>常见错误</strong>
+<ul>
+<li><code>SWOOLE_ERROR_DNSLOOKUP_RESOLVE_FAILED</code>：此域名无法解析，查询失败</li>
+<li><code>SWOOLE_ERROR_DNSLOOKUP_RESOLVE_TIMEOUT</code>：解析超时，DNS服务器可能存在故障，无法在规定的时间内返回结果</li>
+</ul></li>
+<li><strong>使用示例</strong>  
+<pre><code class="language-php">Swoole\Coroutine\run(function () {
+    $ip = Swoole\Coroutine\System::dnsLookup("www.baidu.com");
+    echo $ip;
+});</code></pre>
+<p><a name="wait"></a></p>
+<h3>wait()</h3>
+<p>对应原有的<a href="/process/process?id=wait">Process::wait</a>，不同的是此API是协程版本, 会造成协程挂起，可替换 <code>Swoole\Process::wait</code> 和 <code>pcntl_wait</code> 函数。
+!&gt; Swoole版本 &gt;= <code>v4.5.0</code> 可用</p>
+<pre><code class="language-php">Swoole\Coroutine\System::wait(float $timeout = -1): array|false</code></pre>
+<ul>
+<li><strong>参数</strong> </li>
+<li><strong><code>float $timeout</code></strong>
+<ul>
+<li><strong>功能</strong>：超时时间，负数表示永不超时</li>
+<li><strong>值单位</strong>：秒，最小精度为毫秒（<code>0.001</code>秒）</li>
+<li><strong>默认值</strong>：<code>-1</code></li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong>返回值</strong></li>
+</ul></li>
+<li>操作成功会返回一个数组包含子进程的<code>PID</code>、退出状态码、被哪种信号<code>KILL</code></li>
+<li>失败返回<code>false</code>
+!&gt; 每个子进程启动后，父进程必须都要派遣一个协程调用<code>wait()</code>(或<code>waitPid()</code>)进行回收，否则子进程会变成僵尸进程，会浪费操作系统的进程资源。<br />
+如果使用了协程，必须是先创建进程，进程里面再开协程。而不是反过来，否则就是带着协程 fork 情况会非常复杂，导致底层很难处理。
+<ul>
+<li><strong>示例</strong>
+<pre><code class="language-php">use Swoole\Coroutine;
+use Swoole\Coroutine\System;
+use Swoole\Process;
+$process = new Process(function () {
+echo 'Hello Swoole';
+});
+$process-&gt;start();
+Coroutine\run(function () use ($process) {
+$status = System::wait();
+assert($status['pid'] === $process-&gt;pid);
+var_dump($status);
+});</code></pre>
+<p><a name="waitPid"></a></p>
+<h3>waitPid()</h3>
+<p>和上述wait方法基本一致, 不同的是此API可以指定等待特定的进程
+!&gt; Swoole版本 &gt;= <code>v4.5.0</code> 可用</p>
+<pre><code class="language-php">Swoole\Coroutine\System::waitPid(int $pid, float $timeout = -1): array|false</code></pre></li>
+<li><strong>参数</strong> </li>
+<li><strong><code>int $pid</code></strong>
+<ul>
+<li><strong>功能</strong>：进程id</li>
+<li><strong>默认值</strong>：<code>-1</code> (表示任意进程, 此时等价于wait方法)</li>
+<li><strong>其它值</strong>：任意自然数</li>
+</ul></li>
+<li><strong><code>float $timeout</code></strong>
+<ul>
+<li><strong>功能</strong>：超时时间，负数表示永不超时</li>
+<li><strong>值单位</strong>：秒，最小精度为毫秒（<code>0.001</code>秒）</li>
+<li><strong>默认值</strong>：<code>-1</code></li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong>返回值</strong></li>
+</ul></li>
+<li>操作成功会返回一个数组包含子进程的<code>PID</code>、退出状态码、被哪种信号<code>KILL</code></li>
+<li>失败返回<code>false</code>
+!&gt; 每个子进程启动后，父进程必须都要派遣一个协程调用<code>wait()</code>(或<code>waitPid()</code>)进行回收，否则子进程会变成僵尸进程，会浪费操作系统的进程资源。
+<ul>
+<li><strong>示例</strong>
+<pre><code class="language-php">use Swoole\Coroutine;
+use Swoole\Coroutine\System;
+use Swoole\Process;
+$process = new Process(function () {
+echo 'Hello Swoole';
+});
+$process-&gt;start();
+Coroutine\run(function () use ($process) {
+$status = System::waitPid($process-&gt;pid);
+var_dump($status);
+});</code></pre>
+<p><a name="waitSignal"></a></p>
+<h3>waitSignal()</h3>
+<p>协程版本的信号监听器, 会阻塞当前协程直到信号触发，可替换 <code>Swoole\Process::signal</code> 和 <code>pcntl_signal</code> 函数。
+!&gt; Swoole版本 &gt;= <code>v4.5.0</code> 可用</p>
+<pre><code class="language-php">Swoole\Coroutine\System::waitSignal(int $signo, float $timeout = -1): bool</code></pre></li>
+</ul></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>int $signo</code></strong>
+<ul>
+<li><strong>功能</strong>：信号类型</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：SIG系列常量, 如<code>SIGTERM</code>, <code>SIGKILL</code>等</li>
+</ul></li>
+<li><strong><code>float $timeout</code></strong>
+<ul>
+<li><strong>功能</strong>：超时时间，负数表示永不超时</li>
+<li><strong>值单位</strong>：秒，最小精度为毫秒（<code>0.001</code>秒）</li>
+<li><strong>默认值</strong>：<code>-1</code></li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+</ul></li>
+<li><strong>返回值</strong>
+<ul>
+<li>收到信号返回<code>true</code></li>
+<li>超时未收到信号返回<code>false</code></li>
+</ul></li>
+<li><strong>示例</strong>
+<pre><code class="language-php">use Swoole\Coroutine;
+use Swoole\Coroutine\System;
+use Swoole\Process;
+$process = new Process(function () {
+Coroutine\run(function () {
+    $bool = System::waitSignal(SIGUSR1);
+    var_dump($bool);
+});
+});
+$process-&gt;start();
+sleep(1);
+$process::kill($process-&gt;pid, SIGUSR1);</code></pre>
+<p><a name="waitEvent"></a></p>
+<h3>waitEvent()</h3>
+<p>协程版本的信号监听器, 会阻塞当前协程直到信号触发。等待 IO 事件，可替换 <code>swoole_event</code> 相关函数。
+!&gt; Swoole版本 &gt;= <code>v4.5</code> 可用</p>
+<pre><code class="language-php">Swoole\Coroutine\System::waitEvent(mixed $socket, int $events = SWOOLE_EVENT_READ, float $timeout = -1): int | false</code></pre>
+<ul>
+<li><strong>参数</strong> </li>
+<li><strong><code>mixed $socket</code></strong>
+<ul>
+<li><strong>功能</strong>：文件描述符 (任何可以转化为fd的类型, 如Socket对象, 资源等等)</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $events</code></strong>
+<ul>
+<li><strong>功能</strong>：事件类型</li>
+<li><strong>默认值</strong>：<code>SWOOLE_EVENT_READ</code></li>
+<li><strong>其它值</strong>：<code>SWOOLE_EVENT_WRITE</code> 或 <code>SWOOLE_EVENT_READ | SWOOLE_EVENT_WRITE</code></li>
+</ul></li>
+<li><strong><code>float $timeout</code></strong>
+<ul>
+<li><strong>功能</strong>：超时时间，负数表示永不超时</li>
+<li><strong>值单位</strong>：秒，最小精度为毫秒（<code>0.001</code>秒）</li>
+<li><strong>默认值</strong>：<code>-1</code></li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong>返回值</strong></li>
+</ul></li>
+<li>返回触发的事件类型的和(可能是多个位), 和参数<code>$events</code>传入的值有关</li>
+<li>失败返回<code>false</code>，可以使用<a href="/functions?id=swoole_last_error">swoole_last_error</a>获取错误信息
+<ul>
+<li><strong>示例</strong>
+<blockquote>
+<p>同步阻塞的代码通过该API即可变为协程非阻塞</p>
+<pre><code class="language-php">use Swoole\Coroutine;
+Coroutine\run(function () {
+$client = stream_socket_client('tcp://www.qq.com:80', $errno, $errstr, 30);
+$events = Coroutine::waitEvent($client, SWOOLE_EVENT_READ | SWOOLE_EVENT_WRITE);
+assert($events === SWOOLE_EVENT_WRITE);
+fwrite($client, "GET / HTTP/1.1\r\nHost: www.qq.com\r\n\r\n");
+$events = Coroutine::waitEvent($client, SWOOLE_EVENT_READ);
+assert($events === SWOOLE_EVENT_READ);
+$response = fread($client, 8192);
+echo $response;
+});</code></pre>
+</blockquote></li>
+</ul></li>
+</ul>
+</body>
+</html>

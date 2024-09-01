@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>HTTP 服务器</h1>
+<p><a name="程序代码"></a></p>
+<h2>程序代码</h2>
+<p>请将以下代码写入httpServer.php。</p>
+<pre><code class="language-php">$http = new Swoole\Http\Server('0.0.0.0', 9501);
+$http-&gt;on('Request', function ($request, $response) {
+    $response-&gt;header('Content-Type', 'text/html; charset=utf-8');
+    $response-&gt;end('&lt;h1&gt;Hello Swoole. #' . rand(1000, 9999) . '&lt;/h1&gt;');
+});
+$http-&gt;start();</code></pre>
+<p><code>HTTP</code>服务器只需要关注请求响应即可，所以只需要监听一个<a href="/http_server?id=on">onRequest</a>事件。当有新的<code>HTTP</code>请求进入就会触发此事件。事件回调函数有<code>2</code>个参数，一个是<code>$request</code>对象，包含了请求的相关信息，如<code>GET/POST</code>请求的数据。
+另外一个是<code>response</code>对象，对<code>request</code>的响应可以通过操作<code>response</code>对象来完成。<code>$response-&gt;end()</code>方法表示输出一段<code>HTML</code>内容，并结束此请求。</p>
+<ul>
+<li><code>0.0.0.0</code> 表示监听所有<code>IP</code>地址，一台服务器可能同时有多个<code>IP</code>，如<code>127.0.0.1</code>本地回环IP、<code>192.168.1.100</code>局域网IP、<code>210.127.20.2</code> 外网IP，这里也可以单独指定监听一个IP</li>
+<li><code>9501</code> 监听的端口，如果被占用程序会抛出致命错误，中断执行。
+<a name="启动服务"></a>
+<h2>启动服务</h2>
+<pre><code class="language-shell">php httpServer.php</code></pre></li>
+<li>可以打开浏览器，访问<code>http://127.0.0.1:9501</code>查看程序的结果。</li>
+<li>也可以使用Apache <code>ab</code>工具对服务器进行压力测试。
+<a name="Chrome 请求两次问题"></a>
+<h2>Chrome 请求两次问题</h2>
+<p>使用<code>Chrome</code>浏览器访问服务器，会产生额外的一次请求，<code>/favicon.ico</code>，可以在代码中响应<code>404</code>错误。</p>
+<pre><code class="language-php">$http-&gt;on('Request', function ($request, $response) {
+if ($request-&gt;server['path_info'] == '/favicon.ico' || $request-&gt;server['request_uri'] == '/favicon.ico') {
+    $response-&gt;end();
+    return;
+}
+var_dump($request-&gt;get, $request-&gt;post);
+$response-&gt;header('Content-Type', 'text/html; charset=utf-8');
+$response-&gt;end('&lt;h1&gt;Hello Swoole. #' . rand(1000, 9999) . '&lt;/h1&gt;');
+});</code></pre>
+<p><a name="URL 路由"></a></p>
+<h2>URL 路由</h2>
+<p>应用程序可以根据<code>$request-&gt;server['request_uri']</code>实现路由。如：<code>http://127.0.0.1:9501/test/index/?a=1</code>，代码中可以这样实现<code>URL</code>路由。</p>
+<pre><code class="language-php">$http-&gt;on('Request', function ($request, $response) {
+list($controller, $action) = explode('/', trim($request-&gt;server['request_uri'], '/'));
+//根据 $controller, $action 映射到不同的控制器类和方法。
+(new $controller)-&gt;$action($request, $response);
+});</code></pre></li>
+</ul>
+</body>
+</html>

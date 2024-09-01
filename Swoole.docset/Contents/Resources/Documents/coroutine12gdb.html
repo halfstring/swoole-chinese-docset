@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>调试协程</h1>
+<p>使用<code>Swoole</code>协程时，可以使用下面的方法进行调试
+<a name="GDB调试"></a></p>
+<h2>GDB调试</h2>
+<p><a name="进入 gdb <!-- {docsify-ignore} -->"></a></p>
+<h3>进入 gdb <!-- {docsify-ignore} --></h3>
+<pre><code class="language-shell">gdb php test.php</code></pre>
+<p><a name="gdbinit <!-- {docsify-ignore} -->"></a></p>
+<h3>gdbinit <!-- {docsify-ignore} --></h3>
+<pre><code class="language-shell">(gdb) source /path/to/swoole-src/gdbinit</code></pre>
+<p><a name="设置断点 <!-- {docsify-ignore} -->"></a></p>
+<h3>设置断点 <!-- {docsify-ignore} --></h3>
+<p>例如 <code>co::sleep</code> 函数</p>
+<pre><code class="language-shell">(gdb) b zim_swoole_coroutine_util_sleep</code></pre>
+<p><a name="打印当前进程的所有协程和状态 <!-- {docsify-ignore} -->"></a></p>
+<h3>打印当前进程的所有协程和状态 <!-- {docsify-ignore} --></h3>
+<pre><code class="language-shell">(gdb) co_list 
+coroutine 1 SW_CORO_YIELD
+coroutine 2 SW_CORO_RUNNING</code></pre>
+<p><a name="打印当前运行时协程的调用栈 <!-- {docsify-ignore} -->"></a></p>
+<h3>打印当前运行时协程的调用栈 <!-- {docsify-ignore} --></h3>
+<pre><code class="language-shell">(gdb) co_bt 
+coroutine cid:[2]
+[0x7ffff148a100] Swoole\Coroutine-&gt;sleep(0.500000) [internal function]
+[0x7ffff148a0a0] {closure}() /home/shiguangqi/php/swoole-src/examples/coroutine/exception/test.php:7 
+[0x7ffff141e0c0] go(object[0x7ffff141e110]) [internal function]
+[0x7ffff141e030] (main) /home/shiguangqi/php/swoole-src/examples/coroutine/exception/test.php:10</code></pre>
+<p><a name="打印指定协程id的调用栈 <!-- {docsify-ignore} -->"></a></p>
+<h3>打印指定协程id的调用栈 <!-- {docsify-ignore} --></h3>
+<pre><code class="language-shell">(gdb) co_bt 1
+[0x7ffff1487100] Swoole\Coroutine-&gt;sleep(0.500000) [internal function]
+[0x7ffff14870a0] {closure}() /home/shiguangqi/php/swoole-src/examples/coroutine/exception/test.php:3 
+[0x7ffff141e0c0] go(object[0x7ffff141e110]) [internal function]
+[0x7ffff141e030] (main) /home/shiguangqi/php/swoole-src/examples/coroutine/exception/test.php:10 </code></pre>
+<p><a name="打印全局协程的状态 <!-- {docsify-ignore} -->"></a></p>
+<h3>打印全局协程的状态 <!-- {docsify-ignore} --></h3>
+<pre><code class="language-shell">(gdb) co_status 
+     stack_size: 2097152
+     call_stack_size: 1
+     active: 1
+     coro_num: 2
+     max_coro_num: 3000
+     peak_coro_num: 2</code></pre>
+<p><a name="PHP代码调试"></a></p>
+<h2>PHP代码调试</h2>
+<p>遍历当前进程内的所有协程，并打印调用栈。</p>
+<pre><code class="language-php">Swoole\Coroutine::listCoroutines(): Swoole\Coroitine\Iterator</code></pre>
+<p>!&gt; 需要<code>4.1.0</code>或更高版本</p>
+<ul>
+<li>返回迭代器，可使用<code>foreach</code>遍历，或使用<code>iterator_to_array</code>转为数组
+<pre><code class="language-php">use Swoole\Coroutine;
+$coros = Coroutine::listCoroutines();
+foreach($coros as $cid)
+{
+var_dump(Coroutine::getBackTrace($cid));
+}</code></pre>
+<p>可以参考 <a href="https://course.swoole-cloud.com/course-video/66">Swoole微课程中的视频教程</a></p></li>
+</ul>
+</body>
+</html>

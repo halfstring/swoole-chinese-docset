@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>使用问题</h1>
+<p><a name="Swoole性能如何"></a></p>
+<h2>Swoole性能如何</h2>
+<blockquote>
+<table>
+<thead>
+<tr>
+<th>QPS对比
+使用 Apache-Bench工具(ab) 对Nginx静态页、Golang HTTP程序、PHP7+Swoole HTTP程序进行压力测试。在同一台机器上，进行并发100共100万次HTTP请求的基准测试中，QPS对比如下：</th>
+<th>软件</th>
+<th>QPS</th>
+<th>软件版本</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Nginx</td>
+<td>164489.92</td>
+<td>nginx/1.4.6 (Ubuntu)</td>
+</tr>
+<tr>
+<td>Golang</td>
+<td>166838.68</td>
+<td>go version go1.5.2 linux/amd64</td>
+</tr>
+<tr>
+<td>PHP7+Swoole</td>
+<td>287104.12</td>
+<td>Swoole-1.7.22-alpha</td>
+</tr>
+<tr>
+<td>Nginx-1.9.9</td>
+<td>245058.70</td>
+<td>nginx/1.9.9</td>
+</tr>
+</tbody>
+</table>
+<p>!&gt; 注：Nginx-1.9.9的测试中，已关闭access_log，启用open_file_cache缓存静态文件到内存
+测试环境</p>
+<ul>
+<li>CPU：Intel® Core™ i5-4590 CPU @ 3.30GHz × 4</li>
+<li>内存：16G</li>
+<li>磁盘：128G SSD</li>
+<li>操作系统：Ubuntu14.04 (Linux 3.16.0-55-generic)
+压测方法
+<pre><code class="language-shell">ab -c 100 -n 1000000 -k http://127.0.0.1:8080/</code></pre>
+<p>VHOST配置</p>
+<pre><code class="language-nginx">server {
+listen 80 default_server;
+root /data/webroot;
+index index.html;
+}</code></pre>
+<p>测试页面</p>
+<pre><code class="language-html">&lt;h1&gt;Hello World!&lt;/h1&gt;</code></pre>
+<p>进程数量
+Nginx开启了4个Worker进程</p>
+<pre><code class="language-shell">htf@htf-All-Series:~/soft/php-7.0.0$ ps aux|grep nginx
+root      1221  0.0  0.0  86300  3304 ?        Ss   12月07   0:00 nginx: master process /usr/sbin/nginx
+www-data  1222  0.0  0.0  87316  5440 ?        S    12月07   0:44 nginx: worker process
+www-data  1223  0.0  0.0  87184  5388 ?        S    12月07   0:36 nginx: worker process
+www-data  1224  0.0  0.0  87000  5520 ?        S    12月07   0:40 nginx: worker process
+www-data  1225  0.0  0.0  87524  5516 ?        S    12月07   0:45 nginx: worker process</code></pre>
+<p>Golang
+测试代码</p>
+<pre><code class="language-go">package main
+import (
+"log"
+"net/http"
+"runtime"
+)
+func main() {
+runtime.GOMAXPROCS(runtime.NumCPU() - 1)
+http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+w.Header().Add("Last-Modified", "Thu, 18 Jun 2015 10:24:27 GMT")
+w.Header().Add("Accept-Ranges", "bytes")
+w.Header().Add("E-Tag", "55829c5b-17")
+w.Header().Add("Server", "golang-http-server")
+w.Write([]byte("&lt;h1&gt;\nHello world!\n&lt;/h1&gt;\n"))
+})
+log.Printf("Go http Server listen on :8080")
+log.Fatal(http.ListenAndServe(":8080", nil))
+}</code></pre>
+<p>PHP7+Swoole
+PHP7已启用<code>OPcache</code>加速器。
+测试代码</p>
+<pre><code class="language-php">$http = new Swoole\Http\Server("127.0.0.1", 9501, SWOOLE_BASE);
+$http-&gt;set([
+'worker_num' =&gt; 4,
+]);
+$http-&gt;on('request', function ($request, Swoole\Http\Server $response) {
+$response-&gt;header('Last-Modified', 'Thu, 18 Jun 2015 10:24:27 GMT');
+$response-&gt;header('E-Tag', '55829c5b-17');
+$response-&gt;header('Accept-Ranges', 'bytes');    
+$response-&gt;end("&lt;h1&gt;\nHello Swoole.\n&lt;/h1&gt;");
+});
+$http-&gt;start();</code></pre>
+<p><strong>全球Web框架权威性能测试 Techempower Web Framework Benchmarks</strong>
+最新跑分测试结果地址: <a href="https://www.techempower.com/benchmarks/#section=test&amp;runid=9d5522a6-2917-467a-9d7a-8c0f6a8ed790">techempower</a>
+Swoole领跑<strong>动态语言第一</strong>
+数据库IO操作测试, 使用基本业务代码无特殊优化
+<strong>性能超过所有静态语言框架(使用MySQL而不是PostgreSQL)</strong>
+<a name="Swoole如何维持TCP长连接"></a></p>
+<h2>Swoole如何维持TCP长连接</h2>
+<p>关于TCP长连接维持有2组配置<a href="/server/setting?id=open_tcp_keepalive">tcp_keepalive</a>和<a href="/server/setting?id=heartbeat_check_interval">heartbeat</a>，使用方法和注意事项参考
+<a href="https://course.swoole-cloud.com/course-video/10">Swoole官方视频教程</a>
+<a name="Swoole如何正确的重启服务"></a></p>
+<h2>Swoole如何正确的重启服务</h2>
+<p>在日常开发中，修改了PHP代码后经常需要重启服务让代码生效，一台繁忙的后端服务器随时都在处理请求，如果管理员通过<code>kill</code>进程方式来终止/重启服务器程序，可能导致刚好代码执行到一半终止，没法保证整个业务逻辑的完整性。
+<code>Swoole</code>提供了柔性终止/重启的机制，管理员只需要向<code>Server</code>发送特定的信号或者调用<code>reload</code>方法，工作进程就可以结束，并重新拉起。具体请参考<a href="/server/methods?id=reload">reload()</a></p></li>
+</ul>
+</blockquote>
+<p>但有几点要注意：
+首先要注意新修改的代码必须要在<code>OnWorkerStart</code>事件中重新载入才会生效，比如某个类在<code>OnWorkerStart</code>之前就通过composer的autoload载入了就是不可以的。
+其次<code>reload</code>还要配合这两个参数<a href="/server/setting?id=max_wait_time">max_wait_time</a>和<a href="/server/setting?id=reload_async">reload_async</a>，设置了这两个参数之后就能实现<code>异步安全重启</code>。
+如果没有此特性，Worker进程收到重启信号或达到<a href="/server/setting?id=max_request">max_request</a>时，会立即停止服务，这时<code>Worker</code>进程内可能仍然有事件监听，这些异步任务将会被丢弃。设置上述参数后会先创建新的<code>Worker</code>，旧的<code>Worker</code>在完成所有事件之后自行退出，即<code>reload_async</code>。
+如果旧的<code>Worker</code>一直不退出，底层还增加了一个定时器，在约定的时间(<a href="/server/setting?id=max_wait_time">max_wait_time</a>秒)内旧的<code>Worker</code>没有退出，底层会强行终止，并会产生一个 <a href="/question/use?id=forced-to-terminate">WARNING</a> 报错。
+示例：</p>
+<pre><code class="language-php">&lt;?php
+$serv = new Swoole\Server('0.0.0.0', 9501, SWOOLE_PROCESS);
+$serv-&gt;set(array(
+    'worker_num' =&gt; 1,
+    'max_wait_time' =&gt; 60,
+    'reload_async' =&gt; true,
+));
+$serv-&gt;on('receive', function (Swoole\Server $serv, $fd, $reactor_id, $data) {
+    echo "[#" . $serv-&gt;worker_id . "]\tClient[$fd] receive data: $data\n";
+
+    Swoole\Timer::tick(5000, function () {
+        echo 'tick';
+    });
+});
+$serv-&gt;start();</code></pre>
+<p>例如上面的代码，如果没有 reload_async 那么 onReceive 中创建的定时器将丢失，没有机会处理定时器中的回调函数。
+<a name="进程退出事件"></a></p>
+<h3>进程退出事件</h3>
+<p>为了支持异步重启特性，底层新增了一个<a href="/server/events?id=onWorkerExit">onWorkerExit</a>事件，当旧的<code>Worker</code>即将退出时，会触发<code>onWorkerExit</code>事件，在此事件回调函数中，应用层可以尝试清理某些长连接<code>Socket</code>，直到<a href="/learn?id=什么是eventloop">事件循环</a>中没有fd或者达到了<a href="/server/setting?id=max_wait_time">max_wait_time</a>退出进程。</p>
+<pre><code class="language-php">$serv-&gt;on('WorkerExit', function (Swoole\Server $serv, $worker_id) {
+    $redisState = $serv-&gt;redis-&gt;getState();
+    if ($redisState == Swoole\Redis::STATE_READY or $redisState == Swoole\Redis::STATE_SUBSCRIBE)
+    {
+        $serv-&gt;redis-&gt;close();
+    }
+});</code></pre>
+<p>同时在 <a href="https://www.swoole.com/swoole_plus">Swoole Plus</a> 中增加了检测文件变化的功能，可以不用手动reload或者发送信号，文件变更自动重启worker。
+<a name="为什么不要send完后立即close就是不安全的"></a></p>
+<h2>为什么不要send完后立即close就是不安全的</h2>
+<p>send完后立即close就是不安全的，无论是服务器端还是客户端。
+send操作成功只是表示数据成功地写入到操作系统socket缓存区，不代表对端真的接收到了数据。究竟操作系统有没有发送成功，对方服务器是否收到，服务器端程序是否处理，都没办法确切保证。</p>
+<blockquote>
+<p>close后的逻辑请看下面的linger设置相关
+这个逻辑和电话沟通是一个道理，A告诉B一个事情，A说完了就挂掉电话。那么B听到没有，A是不知道的。如果A说完事情，B说好，然后B挂掉电话，就绝对是安全的。
+linger设置
+一个<code>socket</code>在close时，如果发现缓冲区仍然有数据，操作系统底层会根据<code>linger</code>设置决定如何处理</p>
+<pre><code class="language-c">struct linger
+{
+int l_onoff;
+int l_linger;
+};</code></pre>
+<ul>
+<li>l_onoff = 0，close时立刻返回，底层会将未发送完的数据发送完成后再释放资源，也就是优雅的退出。</li>
+<li>l_onoff != 0，l_linger = 0，close时会立刻返回，但不会发送未发送完成的数据，而是通过一个RST包强制的关闭socket描述符，也就是强制的退出。</li>
+<li>l_onoff !=0，l_linger &gt; 0， closes时不会立刻返回，内核会延迟一段时间，这个时间就由l_linger的值来决定。如果超时时间到达之前，发送完未发送的数据(包括FIN包)并得到另一端的确认，close会返回正确，socket描述符优雅性退出。否则close会直接返回错误值，未发送数据丢失，socket描述符被强制性退出。如果socket描述符被设置为非堵塞型，则close会直接返回值。
+<a name="client has already been bound to another coroutine"></a>
+<h2>client has already been bound to another coroutine</h2>
+<p>对于一个<code>TCP</code>连接来说Swoole底层允许同时只能有一个协程进行读操作、一个协程进行写操作。也就是说不能有多个协程对一个TCP进行读/写操作，底层会抛出绑定错误:</p>
+<pre><code class="language-shell">Fatal error: Uncaught Swoole\Error: Socket#6 has already been bound to another coroutine#2, reading or writing of the same socket in coroutine#3 at the same time is not allowed </code></pre>
+<p>重现代码：</p>
+<pre><code class="language-php">use Swoole\Coroutine;
+use Swoole\Coroutine\Http\Client;
+use function Swoole\Coroutine\run;
+run(function() {
+$cli = new Client('www.xinhuanet.com', 80);
+Coroutine::create(function () use ($cli) {
+$cli-&gt;get('/');
+});
+Coroutine::create(function () use ($cli) {
+$cli-&gt;get('/');
+});
+});</code></pre>
+<p>解决方案参考：<a href="https://wenda.swoole.com/detail/107474">https://wenda.swoole.com/detail/107474</a>
+!&gt; 此限制对于所有多协程环境都有效，最常见的就是在<a href="/server/events?id=onreceive">onReceive</a>等回调函数中去共用一个TCP连接，因为此类回调函数会自动创建一个协程，
+那有连接池需求怎么办？<code>Swoole</code>内置了<a href="/coroutine/conn_pool">连接池</a>可以直接使用，或手动用<code>channel</code>封装连接池。
+<a name="Call to undefined function Co\run"></a></p>
+<h2>Call to undefined function Co\run()</h2>
+<p>本文档中的大部分示例都使用了<code>Co\run()</code>来创建一个协程容器，<a href="/coroutine?id=什么是协程容器">了解什么是协程容器</a>
+如果遇到如下错误：</p>
+<pre><code class="language-bash">PHP Fatal error:  Uncaught Error: Call to undefined function Co\run()
+PHP Fatal error:  Uncaught Error: Call to undefined function go()</code></pre>
+<p>说明你的<code>Swoole</code>扩展版本小于<code>v4.4.0</code>或者手动关闭了<a href="/other/alias?id=协程短名称">协程短名称</a>，提供以下解决方法</p></li>
+<li>如果是版本过低，则请升级扩展版本至<code>&gt;= v4.4.0</code>或使用<code>go</code>关键字替换<code>Co\run</code>来创建协程；</li>
+<li>如果是关闭了协程短名称，则请打开<a href="/other/alias?id=协程短名称">协程短名称</a>；</li>
+<li>使用<a href="/coroutine/coroutine?id=create">Coroutine::create</a>方法替换<code>Co\run</code>或<code>go</code>来创建协程；</li>
+<li>使用全名：<code>Swoole\Coroutine\run</code>；
+<a name="是否可以共用1个Redis或MySQL连接"></a>
+<h2>是否可以共用1个Redis或MySQL连接</h2>
+<p>绝对不可以。必须每个进程单独创建<code>Redis</code>、<code>MySQL</code>、<code>PDO</code>连接，其他的存储客户端同样也是如此。原因是如果共用1个连接，那么返回的结果无法保证被哪个进程处理，持有连接的进程理论上都可以对这个连接进行读写，这样数据就发生错乱了。
+<strong>所以在多个进程之间，一定不能共用连接</strong></p></li>
+<li>在<a href="/server/init">Swoole\Server</a>中，应当在<a href="/server/events?id=onworkerstart">onWorkerStart</a>中创建连接对象</li>
+<li>在<a href="/process/process">Swoole\Process</a>中，应当在<a href="/process/process?id=start">Swoole\Process-&gt;start</a>后，子进程的回调函数中创建连接对象</li>
+<li>此问题所述信息对使用<code>pcntl_fork</code>的程序同样有效
+示例：
+<pre><code class="language-php">$server = new Swoole\Server('0.0.0.0', 9502);
+//必须在onWorkerStart回调中创建redis/mysql连接
+$server-&gt;on('workerstart', function($server, $id) {
+$redis = new Redis();
+$redis-&gt;connect('127.0.0.1', 6379);
+$server-&gt;redis = $redis;
+});
+$server-&gt;on('receive', function (Swoole\Server $server, $fd, $reactor_id, $data) {  
+$value = $server-&gt;redis-&gt;get("key");
+$server-&gt;send($fd, "Swoole: ".$value);
+});
+$server-&gt;start();</code></pre>
+<p><a name="连接已关闭问题"></a></p>
+<h2>连接已关闭问题</h2>
+<p>如以下提示</p>
+<pre><code class="language-bash">NOTICE swFactoryProcess_finish (ERRNO 1004): send 165 byte failed, because connection[fd=123] is closed
+NOTICE swFactoryProcess_finish (ERROR 1005): connection[fd=123] does not exists</code></pre>
+<p>服务端响应时, 客户端已经切断了连接导致
+常见于:</p></li>
+<li>浏览器疯狂刷新页面(还没加载完就刷掉了)</li>
+<li>ab压测到一半取消</li>
+<li>wrk基于时间的压测 (时间到了未完成的请求会被取消)
+以上几种情况均属于正常现象, 可以忽略, 所以该错误的级别是NOTICE
+如由于其它情况无缘无故出现大量连接断开时, 才需要注意
+<pre><code class="language-bash">WARNING swWorker_discard_data (ERRNO 1007): [2] received the wrong data[21 bytes] from socket#75
+WARNING Worker_discard_data (ERRNO 1007): [2] ignore data[5 bytes] received from session#2</code></pre>
+<p>同样的，这个错误也表示连接已经关闭了，收到的数据会被丢弃。参考<a href="/server/setting?id=discard_timeout_request">discard_timeout_request</a>
+<a name="connected属性和连接状态不一致"></a></p>
+<h2>connected属性和连接状态不一致</h2>
+<p>4.x协程版本后, <code>connected</code>属性不再会实时更新, <a href="/client?id=isconnected">isConnect</a>方法不再可靠
+<a name="原因"></a></p>
+<h3>原因</h3>
+<p>协程的目标是和同步阻塞的编程模型一致, 同步阻塞模型中不会有实时更新连接状态的概念, 如PDO, curl等, 都没有连接的概念, 而是在IO操作时返回错误或抛出异常才能发现连接断开
+Swoole底层通用的做法是, IO错误时, 返回false(或空白内容表示连接已断开), 并在客户端对象上设置相应的错误码, 错误信息
+<a name="注意"></a></p>
+<h3>注意</h3>
+<p>尽管以前的异步版本支持&quot;实时&quot;更新<code>connected</code>属性, 但实际上并不可靠, 连接可能会在你检查后马上就断开了
+<a name="Connection refused是怎么回事"></a></p>
+<h2>Connection refused是怎么回事</h2>
+<p>telnet 127.0.0.1 9501 时发生Connection refused，这表示服务器未监听此端口。</p></li>
+<li>检查程序是否执行成功: ps aux</li>
+<li>检查端口是否在监听: netstat -lp</li>
+<li>查看网络通信通信过程是否正常: tcpdump traceroute
+<a name="Resource temporarily unavailable [11]"></a>
+<h2>Resource temporarily unavailable [11]</h2>
+<p>客户端swoole_client在<code>recv</code>时报</p>
+<pre><code class="language-shell">swoole_client::recv(): recv() failed. Error: Resource temporarily unavailable [11]</code></pre>
+<p>这个错误表示，服务器端在规定的时间内没有返回数据，接收超时了。</p></li>
+<li>可以通过tcpdump查看网络通信过程，检查服务器是否发送了数据</li>
+<li>服务器的<code>$serv-&gt;send</code>函数需要检测是否返回了true</li>
+<li>外网通信时，耗时较多需要调大swoole_client的超时时间
+<a name="worker exit timeout, forced to terminate :id=forced-to-terminate"></a>
+<h2>worker exit timeout, forced to terminate :id=forced-to-terminate</h2>
+<p>发现形如以下报错：</p>
+<pre><code class="language-bash">WARNING swWorker_reactor_try_to_exit (ERRNO 9012): worker exit timeout, forced to terminate</code></pre>
+<p>表示在约定的时间 (<a href="/server/setting?id=max_wait_time">max_wait_time</a>秒) 内此 Worker 没有退出，Swoole底层强行终止此进程。
+可使用如下代码进行复现：</p>
+<pre><code class="language-php">use Swoole\Timer;
+$server = new Swoole\Server('127.0.0.1', 9501);
+$server-&gt;set(
+[
+'reload_async' =&gt; true,
+'max_wait_time' =&gt; 4,
+]
+);
+$server-&gt;on('workerStart', function (Swoole\Server $server, int $wid) {
+if ($wid === 0) {
+Timer::tick(5000, function () {
+echo 'tick';
+});
+Timer::after(500, function () use ($server) {
+$server-&gt;shutdown();
+});
+}
+});
+$server-&gt;on('receive', function () {
+});
+$server-&gt;start();</code></pre>
+<p><a name="Unable to find callback function for signal Broken pipe: 13"></a></p>
+<h2>Unable to find callback function for signal Broken pipe: 13</h2>
+<p>发现形如以下报错：</p>
+<pre><code class="language-bash">WARNING swSignalfd_onSignal (ERRNO 707): Unable to find callback function for signal Broken pipe: 13</code></pre>
+<p>表示向已断开的连接发送了数据，一般是因为没有判断发送的返回值，返回失败了还在继续发送
+<a name="学习Swoole需要掌握哪些基础知识"></a></p>
+<h2>学习Swoole需要掌握哪些基础知识</h2>
+<p><a name="多进程/多线程"></a></p>
+<h3>多进程/多线程</h3></li>
+<li>了解<code>Linux</code>操作系统进程和线程的概念</li>
+<li>了解<code>Linux</code>进程/线程切换调度的基本知识</li>
+<li>了解进程间通信的基本知识，如管道、<code>UnixSocket</code>、消息队列、共享内存
+<a name="SOCKET"></a>
+<h3>SOCKET</h3></li>
+<li>了解<code>SOCKET</code>的基本操作如<code>accept/connect</code>、<code>send/recv</code>、<code>close</code>、<code>listen</code>、<code>bind</code></li>
+<li>了解<code>SOCKET</code>的接收缓存区、发送缓存区、阻塞/非阻塞、超时等概念
+<a name="IO复用"></a>
+<h3>IO复用</h3></li>
+<li>了解<code>select</code>/<code>poll</code>/<code>epoll</code></li>
+<li>了解基于<code>select</code>/<code>epoll</code>实现的事件循环，<code>Reactor</code>模型</li>
+<li>了解可读事件、可写事件
+<a name="TCP/IP网络协议"></a>
+<h3>TCP/IP网络协议</h3></li>
+<li>了解<code>TCP/IP</code>协议</li>
+<li>了解<code>TCP</code>、<code>UDP</code>传输协议
+<a name="调试工具"></a>
+<h3>调试工具</h3></li>
+<li>使用 <a href="/other/tools?id=gdb">gdb</a> 调试<code>Linux</code>程序</li>
+<li>使用 <a href="/other/tools?id=strace">strace</a> 跟踪进程的系统调用</li>
+<li>使用 <a href="/other/tools?id=tcpdump">tcpdump</a> 跟踪网络通信过程</li>
+<li>其他<code>Linux</code>系统工具，如ps、<a href="/other/tools?id=lsof">lsof</a>、top、vmstat、netstat、sar、ss等
+<a name="Object of class Swoole\Curl\Handler could not be converted to int"></a>
+<h2>Object of class Swoole\Curl\Handler could not be converted to int</h2>
+<p>在使用 <a href="/runtime?id=swoole_hook_curl">SWOOLE_HOOK_CURL</a> 时，发生报错：</p>
+<pre><code class="language-bash">PHP Notice:  Object of class Swoole\Curl\Handler could not be converted to int
+PHP Warning: curl_multi_add_handle() expects parameter 2 to be resource, object given</code></pre>
+<p>原因是 hook 后的 curl 不再是一个 resource 类型，而是 object 类型，所以不支持转换为 int 类型。
+!&gt; <code>int</code> 的问题建议联系 SDK 方修改代码，在PHP8中 curl 不再是 resource 类型，而是 object 类型。
+解决方法有三种：</p>
+<ol>
+<li>不开启 <a href="/runtime?id=swoole_hook_curl">SWOOLE_HOOK_CURL</a>。不过从 <a href="/version/log?id=v454">v4.5.4</a> 版本开始，<a href="/runtime?id=swoole_hook_all">SWOOLE_HOOK_ALL</a> 默认包含了 <a href="/runtime?id=swoole_hook_curl">SWOOLE_HOOK_CURL</a>，可以设置为<code>SWOOLE_HOOK_ALL ^ SWOOLE_HOOK_CURL</code>来关闭 <a href="/runtime?id=swoole_hook_curl">SWOOLE_HOOK_CURL</a></li>
+<li>使用 Guzzle 的SDK，可以替换 Handler 来实现协程化</li>
+<li>从Swoole <code>v4.6.0</code> 版本开始可以使用<a href="/runtime?id=swoole_hook_native_curl">SWOOLE_HOOK_NATIVE_CURL</a>来代替<a href="/runtime?id=swoole_hook_curl">SWOOLE_HOOK_CURL</a>
+<a name="同时使用一键协程化和Guzzle 7.0+的时候，发起请求后将结果直接输出在终端 :id=hook_guzzle"></a>
+<h2>同时使用一键协程化和Guzzle 7.0+的时候，发起请求后将结果直接输出在终端 :id=hook_guzzle</h2>
+<p>复现代码如下</p>
+<pre><code class="language-php">// composer require guzzlehttp/guzzle
+include __DIR__ . '/vendor/autoload.php';
+use GuzzleHttp\Client;
+use Swoole\Coroutine;
+// v4.5.4之前的版本
+//Coroutine::set(['hook_flags' =&gt; SWOOLE_HOOK_ALL | SWOOLE_HOOK_CURL]);
+Coroutine::set(['hook_flags' =&gt; SWOOLE_HOOK_ALL]);
+Coroutine\run(function () {
+$client = new Client();
+$url = 'http://baidu.com';
+$res = $client-&gt;request('GET', $url);
+var_dump($res-&gt;getBody()-&gt;getContents());
+});
+// 请求结果会直接输出，而不是打印出来的
+//&lt;html&gt;
+//&lt;meta http-equiv="refresh" content="0;url=http://www.baidu.com/"&gt;
+//&lt;/html&gt;
+//string(0) ""</code></pre>
+<p>!&gt; 解决方法和上一个问题一致。不过此问题已在 Swoole 版本 &gt;= <code>v4.5.8</code> 中修复。
+<a name="Error: No buffer space available[55]"></a></p>
+<h2>Error: No buffer space available[55]</h2>
+<p>可以忽略此错误。这个错误就是 <a href="/server/setting?id=socket_buffer_size">socket_buffer_size</a> 选项过大，个别系统不接受，并不影响程序的运行。
+<a name="GET/POST请求的最大尺寸"></a></p>
+<h2>GET/POST请求的最大尺寸</h2>
+<p><a name="GET请求最大8192"></a></p>
+<h3>GET请求最大8192</h3>
+<p>GET请求只有一个Http头，Swoole底层使用固定大小的内存缓存区8K，并且不可修改。如果请求不是正确的Http请求，将会出现错误。底层会抛出以下错误：</p>
+<pre><code class="language-bash">WARN swReactorThread_onReceive_http_request: http header is too long.</code></pre>
+<p><a name="POST文件上传"></a></p>
+<h3>POST文件上传</h3>
+<p>最大尺寸受到 <a href="/server/setting?id=package_max_length">package_max_length</a> 配置项限制，默认为2M，可以调用 <a href="/server/methods?id=set">Server-&gt;set</a> 传入新的值修改尺寸。Swoole底层是全内存的，因此如果设置过大可能会导致大量并发请求将服务器资源耗尽。
+计算方法：<code>最大内存占用</code> = <code>最大并发请求数</code> * <code>package_max_length</code> </p></li>
+</ol></li>
+</ul>
+</blockquote>
+</body>
+</html>

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>WebSocket服务器</h1>
+<p>?&gt; 完全协程化的WebSocket服务器实现，继承自<a href="/coroutine/http_server">Coroutine\Http\Server</a>，底层提供了对<code>WebSocket</code>协议的支持，在此不再赘述，只说差异。
+!&gt; 此章节在v4.4.13后可用。
+<a name="完整示例"></a></p>
+<h2>完整示例</h2>
+<pre><code class="language-php">use Swoole\Http\Request;
+use Swoole\Http\Response;
+use Swoole\WebSocket\CloseFrame;
+use Swoole\Coroutine\Http\Server;
+use function Swoole\Coroutine\run;
+run(function () {
+    $server = new Server('127.0.0.1', 9502, false);
+    $server-&gt;handle('/websocket', function (Request $request, Response $ws) {
+        $ws-&gt;upgrade();
+        while (true) {
+            $frame = $ws-&gt;recv();
+            if ($frame === '') {
+                $ws-&gt;close();
+                break;
+            } else if ($frame === false) {
+                echo 'errorCode: ' . swoole_last_error() . "\n";
+                $ws-&gt;close();
+                break;
+            } else {
+                if ($frame-&gt;data == 'close' || get_class($frame) === CloseFrame::class) {
+                    $ws-&gt;close();
+                    break;
+                }
+                $ws-&gt;push("Hello {$frame-&gt;data}!");
+                $ws-&gt;push("How are you, {$frame-&gt;data}?");
+            }
+        }
+    });
+    $server-&gt;handle('/', function (Request $request, Response $response) {
+        $response-&gt;end(&lt;&lt;&lt;HTML
+    &lt;h1&gt;Swoole WebSocket Server&lt;/h1&gt;
+    &lt;script&gt;
+var wsServer = 'ws://127.0.0.1:9502/websocket';
+var websocket = new WebSocket(wsServer);
+websocket.onopen = function (evt) {
+    console.log("Connected to WebSocket server.");
+    websocket.send('hello');
+};
+websocket.onclose = function (evt) {
+    console.log("Disconnected");
+};
+websocket.onmessage = function (evt) {
+    console.log('Retrieved data from server: ' + evt.data);
+};
+websocket.onerror = function (evt, e) {
+    console.log('Error occured: ' + evt.data);
+};
+&lt;/script&gt;
+HTML
+        );
+    });
+    $server-&gt;start();
+});</code></pre>
+<p><a name="群发示例"></a></p>
+<h3>群发示例</h3>
+<pre><code class="language-php">use Swoole\Http\Request;
+use Swoole\Http\Response;
+use Swoole\WebSocket\CloseFrame;
+use Swoole\Coroutine\Http\Server;
+use function Swoole\Coroutine\run;
+run(function () {
+    $server = new Server('127.0.0.1', 9502, false);
+    $server-&gt;handle('/websocket', function (Request $request, Response $ws) {
+        $ws-&gt;upgrade();
+        global $wsObjects;
+        $objectId = spl_object_id($ws);
+        $wsObjects[$objectId] = $ws;
+        while (true) {
+            $frame = $ws-&gt;recv();
+            if ($frame === '') {
+                unset($wsObjects[$objectId]);
+                $ws-&gt;close();
+                break;
+            } else if ($frame === false) {
+                echo 'errorCode: ' . swoole_last_error() . "\n";
+                $ws-&gt;close();
+                break;
+            } else {
+                if ($frame-&gt;data == 'close' || get_class($frame) === CloseFrame::class) {
+                    unset($wsObjects[$objectId]);
+                    $ws-&gt;close();
+                    break;
+                }
+                foreach ($wsObjects as $obj) {
+                    $obj-&gt;push("Server：{$frame-&gt;data}");
+                }
+            }
+        }
+    });
+    $server-&gt;start();
+});</code></pre>
+<p><a name="处理流程"></a></p>
+<h2>处理流程</h2>
+<ul>
+<li><code>$ws-&gt;upgrade()</code>：向客户端发送<code>WebSocket</code>握手消息</li>
+<li><code>while(true)</code>循环处理消息的接收和发送</li>
+<li><code>$ws-&gt;recv()</code>接收<code>WebSocket</code>消息帧</li>
+<li><code>$ws-&gt;push()</code>向对端发送数据帧</li>
+<li><code>$ws-&gt;close()</code>关闭连接
+!&gt; <code>$ws</code>是一个<code>Swoole\Http\Response</code>对象，具体每个方法使用方法参考下文。
+<a name="方法"></a>
+<h2>方法</h2>
+<p><a name="upgrade"></a></p>
+<h3>upgrade()</h3>
+<p>发送<code>WebSocket</code>握手成功信息。
+!&gt; 此方法不要用于<a href="/http_server">异步风格</a>的服务器中</p>
+<pre><code class="language-php">Swoole\Http\Response-&gt;upgrade(): bool</code></pre>
+<p><a name="recv"></a></p>
+<h3>recv()</h3>
+<p>接收<code>WebSocket</code>消息。
+!&gt; 此方法不要用于<a href="/http_server">异步风格</a>的服务器中，调用<code>recv</code>方法时会<a href="/coroutine?id=协程调度">挂起</a>当前协程，等待数据到来时再恢复协程的执行</p>
+<pre><code class="language-php">Swoole\Http\Response-&gt;recv(float $timeout = 0): Swoole\WebSocket\Frame | false | string</code></pre></li>
+<li><strong>返回值</strong>
+<ul>
+<li>成功收到消息，返回<code>Swoole\WebSocket\Frame</code>对象，请参考 <a href="/websocket_server?id=swoolewebsocketframe">Swoole\WebSocket\Frame</a></li>
+<li>失败返回<code>false</code>，请使用 <a href="/functions?id=swoole_last_error">swoole_last_error()</a> 获取错误码</li>
+<li>连接关闭返回空字符串</li>
+<li>返回值处理可参考 <a href="/coroutine/ws_server?id=群发示例">群发示例</a>
+<a name="push"></a>
+<h3>push()</h3>
+<p>发送<code>WebSocket</code>数据帧。
+!&gt; 此方法不要用于<a href="/http_server">异步风格</a>的服务器中，发送大数据包时，需要监听可写，因此会引起多次<a href="/coroutine?id=协程调度">协程切换</a></p>
+<pre><code class="language-php">Swoole\Http\Response-&gt;push(string|object $data, int $opcode = WEBSOCKET_OPCODE_TEXT, bool $finish = true): bool</code></pre></li>
+</ul></li>
+<li><strong>参数</strong>
+!&gt; 若传入的<code>$data</code>是 <a href="/websocket_server?id=swoolewebsocketframe">Swoole\WebSocket\Frame</a> 对象则其后续参数会被忽略，支持发送各种帧类型
+<ul>
+<li><strong><code>string|object $data</code></strong></li>
+<li><strong>功能</strong>：要发送的内容</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong><code>int $opcode</code></strong></li>
+<li><strong>功能</strong>：指定发送数据内容的格式 【默认为文本。发送二进制内容<code>$opcode</code>参数需要设置为<code>WEBSOCKET_OPCODE_BINARY</code>】</li>
+<li><strong>默认值</strong>：<code>WEBSOCKET_OPCODE_TEXT</code></li>
+<li><strong>其它值</strong>：<code>WEBSOCKET_OPCODE_BINARY</code></li>
+<li><strong><code>bool $finish</code></strong></li>
+<li><strong>功能</strong>：是否发送完成</li>
+<li><strong>默认值</strong>：<code>true</code></li>
+<li><strong>其它值</strong>：<code>false</code>
+<a name="close"></a>
+<h3>close()</h3>
+<p>关闭<code>WebSocket</code>连接。
+!&gt; 此方法不要用于<a href="/http_server">异步风格</a>的服务器中，在v4.4.15以前版本会误报<code>Warning</code>忽略即可。</p>
+<pre><code class="language-php">Swoole\Http\Response-&gt;close(): bool</code></pre>
+<p>此方法会直接切断 <code>TCP</code> 连接，不会发送 <code>Close</code> 帧，这与 <code>WebSocket\Server::disconnect()</code> 方法不同。
+可以在关闭连接前使用 <code>push()</code> 方法发送 <code>Close</code> 帧，主动通知客户端。</p>
+<pre><code class="language-php">$frame = new Swoole\WebSocket\CloseFrame;
+$frame-&gt;reason = 'close';
+$ws-&gt;push($frame);
+$ws-&gt;close();</code></pre></li>
+</ul></li>
+</ul>
+</body>
+</html>

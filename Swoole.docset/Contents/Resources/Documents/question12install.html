@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>安装问题</h1>
+<p><a name="升级Swoole版本"></a></p>
+<h2>升级Swoole版本</h2>
+<p>可以使用pecl进行安装和升级</p>
+<pre><code class="language-shell">pecl upgrade swoole</code></pre>
+<p>也可以直接从github/gitee/pecl下载一个新版本，重新安装编译。</p>
+<ul>
+<li>更新Swoole版本，不需要卸载或者删除旧版本Swoole，安装过程会覆盖旧版本</li>
+<li>Swoole编译安装后没有额外的文件，仅有一个swoole.so，如果是在其他机器编译好的二进制版本。直接互相覆盖swoole.so，即可实现版本切换  </li>
+<li>git clone拉取的代码，执行git pull更新代码后，务必要再次执行<code>phpize</code>、<code>./configure</code>、<code>make clean</code>、<code>make install</code></li>
+<li>也可以使用对应的docker去升级对应的Swoole版本
+<a name="在phpinfo中有在php -m中没有"></a>
+<h2>在phpinfo中有在php -m中没有</h2>
+<p>先确认CLI模式下是否有，命令行输入<code>php --ri swoole</code>
+如果输出了Swoole的扩展信息就说明你安装成功了!
+<strong>99.999%的人在此步成功就可以直接使用swoole了</strong>
+不需要管<code>php -m</code>或者<code>phpinfo</code>网页打印出来是否有swoole
+因为Swoole是运行在cli模式下的，在传统的fpm模式下功能十分有限
+fpm模式下任何异步/协程等主要功能都<strong>不可以使用</strong>，99.999%的人都不能在fpm模式下得到想要的东西，却纠结为什么fpm模式下没有扩展信息
+<strong>先确定你是否真正理解了Swoole的运行模式，再继续追究安装信息问题！</strong>
+<a name="原因"></a></p>
+<h3>原因</h3>
+<p>编译安装完Swoole后，在<code>php-fpm/apache</code>的<code>phpinfo</code>页面中有，在命令行的<code>php -m</code>中没有，原因可能是<code>cli/php-fpm/apache</code>使用不同的php.ini配置
+<a name="解决办法"></a></p>
+<h3>解决办法</h3>
+<ol>
+<li>确认php.ini的位置
+在<code>cli</code>命令行下执行<code>php -i | grep php.ini</code>或者<code>php --ini</code>找到php.ini的绝对路径
+<code>php-fpm/apache</code>则是查看<code>phpinfo</code>页面找到php.ini的绝对路径</li>
+<li>查看对应php.ini是否有<code>extension=swoole.so</code>
+<pre><code class="language-shell">cat /path/to/php.ini | grep swoole.so</code></pre>
+<p><a name="pcre.h: No such file or directory"></a></p>
+<h2>pcre.h: No such file or directory</h2>
+<p>编译Swoole扩展出现</p>
+<pre><code class="language-bash">fatal error: pcre.h: No such file or directory</code></pre>
+<p>原因是缺少pcre，需要安装libpcre
+<a name="ubuntu/debian"></a></p>
+<h3>ubuntu/debian</h3>
+<pre><code class="language-shell">sudo apt-get install libpcre3 libpcre3-dev</code></pre>
+<p><a name="centos/redhat"></a></p>
+<h3>centos/redhat</h3>
+<pre><code class="language-shell">sudo yum install pcre-devel</code></pre>
+<p><a name="其他Linux"></a></p>
+<h3>其他Linux</h3>
+<p>到<a href="http://www.pcre.org/">PCRE官方网站</a>下载源码包，编译安装<code>pcre</code>库。
+安装好<code>PCRE</code>库后需要重新编译安装<code>swoole</code>，然后使用<code>php --ri swoole</code>查看<code>swoole</code>扩展相关信息中是否有<code>pcre =&gt; enabled</code>
+<a name="'__builtin_saddl_overflow' was not declared in this scope"></a></p>
+<h2>'__builtin_saddl_overflow' was not declared in this scope</h2>
+<pre><code>error: '__builtin_saddl_overflow' was not declared in this scope
+if (UNEXPECTED(__builtin_saddl_overflow(Z_LVAL_P(op1), 1, &amp;lresult))) {
+note: in definition of macro 'UNEXPECTED'
+# define UNEXPECTED(condition) __builtin_expect(!!(condition), 0)</code></pre>
+<p>这是一个已知的问题。问题是CentOS上的默认gcc缺少必需的定义，即使在升级gcc之后，PECL也会找到旧的编译器。
+要安装驱动程序，必须首先通过安装devtoolset集合来升级gcc，如下所示：</p>
+<pre><code class="language-shell">sudo yum install centos-release-scl
+sudo yum install devtoolset-7
+scl enable devtoolset-7 bash</code></pre>
+<p><a name="fatal error: 'openssl/ssl.h' file not found"></a></p>
+<h2>fatal error: 'openssl/ssl.h' file not found</h2>
+<p>请在编译时增加<a href="/environment?id=通用参数">--with-openssl-dir</a>参数指定 openssl 库的路径
+!&gt; 使用<a href="/environment?id=pecl">pecl</a>安装Swoole时，如果要开启openssl也可以增加<a href="/environment?id=通用参数">--with-openssl-dir</a>参数，如：<code>enable openssl support? [no] : yes --with-openssl-dir=/opt/openssl/</code>
+<a name="make或make install无法执行或编译错误"></a></p>
+<h2>make或make install无法执行或编译错误</h2>
+<p>NOTICE: PHP message: PHP Warning:  PHP Startup: swoole: Unable to initialize module<br />
+Module compiled with module API=20090626<br />
+PHP    compiled with module API=20121212<br />
+These options need to match<br />
+in Unknown on line 0  </p></li>
+</ol></li>
+</ul>
+<p>PHP版本和编译时使用的<code>phpize</code>和<code>php-config</code>不对应，需要使用绝对路径来进行编译，以及使用绝对路径来执行PHP。</p>
+<pre><code class="language-shell">/usr/local/php-5.4.17/bin/phpize
+./configure --with-php-config=/usr/local/php-5.4.17/bin/php-config
+/usr/local/php-5.4.17/bin/php server.php</code></pre>
+<p><a name="安装xdebug"></a></p>
+<h2>安装xdebug</h2>
+<pre><code class="language-shell">git clone git@github.com:swoole/sdebug.git -b sdebug_2_9 --depth=1
+cd sdebug
+phpize
+./configure
+make clean
+make
+make install
+#如果你的phpize、php-config等配置文件都是默认的，那么可以直接执行
+./rebuild.sh</code></pre>
+<p>修改php.ini加载扩展，加入以下信息</p>
+<pre><code class="language-ini">zend_extension=xdebug.so
+xdebug.remote_enable=1
+xdebug.remote_autostart=1
+xdebug.remote_host=localhost
+xdebug.remote_port=8000
+xdebug.idekey="xdebug"</code></pre>
+<p>查看是否加载成功</p>
+<pre><code class="language-shell">php --ri sdebug</code></pre>
+<p>&lt;a name=&quot;configure: error: C preprocessor &quot;/lib/cpp&quot; fails sanity check&quot;&gt;</a></p>
+<h2>configure: error: C preprocessor &quot;/lib/cpp&quot; fails sanity check</h2>
+<p>安装时如果报错</p>
+<pre><code class="language-shell">configure: error: C preprocessor "/lib/cpp" fails sanity check</code></pre>
+<p>表示缺少必要的依赖库，可使用如下命令安装</p>
+<pre><code class="language-shell">yum install glibc-headers
+yum install gcc-c++</code></pre>
+<p><a name="PHP7.4.11+编译新版本的Swoole时报错asm goto :id=asm_goto"></a></p>
+<h2>PHP7.4.11+编译新版本的Swoole时报错asm goto :id=asm_goto</h2>
+<p>在 MacOS 中使用PHP7.4.11+编译新版本的Swoole时，发现形如以下报错：</p>
+<pre><code class="language-shell">/usr/local/Cellar/php/7.4.12/include/php/Zend/zend_operators.h:523:10: error: 'asm goto' constructs are not supported yet
+        __asm__ goto(
+                ^
+/usr/local/Cellar/php/7.4.12/include/php/Zend/zend_operators.h:586:10: error: 'asm goto' constructs are not supported yet
+        __asm__ goto(
+                ^
+/usr/local/Cellar/php/7.4.12/include/php/Zend/zend_operators.h:656:10: error: 'asm goto' constructs are not supported yet
+        __asm__ goto(
+                ^
+/usr/local/Cellar/php/7.4.12/include/php/Zend/zend_operators.h:766:10: error: 'asm goto' constructs are not supported yet
+        __asm__ goto(
+                ^
+4 errors generated.
+make: *** [ext-src/php_swoole.lo] Error 1
+ERROR: `make' failed</code></pre>
+<p>解决方法：修改<code>/usr/local/Cellar/php/7.4.12/include/php/Zend/zend_operators.h</code>源码，注意修改为自己对应的头文件路径；
+将<code>ZEND_USE_ASM_ARITHMETIC</code>修改成恒定为<code>0</code>，即保留下述代码中<code>else</code>的内容</p>
+<pre><code class="language-c">#if defined(HAVE_ASM_GOTO) &amp;&amp; !__has_feature(memory_sanitizer)
+# define ZEND_USE_ASM_ARITHMETIC 1
+#else
+# define ZEND_USE_ASM_ARITHMETIC 0
+#endif</code></pre>
+<p><a name="fatal error: curl/curl.h: No such file or directory :id=libcurl"></a></p>
+<h2>fatal error: curl/curl.h: No such file or directory :id=libcurl</h2>
+<p>打开<code>--enable-swoole-curl</code>选项后，编译Swoole扩展出现</p>
+<pre><code class="language-bash">fatal error: curl/curl.h: No such file or directory</code></pre>
+<p>原因是缺少curl依赖，需要安装libcurl
+<a name="ubuntu/debian"></a></p>
+<h3>ubuntu/debian</h3>
+<pre><code class="language-shell">sudo apt-get install libcurl4-openssl-dev</code></pre>
+<p><a name="centos/redhat"></a></p>
+<h3>centos/redhat</h3>
+<pre><code class="language-shell">sudo yum install libcurl-devel</code></pre>
+<p><a name="alpine"></a></p>
+<h3>alpine</h3>
+<pre><code class="language-shell">apk add curl-dev</code></pre>
+<p><a name="fatal error: ares.h: No such file or directory :id=libcares"></a></p>
+<h2>fatal error: ares.h: No such file or directory :id=libcares</h2>
+<p>打开<code>--enable-cares</code>选项后，编译Swoole扩展出现</p>
+<pre><code class="language-bash">fatal error: ares.h: No such file or directory</code></pre>
+<p>原因是缺少 c-ares 依赖，需要安装 libcares
+<a name="ubuntu/debian"></a></p>
+<h3>ubuntu/debian</h3>
+<pre><code class="language-shell">sudo apt-get install libc-ares-dev</code></pre>
+<p><a name="centos/redhat"></a></p>
+<h3>centos/redhat</h3>
+<pre><code class="language-shell">sudo yum install c-ares-devel</code></pre>
+<p><a name="alpine"></a></p>
+<h3>alpine</h3>
+<pre><code class="language-shell">apk add c-ares-dev</code></pre>
+<p><a name="MacOs"></a></p>
+<h3>MacOs</h3>
+<pre><code class="language-shell">brew install c-ares</code></pre>
+</body>
+</html>

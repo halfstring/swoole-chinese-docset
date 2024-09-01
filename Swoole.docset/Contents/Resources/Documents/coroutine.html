@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>Coroutine <!-- {docsify-ignore-all} --></h1>
+<p>本节介绍一些协程基本概念和常见问题，也可以通过 <a href="https://course.swoole-cloud.com/course-video/6">Swoole视频教程</a> 观看。
+从4.0版本开始<code>Swoole</code>提供了完整的<code>协程（Coroutine）</code>+ <code>通道（Channel）</code>特性，带来全新的<code>CSP</code>编程模型。</p>
+<ol>
+<li>开发者可以无感知的用同步的代码编写方式达到<a href="/learn?id=同步io异步io">异步IO</a>的效果和性能，避免了传统异步回调所带来的离散的代码逻辑和陷入多层回调中导致代码无法维护</li>
+<li>同时由于底层封装了协程，所以对比传统的<code>PHP</code>层协程框架，开发者不需要使用<a href="https://www.php.net/manual/zh/language.generators.syntax.php">yield</a>关键词来标识一个协程<code>IO</code>操作，所以不再需要对<code>yield</code>的语义进行深入理解以及对每一级的调用都修改为<code>yield</code>，这极大的提高了开发效率</li>
+<li>
+<p>提供了各种类型完善的<a href="/coroutine_client/init">协程客户端</a>，可以满足大部分开发者的需求。
+<a name="什么是协程"></a></p>
+<h2>什么是协程</h2>
+<p>协程可以简单理解为线程，只不过这个线程是用户态的，不需要操作系统参与，创建销毁和切换的成本非常低，和线程不同的是协程没法利用多核CPU的，想利用多核CPU需要依赖<code>Swoole</code>的多进程模型。
+<a name="什么是Channel"></a></p>
+<h2>什么是Channel</h2>
+<p><code>Channel</code>可以理解为消息队列，只不过是协程间的消息队列，多个协程通过<code>push</code>和<code>pop</code>操作队列中的生产消息和消费消息，用来发送或者接收数据进行协程之间的通讯。需要注意的是<code>Channel</code>是没法跨进程的，只能一个<code>Swoole</code>进程里的协程间通讯，最典型的应用是<a href="/coroutine/conn_pool">连接池</a>和<a href="/coroutine/multi_call">并发调用</a>。
+<a name="什么是协程容器"></a></p>
+<h2>什么是协程容器</h2>
+<p>使用<code>Coroutine::create</code>或<code>go()</code>方法创建协程(参考<a href="/other/alias?id=协程短名称">别名小节</a>)，在创建的协程中才能使用协程<code>API</code>，而协程必须创建在协程容器里面，参考<a href="/coroutine/scheduler">协程容器</a>。
+<a name="协程调度"></a></p>
+<h2>协程调度</h2>
+<p>这里将尽量通俗的讲述什么是协程调度，首先每个协程可以简单的理解为一个线程，大家知道多线程是为了提高程序的并发，同样的多协程也是为了提高并发。
+用户的每个请求都会创建一个协程，请求结束后协程结束，如果同时有成千上万的并发请求，某一时刻某个进程内部会存在成千上万的协程，那么CPU资源是有限的，到底执行哪个协程的代码？
+决定到底让CPU执行哪个协程的代码的决断过程就是<code>协程调度</code>，<code>Swoole</code>的调度策略又是怎么样的呢？</p>
+<ul>
+<li>
+<p>首先，在执行某个协程代码的过程中发现这行代码遇到了<code>Co::sleep()</code>或者产生了网络<code>IO</code>，例如<code>MySQL-&gt;query()</code>，这肯定是一个耗时的过程，<code>Swoole</code>就会把这个MySQL连接的Fd放到<a href="/learn?id=什么是eventloop">EventLoop</a>中。</p>
+</li>
+<li>
+<p>然后让出这个协程的CPU给其他协程使用：<strong>即<code>yield</code>(挂起)</strong></p>
+</li>
+<li>
+<p>等待MySQL数据返回后再继续执行这个协程：<strong>即<code>resume</code>(恢复)</strong></p>
+</li>
+<li>
+<p>其次，如果协程的代码有CPU密集型代码，可以开启<a href="/other/config">enable_preemptive_scheduler</a>，Swoole会强行让这个协程让出CPU。
+<a name="父子协程优先级"></a></p>
+<h2>父子协程优先级</h2>
+<p>优先执行子协程(即<code>go()</code>里面的逻辑)，直到发生协程<code>yield</code>(Co::sleep()处)，然后<a href="/coroutine?id=协程调度">协程调度</a>到外层协程。</p>
+<pre><code class="language-php">use Swoole\Coroutine;
+use function Swoole\Coroutine\run;
+echo "main start\n";
+run(function () {
+echo "coro " . Coroutine::getcid() . " start\n";
+Coroutine::create(function () {
+echo "coro " . Coroutine::getcid() . " start\n";
+Coroutine::sleep(.2);
+echo "coro " . Coroutine::getcid() . " end\n";
+});
+echo "coro " . Coroutine::getcid() . " do not wait children coroutine\n";
+Coroutine::sleep(.1);
+echo "coro " . Coroutine::getcid() . " end\n";
+});
+echo "end\n";
+/*
+main start
+coro 1 start
+coro 2 start
+coro 1 do not wait children coroutine
+coro 1 end
+coro 2 end
+end
+*/</code></pre>
+</li>
+</ul>
+</li>
+</ol>
+<p><a name="注意事项"></a></p>
+<h2>注意事项</h2>
+<p>在使用 Swoole 编程前应该注意的地方：
+<a name="全局变量"></a></p>
+<h3>全局变量</h3>
+<p>协程使得原有的异步逻辑同步化，但是在协程间的切换是隐式发生的，所以在协程切换的前后不能保证全局变量以及<code>static</code>变量的一致性。
+在 <code>PHP-FPM</code> 下可以通过全局变量获取到的请求参数，服务器的参数等，在 <code>Swoole</code> 内，<strong>无法</strong> 通过 <code>$_GET/$_POST/$_REQUEST/$_SESSION/$_COOKIE/$_SERVER</code>等以<code>$_</code>开头的变量获取到任何属性参数。
+可以使用<a href="/coroutine/coroutine?id=getcontext">context</a>用协程id做隔离，实现全局变量的隔离。
+<a name="多协程共享TCP连接"></a></p>
+<h3>多协程共享TCP连接</h3>
+<p><a href="/question/use?id=client-has-already-been-bound-to-another-coroutine">参考</a></p>
+</body>
+</html>

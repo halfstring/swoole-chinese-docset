@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>连接池</h1>
+<p>Swoole 从<code>v4.4.13</code>版本开始提供了内置协程连接池，本章节会说明如何使用对应的连接池。
+<a name="ConnectionPool"></a></p>
+<h2>ConnectionPool</h2>
+<p><a href="https://github.com/swoole/library/blob/master/src/core/ConnectionPool.php">ConnectionPool</a>，原始连接池，基于Channel自动调度，支持传入任意构造器(<code>callable</code>)，构造器需返回一个连接对象</p>
+<ul>
+<li><code>get</code>方法获取连接（连接池未满时会创建新的连接）</li>
+<li><code>put</code>方法回收连接</li>
+<li><code>fill</code>方法填充连接池（提前创建连接）</li>
+<li><code>close</code>关闭连接池
+!&gt; <a href="https://simps.io">Simps 框架</a> 的 <a href="https://github.com/simple-swoole/db">DB 组件</a> 基于 Database 进行封装，实现了自动归还连接、事务等功能，可以进行参考或直接使用，具体可查看<a href="https://simps.io/#/zh-cn/database/mysql">Simps 文档</a>
+<a name="Database"></a>
+<h2>Database</h2>
+<p>各种数据库连接池和对象代理的高级封装，支持自动断线重连。目前包含PDO，Mysqli，Redis三种类型的数据库支持：</p></li>
+<li><code>PDOConfig</code>, <code>PDOProxy</code>, <code>PDOPool</code></li>
+<li><code>MysqliConfig</code>, <code>MysqliProxy</code>, <code>MysqliPool</code></li>
+<li>
+<p><code>RedisConfig</code>, <code>RedisProxy</code>, <code>RedisPool</code>
+!&gt; 1. MySQL断线重连可自动恢复大部分连接上下文(fetch模式，已设置的attribute，已编译的Statement等等)，但诸如事务等上下文无法恢复，若处于事务中的连接断开，将会抛出异常，请自行评估重连的可靠性；  </p>
+<ol start="2">
+<li>将处于事务中的连接归还给连接池是未定义行为，开发者需要自己保证归还的连接是可重用的；  </li>
+<li>若有连接对象出现异常不可重用，开发者需要调用<code>$pool-&gt;put(null);</code>归还一个空连接以保证连接池的数量平衡。
+<a name="PDOPool/MysqliPool/RedisPool :id=pool"></a>
+<h3>PDOPool/MysqliPool/RedisPool :id=pool</h3>
+<p>用于创建连接池对象，存在两个参数，分别为对应的Config对象和连接池size</p>
+<pre><code class="language-php">$pool = new \Swoole\Database\PDOPool(Swoole\Database\PDOConfig $config, int $size);
+$pool = new \Swoole\Database\MysqliPool(Swoole\Database\MysqliConfig $config, int $size);
+$pool = new \Swoole\Database\RedisPool(Swoole\Database\RedisConfig $config, int $size);</code></pre>
+<ul>
+<li><strong>参数</strong> </li>
+<li><strong><code>$config</code></strong></li>
+<li><strong>功能</strong>：对应的Config对象，具体使用可参考下文的<a href="/coroutine/conn_pool?id=使用示例">使用示例</a></li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：【<a href="https://github.com/swoole/library/blob/master/src/core/Database/PDOConfig.php">PDOConfig</a>、<a href="https://github.com/swoole/library/blob/master/src/core/Database/RedisConfig.php">RedisConfig</a>、<a href="https://github.com/swoole/library/blob/master/src/core/Database/MysqliConfig.php">MysqliConfig</a>】</li>
+</ul></li>
+</ol>
+<ul>
+<li><strong><code>int $size</code></strong>
+<ul>
+<li><strong>功能</strong>：连接池数量</li>
+<li><strong>默认值</strong>：64</li>
+<li><strong>其它值</strong>：无
+<a name="使用示例"></a>
+<h2>使用示例</h2>
+<p><a name="PDO"></a></p>
+<h3>PDO</h3>
+<pre><code class="language-php">&lt;?php
+declare(strict_types=1);
+use Swoole\Coroutine;
+use Swoole\Database\PDOConfig;
+use Swoole\Database\PDOPool;
+use Swoole\Runtime;
+const N = 1024;
+Runtime::enableCoroutine();
+$s = microtime(true);
+Coroutine\run(function () {
+$pool = new PDOPool((new PDOConfig)
+-&gt;withHost('127.0.0.1')
+-&gt;withPort(3306)
+// -&gt;withUnixSocket('/tmp/mysql.sock')
+-&gt;withDbName('test')
+-&gt;withCharset('utf8mb4')
+-&gt;withUsername('root')
+-&gt;withPassword('root')
+);
+for ($n = N; $n--;) {
+Coroutine::create(function () use ($pool) {
+$pdo = $pool-&gt;get();
+$statement = $pdo-&gt;prepare('SELECT ? + ?');
+if (!$statement) {
+    throw new RuntimeException('Prepare failed');
+}
+$a = mt_rand(1, 100);
+$b = mt_rand(1, 100);
+$result = $statement-&gt;execute([$a, $b]);
+if (!$result) {
+    throw new RuntimeException('Execute failed');
+}
+$result = $statement-&gt;fetchAll();
+if ($a + $b !== (int)$result[0][0]) {
+    throw new RuntimeException('Bad result');
+}
+$pool-&gt;put($pdo);
+});
+}
+});
+$s = microtime(true) - $s;
+echo 'Use ' . $s . 's for ' . N . ' queries' . PHP_EOL;</code></pre>
+<p><a name="Redis"></a></p>
+<h3>Redis</h3>
+<pre><code class="language-php">&lt;?php
+declare(strict_types=1);
+use Swoole\Coroutine;
+use Swoole\Database\RedisConfig;
+use Swoole\Database\RedisPool;
+use Swoole\Runtime;
+const N = 1024;
+Runtime::enableCoroutine();
+$s = microtime(true);
+Coroutine\run(function () {
+$pool = new RedisPool((new RedisConfig)
+-&gt;withHost('127.0.0.1')
+-&gt;withPort(6379)
+-&gt;withAuth('')
+-&gt;withDbIndex(0)
+-&gt;withTimeout(1)
+);
+for ($n = N; $n--;) {
+Coroutine::create(function () use ($pool) {
+$redis = $pool-&gt;get();
+$result = $redis-&gt;set('foo', 'bar');
+if (!$result) {
+    throw new RuntimeException('Set failed');
+}
+$result = $redis-&gt;get('foo');
+if ($result !== 'bar') {
+    throw new RuntimeException('Get failed');
+}
+$pool-&gt;put($redis);
+});
+}
+});
+$s = microtime(true) - $s;
+echo 'Use ' . $s . 's for ' . (N * 2) . ' queries' . PHP_EOL;</code></pre>
+<p><a name="Mysqli"></a></p>
+<h3>Mysqli</h3>
+<pre><code class="language-php">&lt;?php
+declare(strict_types=1);
+use Swoole\Coroutine;
+use Swoole\Database\MysqliConfig;
+use Swoole\Database\MysqliPool;
+use Swoole\Runtime;
+const N = 1024;
+Runtime::enableCoroutine();
+$s = microtime(true);
+Coroutine\run(function () {
+$pool = new MysqliPool((new MysqliConfig)
+-&gt;withHost('127.0.0.1')
+-&gt;withPort(3306)
+// -&gt;withUnixSocket('/tmp/mysql.sock')
+-&gt;withDbName('test')
+-&gt;withCharset('utf8mb4')
+-&gt;withUsername('root')
+-&gt;withPassword('root')
+);
+for ($n = N; $n--;) {
+Coroutine::create(function () use ($pool) {
+$mysqli = $pool-&gt;get();
+$statement = $mysqli-&gt;prepare('SELECT ? + ?');
+if (!$statement) {
+    throw new RuntimeException('Prepare failed');
+}
+$a = mt_rand(1, 100);
+$b = mt_rand(1, 100);
+if (!$statement-&gt;bind_param('dd', $a, $b)) {
+    throw new RuntimeException('Bind param failed');
+}
+if (!$statement-&gt;execute()) {
+    throw new RuntimeException('Execute failed');
+}
+if (!$statement-&gt;bind_result($result)) {
+    throw new RuntimeException('Bind result failed');
+}
+if (!$statement-&gt;fetch()) {
+    throw new RuntimeException('Fetch failed');
+}
+if ($a + $b !== (int)$result) {
+    throw new RuntimeException('Bad result');
+}
+while ($statement-&gt;fetch()) {
+    continue;
+}
+$pool-&gt;put($mysqli);
+});
+}
+});
+$s = microtime(true) - $s;
+echo 'Use ' . $s . 's for ' . N . ' queries' . PHP_EOL;</code></pre></li>
+</ul></li>
+</ul>
+</li>
+</ul>
+</body>
+</html>

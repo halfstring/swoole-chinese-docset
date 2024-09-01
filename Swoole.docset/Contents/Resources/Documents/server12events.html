@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>事件</h1>
+<p>此节将介绍所有的Swoole的回调函数，每个回调函数都是一个PHP函数，对应一个事件。
+<a name="onStart"></a></p>
+<h2>onStart</h2>
+<p>?&gt; <strong>启动后在主进程（master）的主线程回调此函数</strong></p>
+<pre><code class="language-php">function onStart(Swoole\Server $server);</code></pre>
+<ul>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>Swoole\Server $server</code></strong>
+<ul>
+<li><strong>功能</strong>：Swoole\Server对象</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong>在此事件之前<code>Server</code>已进行了如下操作</strong></li>
+<li>启动创建完成<a href="/learn?id=manager进程">Manager 进程</a></li>
+<li>启动创建完成<a href="/learn?id=worker进程">Worker 子进程</a></li>
+<li>监听所有TCP/UDP/<a href="/learn?id=什么是IPC">unixSocket</a>端口，但未开始Accept连接和请求</li>
+<li>监听了定时器</li>
+<li><strong>接下来要执行</strong></li>
+<li>主<a href="/learn?id=reactor线程">Reactor</a>开始接收事件，客户端可以<code>connect</code>到<code>Server</code>
+<strong><code>onStart</code>回调中，仅允许<code>echo</code>、打印<code>Log</code>、修改进程名称。不得执行其他操作(不能调用<code>server</code>相关函数等操作，因为服务尚未就绪)。<code>onWorkerStart</code>和<code>onStart</code>回调是在不同进程中并行执行的，不存在先后顺序。</strong>
+可以在<code>onStart</code>回调中，将<code>$server-&gt;master_pid</code>和<code>$server-&gt;manager_pid</code>的值保存到一个文件中。这样可以编写脚本，向这两个<code>PID</code>发送信号来实现关闭和重启的操作。
+<code>onStart</code>事件在<code>Master</code>进程的主线程中被调用。
+!&gt; 在<code>onStart</code>中创建的全局资源对象不能在<code>Worker</code>进程中被使用，因为发生<code>onStart</code>调用时，<code>worker</code>进程已经创建好了<br />
+新创建的对象在主进程内，<code>Worker</code>进程无法访问到此内存区域<br />
+因此全局对象创建的代码需要放置在<code>Server::start</code>之前，典型的例子是<a href="/memory/table?id=完整示例">Swoole\Table</a></li>
+<li><strong>安全提示</strong>
+在<code>onStart</code>回调中可以使用异步和协程的API，但需要注意这可能会与<code>dispatch_func</code>和<code>package_length_func</code>存在冲突，<strong>请勿同时使用</strong>。
+请不要在<code>onStart</code>中启动定时器，如果在代码中执行了<code>Swoole\Server::shutdown()</code>操作，会因为始终有一个定时器在执行导致程序无法退出。
+<code>onStart</code>回调在<code>return</code>之前服务器程序不会接受任何客户端连接，因此可以安全地使用同步阻塞的函数。</li>
+<li><strong>BASE 模式</strong>
+<a href="/learn?id=swoole_base">SWOOLE_BASE</a>模式下没有<code>master</code>进程，因此不存在<code>onStart</code>事件，请不要在<code>BASE</code>模式中使用<code>onStart</code>回调函数。
+<pre><code>WARNING swReactorProcess_start: The onStart event with SWOOLE_BASE is deprecated</code></pre>
+<p><a name="onBeforeShutdown"></a></p>
+<h2>onBeforeShutdown</h2>
+<p>?&gt; <strong>此事件在<code>Server</code>正常结束前发生</strong>
+!&gt; Swoole版本 &gt;= <code>v4.8.0</code> 可用。在此事件中可以使用协程API。</p>
+<pre><code class="language-php">function onBeforeShutdown(Swoole\Server $server);</code></pre></li>
+<li><strong>参数</strong></li>
+<li><strong><code>Swoole\Server $server</code></strong>
+<ul>
+<li><strong>功能</strong>：Swoole\Server对象</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无
+<a name="onShutdown"></a>
+<h2>onShutdown</h2>
+<p>?&gt; <strong>此事件在<code>Server</code>正常结束时发生</strong></p>
+<pre><code class="language-php">function onShutdown(Swoole\Server $server);</code></pre></li>
+</ul></li>
+</ul></li>
+<li><strong>参数</strong>
+<ul>
+<li><strong><code>Swoole\Server $server</code></strong>
+<ul>
+<li><strong>功能</strong>：Swoole\Server对象</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+</ul></li>
+<li><strong>在此之前<code>Swoole\Server</code>已进行了如下操作</strong>
+<ul>
+<li>已关闭所有<a href="/learn?id=reactor线程">Reactor</a>线程、<code>HeartbeatCheck</code>线程、<code>UdpRecv</code>线程</li>
+<li>已关闭所有<code>Worker</code>进程、 <a href="/learn?id=taskworker进程">Task进程</a>、<a href="/server/methods?id=addprocess">User进程</a></li>
+<li>已<code>close</code>所有<code>TCP/UDP/UnixSocket</code>监听端口</li>
+<li>已关闭主<a href="/learn?id=reactor线程">Reactor</a>
+!&gt; 强制<code>kill</code>进程不会回调<code>onShutdown</code>，如<code>kill -9</code><br />
+需要使用<code>kill -15</code>来发送<code>SIGTERM</code>信号到主进程才能按照正常的流程终止<br />
+在命令行中使用<code>Ctrl+C</code>中断程序会立即停止，底层不会回调<code>onShutdown</code></li>
+</ul></li>
+<li><strong>注意事项</strong>
+!&gt; 请勿在<code>onShutdown</code>中调用任何异步或协程相关<code>API</code>，触发<code>onShutdown</code>时底层已销毁了所有事件循环设施；<br />
+此时已经不存在协程环境，如果开发者需要使用协程相关<code>API</code>需要手动调用<code>Co\run</code>来创建<a href="/coroutine?id=什么是协程容器">协程容器</a>。
+<a name="onWorkerStart"></a>
+<h2>onWorkerStart</h2>
+<p>?&gt; <strong>此事件在 Worker进程/ <a href="/learn?id=taskworker进程">Task进程</a> 启动时发生，这里创建的对象可以在进程生命周期内使用。</strong></p>
+<pre><code class="language-php">function onWorkerStart(Swoole\Server $server, int $workerId);</code></pre></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>Swoole\Server $server</code></strong>
+<ul>
+<li><strong>功能</strong>：Swoole\Server对象</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $workerId</code></strong>
+<ul>
+<li><strong>功能</strong>：<code>Worker</code> 进程 <code>id</code>（非进程的 PID）</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+</ul></li>
+<li><code>onWorkerStart/onStart</code>是并发执行的，没有先后顺序</li>
+<li>可以通过<code>$server-&gt;taskworker</code>属性来判断当前是<code>Worker</code>进程还是 <a href="/learn?id=taskworker进程">Task进程</a></li>
+<li>设置了<code>worker_num</code>和<code>task_worker_num</code>超过<code>1</code>时，每个进程都会触发一次<code>onWorkerStart</code>事件，可通过判断<a href="/server/properties?id=worker_id">$worker_id</a>区分不同的工作进程</li>
+<li>由 <code>worker</code> 进程向 <code>task</code> 进程发送任务，<code>task</code> 进程处理完全部任务之后通过<a href="/server/events?id=onfinish">onFinish</a>回调函数通知 <code>worker</code> 进程。例如，在后台操作向十万个用户群发通知邮件，操作完成后操作的状态显示为发送中，这时可以继续其他操作，等邮件群发完毕后，操作的状态自动改为已发送。
+下面的示例用于为 Worker 进程/ <a href="/learn?id=taskworker进程">Task进程</a>重命名。
+<pre><code class="language-php">$server-&gt;on('WorkerStart', function ($server, $worker_id){
+global $argv;
+if($worker_id &gt;= $server-&gt;setting['worker_num']) {
+    swoole_set_process_name("php {$argv[0]} task worker");
+} else {
+    swoole_set_process_name("php {$argv[0]} event worker");
+}
+});</code></pre>
+<p>如果想使用<a href="/server/methods?id=reload">Reload</a>机制实现代码重载入，必须在<code>onWorkerStart</code>中<code>require</code>你的业务文件，而不是在文件头部。在<code>onWorkerStart</code>调用之前已包含的文件，不会重新载入代码。
+可以将公用的、不易变的php文件放置到<code>onWorkerStart</code>之前。这样虽然不能重载入代码，但所有<code>Worker</code>是共享的，不需要额外的内存来保存这些数据。
+<code>onWorkerStart</code>之后的代码每个进程都需要在内存中保存一份</p></li>
+<li><code>$worker_id</code>表示这个<code>Worker</code>进程的<code>ID</code>，范围参考<a href="/server/properties?id=worker_id">$worker_id</a></li>
+<li><a href="/server/properties?id=worker_id">$worker_id</a>和进程<code>PID</code>没有任何关系，可使用<code>posix_getpid</code>函数获取<code>PID</code></li>
+<li><strong>协程支持</strong>
+<ul>
+<li>在<code>onWorkerStart</code>回调函数中会自动创建协程，所以<code>onWorkerStart</code>可以调用协程<code>API</code></li>
+</ul></li>
+<li><strong>注意</strong>
+!&gt; 发生致命错误或者代码中主动调用<code>exit</code>时，<code>Worker/Task</code>进程会退出，管理进程会重新创建新的进程。这可能导致死循环，不停地创建销毁进程
+<a name="onWorkerStop"></a>
+<h2>onWorkerStop</h2>
+<p>?&gt; <strong>此事件在<code>Worker</code>进程终止时发生。在此函数中可以回收<code>Worker</code>进程申请的各类资源。</strong></p>
+<pre><code class="language-php">function onWorkerStop(Swoole\Server $server, int $workerId);</code></pre></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>Swoole\Server $server</code></strong>
+<ul>
+<li><strong>功能</strong>：Swoole\Server对象</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $workerId</code></strong>
+<ul>
+<li><strong>功能</strong>：<code>Worker</code> 进程 <code>id</code>（非进程的 PID）</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+</ul></li>
+<li><strong>注意</strong>
+!&gt; -进程异常结束，如被强制<code>kill</code>、致命错误、<code>core dump</code>时无法执行<code>onWorkerStop</code>回调函数。<br />
+-请勿在<code>onWorkerStop</code>中调用任何异步或协程相关<code>API</code>，触发<code>onWorkerStop</code>时底层已销毁了所有<a href="/learn?id=什么是eventloop">事件循环</a>设施。
+<a name="onWorkerExit"></a>
+<h2>onWorkerExit</h2>
+<p>?&gt; <strong>仅在开启<a href="/server/setting?id=reload_async">reload_async</a>特性后有效。参见 <a href="/question/use?id=swoole如何正确的重启服务">如何正确的重启服务</a></strong></p>
+<pre><code class="language-php">function onWorkerExit(Swoole\Server $server, int $workerId);</code></pre></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>Swoole\Server $server</code></strong>
+<ul>
+<li><strong>功能</strong>：Swoole\Server对象</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $workerId</code></strong>
+<ul>
+<li><strong>功能</strong>：<code>Worker</code> 进程 <code>id</code>（非进程的 PID）</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+</ul></li>
+<li><strong>注意</strong>
+!&gt; -<code>Worker</code>进程未退出，<code>onWorkerExit</code>会持续触发<br />
+-<code>onWorkerExit</code>会在<code>Worker</code>进程内触发， <a href="/learn?id=taskworker进程">Task进程</a>中如果存在<a href="/learn?id=什么是eventloop">事件循环</a>也会触发<br />
+-在<code>onWorkerExit</code>中尽可能地移除/关闭异步的<code>Socket</code>连接，最终底层检测到<a href="/learn?id=什么是eventloop">事件循环</a>中事件监听的句柄数量为<code>0</code>时退出进程<br />
+-当进程没有事件句柄在监听时，进程结束时将不会回调此函数<br />
+-等待<code>Worker</code>进程退出后才会执行<code>onWorkerStop</code>事件回调
+<a name="onConnect"></a>
+<h2>onConnect</h2>
+<p>?&gt; <strong>有新的连接进入时，在worker进程中回调。</strong></p>
+<pre><code class="language-php">function onConnect(Swoole\Server $server, int $fd, int $reactorId);</code></pre></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>Swoole\Server $server</code></strong>
+<ul>
+<li><strong>功能</strong>：Swoole\Server对象</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $fd</code></strong>
+<ul>
+<li><strong>功能</strong>：连接的文件描述符</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $reactorId</code></strong>
+<ul>
+<li><strong>功能</strong>：连接所在的<a href="/learn?id=reactor线程">Reactor</a>线程<code>ID</code></li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+</ul></li>
+<li><strong>注意</strong>
+!&gt; <code>onConnect/onClose</code>这<code>2</code>个回调发生在<code>Worker</code>进程内，而不是主进程。<br />
+<code>UDP</code>协议下只有<a href="/server/events?id=onreceive">onReceive</a>事件，没有<code>onConnect/onClose</code>事件
+<ul>
+<li><strong><a href="/server/setting?id=dispatch_mode">dispatch_mode</a> = 1/3</strong>
+<ul>
+<li>在此模式下<code>onConnect/onReceive/onClose</code>可能会被投递到不同的进程。连接相关的<code>PHP</code>对象数据，无法实现在<a href="/server/events?id=onconnect">onConnect</a>回调初始化数据，<a href="/server/events?id=onclose">onClose</a>清理数据</li>
+<li><code>onConnect/onReceive/onClose</code>这3种事件可能会并发执行，可能会带来异常
+<a name="onReceive"></a>
+<h2>onReceive</h2>
+<p>?&gt; <strong>接收到数据时回调此函数，发生在<code>worker</code>进程中。</strong></p>
+<pre><code class="language-php">function onReceive(Swoole\Server $server, int $fd, int $reactorId, string $data);</code></pre></li>
+</ul></li>
+</ul></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>Swoole\Server $server</code></strong>
+<ul>
+<li><strong>功能</strong>：Swoole\Server对象</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $fd</code></strong>
+<ul>
+<li><strong>功能</strong>：连接的文件描述符</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $reactorId</code></strong>
+<ul>
+<li><strong>功能</strong>：<code>TCP</code>连接所在的<a href="/learn?id=reactor线程">Reactor</a>线程<code>ID</code></li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>string $data</code></strong>
+<ul>
+<li><strong>功能</strong>：收到的数据内容，可能是文本或者二进制内容</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+</ul></li>
+<li><strong>关于<code>TCP</code>协议下包完整性，参考<a href="/learn?id=tcp数据包边界问题">TCP数据包边界问题</a></strong>
+<ul>
+<li>使用底层提供的<code>open_eof_check/open_length_check/open_http_protocol</code>等配置可以保证数据包的完整性</li>
+<li>不使用底层的协议处理，在<a href="/server/events?id=onreceive">onReceive</a>后PHP代码中自行对数据分析，合并/拆分数据包。
+例如：代码中可以增加一个 <code>$buffer = array()</code>，使用<code>$fd</code>作为<code>key</code>，来保存上下文数据。 每次收到数据进行字符串拼接，<code>$buffer[$fd] .= $data</code>，然后在判断<code>$buffer[$fd]</code>字符串是否为一个完整的数据包。
+默认情况下，同一个<code>fd</code>会被分配到同一个<code>Worker</code>中，所以数据可以拼接起来。使用<a href="/server/setting?id=dispatch_mode">dispatch_mode</a> = 3时，请求数据是抢占式的，同一个<code>fd</code>发来的数据可能会被分到不同的进程，所以无法使用上述的数据包拼接方法。</li>
+</ul></li>
+<li><strong>多端口监听，参考<a href="/server/port">此节</a></strong>
+当主服务器设置了协议后，额外监听的端口默认会继承主服务器的设置。需要显式调用<code>set</code>方法来重新设置端口的协议。    
+<pre><code class="language-php">$server = new Swoole\Http\Server("127.0.0.1", 9501);
+$port2 = $server-&gt;listen('127.0.0.1', 9502, SWOOLE_SOCK_TCP);
+$port2-&gt;on('receive', function (Swoole\Server $server, $fd, $reactor_id, $data) {
+    echo "[#".$server-&gt;worker_id."]\tClient[$fd]: $data\n";
+});</code></pre>
+<p>这里虽然调用了<code>on</code>方法注册了<a href="/server/events?id=onreceive">onReceive</a>回调函数，但由于没有调用<code>set</code>方法覆盖主服务器的协议，新监听的<code>9502</code>端口依然使用<code>HTTP</code>协议。使用<code>telnet</code>客户端连接<code>9502</code>端口发送字符串时服务器不会触发<a href="/server/events?id=onreceive">onReceive</a>。</p></li>
+<li><strong>注意</strong>
+!&gt; 未开启自动协议选项，<a href="/server/events?id=onreceive">onReceive</a>单次收到的数据最大为<code>64K</code><br />
+开启了自动协议处理选项，<a href="/server/events?id=onreceive">onReceive</a>将收到完整的数据包，最大不超过 <a href="/server/setting?id=package_max_length">package_max_length</a><br />
+支持二进制格式，<code>$data</code>可能是二进制数据
+<a name="onPacket"></a>
+<h2>onPacket</h2>
+<p>?&gt; <strong>接收到<code>UDP</code>数据包时回调此函数，发生在<code>worker</code>进程中。</strong></p>
+<pre><code class="language-php">function onPacket(Swoole\Server $server, string $data, array $clientInfo);</code></pre></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>Swoole\Server $server</code></strong>
+<ul>
+<li><strong>功能</strong>：Swoole\Server对象</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>string $data</code></strong>
+<ul>
+<li><strong>功能</strong>：收到的数据内容，可能是文本或者二进制内容</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>array $clientInfo</code></strong>
+<ul>
+<li><strong>功能</strong>：客户端信息包括<code>address/port/server_socket</code>等多项客户端信息数据，<a href="/start/start_udp_server">参考 UDP 服务器</a></li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+</ul></li>
+<li><strong>注意</strong>
+!&gt; 服务器同时监听<code>TCP/UDP</code>端口时，收到<code>TCP</code>协议的数据会回调<a href="/server/events?id=onreceive">onReceive</a>，收到<code>UDP</code>数据包回调<code>onPacket</code>。 服务器设置的<code>EOF</code>或<code>Length</code>等自动协议处理(<a href="/learn?id=tcp数据包边界问题">参考TCP数据包边界问题</a>)，对<code>UDP</code>端口是无效的，因为<code>UDP</code>包本身存在消息边界，不需要额外的协议处理。
+<a name="onClose"></a>
+<h2>onClose</h2>
+<p>?&gt; <strong><code>TCP</code>客户端连接关闭后，在<code>Worker</code>进程中回调此函数。</strong></p>
+<pre><code class="language-php">function onClose(Swoole\Server $server, int $fd, int $reactorId);</code></pre></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>Swoole\Server $server</code></strong>
+<ul>
+<li><strong>功能</strong>：Swoole\Server对象</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $fd</code></strong>
+<ul>
+<li><strong>功能</strong>：连接的文件描述符</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $reactorId</code></strong>
+<ul>
+<li><strong>功能</strong>：来自哪个<code>reactor</code>线程，主动<code>close</code>关闭时为负数</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+</ul></li>
+<li><strong>提示</strong>
+<ul>
+<li><strong>主动关闭</strong>
+<ul>
+<li>当服务器主动关闭连接时，底层会设置此参数为<code>-1</code>，可以通过判断<code>$reactorId &lt; 0</code>来分辨关闭是由服务器端还是客户端发起的。</li>
+<li>只有在<code>PHP</code>代码中主动调用<code>close</code>方法被视为主动关闭</li>
+</ul></li>
+<li><strong>心跳检测</strong>
+<ul>
+<li><a href="/server/setting?id=heartbeat_check_interval">心跳检测</a>是由心跳检测线程通知关闭的, 关闭时<a href="/server/events?id=onclose">onClose</a>的<code>$reactorId</code>参数不为<code>-1</code></li>
+</ul></li>
+</ul></li>
+<li><strong>注意</strong>
+!&gt; -<a href="/server/events?id=onclose">onClose</a> 回调函数如果发生了致命错误，会导致连接泄漏。通过 <code>netstat</code> 命令会看到大量 <code>CLOSE_WAIT</code> 状态的 <code>TCP</code> 连接 ，<a href="https://course.swoole-cloud.com/course-video/4">参考Swoole视频教程</a><br />
+-无论由客户端发起<code>close</code>还是服务器端主动调用<code>$server-&gt;close()</code>关闭连接，都会触发此事件。因此只要连接关闭，就一定会回调此函数<br />
+-<a href="/server/events?id=onclose">onClose</a>中依然可以调用<a href="/server/methods?id=getClientInfo">getClientInfo</a>方法获取到连接信息，在<a href="/server/events?id=onclose">onClose</a>回调函数执行完毕后才会调用<code>close</code>关闭<code>TCP</code>连接<br />
+-这里回调<a href="/server/events?id=onclose">onClose</a>时表示客户端连接已经关闭，所以无需执行<code>$server-&gt;close($fd)</code>。代码中执行<code>$server-&gt;close($fd)</code>会抛出<code>PHP</code>错误警告。
+<a name="onTask"></a>
+<h2>onTask</h2>
+<p>?&gt; <strong>在<code>task</code>进程内被调用。<code>worker</code>进程可以使用<a href="/server/methods?id=task">task</a>函数向<code>task_worker</code>进程投递新的任务。当前的 <a href="/learn?id=taskworker进程">Task进程</a>在调用<a href="/server/events?id=ontask">onTask</a>回调函数时会将进程状态切换为忙碌，这时将不再接收新的Task，当<a href="/server/events?id=ontask">onTask</a>函数返回时会将进程状态切换为空闲然后继续接收新的<code>Task</code>。</strong></p>
+<pre><code class="language-php">function onTask(Swoole\Server $server, int $task_id, int $src_worker_id, mixed $data);</code></pre></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>Swoole\Server $server</code></strong>
+<ul>
+<li><strong>功能</strong>：Swoole\Server对象</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $task_id</code></strong>
+<ul>
+<li><strong>功能</strong>：执行任务的 <code>task</code> 进程 <code>id</code>【<code>$task_id</code>和<code>$src_worker_id</code>组合起来才是全局唯一的，不同的<code>worker</code>进程投递的任务<code>ID</code>可能会有相同】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $src_worker_id</code></strong>
+<ul>
+<li><strong>功能</strong>：投递任务的 <code>worker</code> 进程 <code>id</code>【<code>$task_id</code>和<code>$src_worker_id</code>组合起来才是全局唯一的，不同的<code>worker</code>进程投递的任务<code>ID</code>可能会有相同】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>mixed $data</code></strong>
+<ul>
+<li><strong>功能</strong>：任务的数据内容</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+</ul></li>
+<li><strong>提示</strong>
+<ul>
+<li><strong>v4.2.12起如果开启了 <a href="/server/setting?id=task_enable_coroutine">task_enable_coroutine</a> 则回调函数原型是</strong>
+<pre><code class="language-php">$server-&gt;on('Task', function (Swoole\Server $server, Swoole\Server\Task $task) {
+  var_dump($task);
+  $task-&gt;finish([123, 'hello']); //完成任务，结束并返回数据
+});</code></pre></li>
+<li><strong>返回执行结果到<code>worker</code>进程</strong>
+<ul>
+<li><strong>在<a href="/server/events?id=ontask">onTask</a>函数中 <code>return</code> 字符串，表示将此内容返回给 <code>worker</code> 进程。<code>worker</code> 进程中会触发 <a href="/server/events?id=onfinish">onFinish</a> 函数，表示投递的 <code>task</code> 已完成，当然你也可以通过 <code>Swoole\Server-&gt;finish()</code> 来触发 <a href="/server/events?id=onfinish">onFinish</a> 函数，而无需再 <code>return</code></strong></li>
+<li><code>return</code> 的变量可以是任意非 <code>null</code> 的 <code>PHP</code> 变量</li>
+</ul></li>
+</ul></li>
+<li><strong>注意</strong>
+!&gt; <a href="/server/events?id=ontask">onTask</a>函数执行时遇到致命错误退出，或者被外部进程强制<code>kill</code>，当前的任务会被丢弃，但不会影响其他正在排队的<code>Task</code>
+<a name="onFinish"></a>
+<h2>onFinish</h2>
+<p>?&gt; <strong>此回调函数在worker进程被调用，当<code>worker</code>进程投递的任务在<code>task</code>进程中完成时， <a href="/learn?id=taskworker进程">task进程</a>会通过<code>Swoole\Server-&gt;finish()</code>方法将任务处理的结果发送给<code>worker</code>进程。</strong></p>
+<pre><code class="language-php">function onFinish(Swoole\Server $server, int $task_id, mixed $data)</code></pre></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>Swoole\Server $server</code></strong>
+<ul>
+<li><strong>功能</strong>：Swoole\Server对象</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $task_id</code></strong>
+<ul>
+<li><strong>功能</strong>：执行任务的 <code>task</code> 进程 <code>id</code></li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>mixed $data</code></strong>
+<ul>
+<li><strong>功能</strong>：任务处理的结果内容</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+</ul></li>
+<li><strong>注意</strong>
+!&gt; - <a href="/learn?id=taskworker进程">task进程</a>的<a href="/server/events?id=ontask">onTask</a>事件中没有调用<code>finish</code>方法或者<code>return</code>结果，<code>worker</code>进程不会触发<a href="/server/events?id=onfinish">onFinish</a><br />
+-执行<a href="/server/events?id=onfinish">onFinish</a>逻辑的<code>worker</code>进程与下发<code>task</code>任务的<code>worker</code>进程是同一个进程
+<a name="onPipeMessage"></a>
+<h2>onPipeMessage</h2>
+<p>?&gt; <strong>当工作进程收到由 <code>$server-&gt;sendMessage()</code> 发送的<a href="/learn?id=什么是IPC">unixSocket</a>消息时会触发 <code>onPipeMessage</code> 事件。<code>worker/task</code> 进程都可能会触发 <code>onPipeMessage</code> 事件</strong></p>
+<pre><code class="language-php">function onPipeMessage(Swoole\Server $server, int $src_worker_id, mixed $message);</code></pre></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>Swoole\Server $server</code></strong>
+<ul>
+<li><strong>功能</strong>：Swoole\Server对象</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $src_worker_id</code></strong>
+<ul>
+<li><strong>功能</strong>：消息来自哪个<code>Worker</code>进程</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>mixed $message</code></strong>
+<ul>
+<li><strong>功能</strong>：消息内容，可以是任意PHP类型</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无
+<a name="onWorkerError"></a>
+<h2>onWorkerError</h2>
+<p>?&gt; <strong>当<code>Worker/Task</code>进程发生异常后会在<code>Manager</code>进程内回调此函数。</strong>
+!&gt; 此函数主要用于报警和监控，一旦发现Worker进程异常退出，那么很有可能是遇到了致命错误或者进程Core Dump。通过记录日志或者发送报警的信息来提示开发者进行相应的处理。</p>
+<pre><code class="language-php">function onWorkerError(Swoole\Server $server, int $worker_id, int $worker_pid, int $exit_code, int $signal);</code></pre></li>
+</ul></li>
+</ul></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>Swoole\Server $server</code></strong>
+<ul>
+<li><strong>功能</strong>：Swoole\Server对象</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $worker_id</code></strong>
+<ul>
+<li><strong>功能</strong>：异常 <code>worker</code> 进程的 <code>id</code></li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $worker_pid</code></strong>
+<ul>
+<li><strong>功能</strong>：异常 <code>worker</code> 进程的 <code>pid</code></li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $exit_code</code></strong>
+<ul>
+<li><strong>功能</strong>：退出的状态码，范围是 <code>0～255</code></li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $signal</code></strong>
+<ul>
+<li><strong>功能</strong>：进程退出的信号</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+</ul></li>
+<li><strong>常见错误</strong>
+<ul>
+<li><code>signal = 11</code>：说明<code>Worker</code>进程发生了<code>segment fault</code>段错误，可能触发了底层的<code>BUG</code>，请收集<code>core dump</code>信息和<code>valgrind</code>内存检测日志，<a href="/other/issue">向Swoole开发组反馈此问题</a></li>
+<li><code>exit_code = 255</code>：说明Worker进程发生了<code>Fatal Error</code>致命错误，请检查PHP的错误日志，找到存在问题的PHP代码，进行解决</li>
+<li><code>signal = 9</code>：说明<code>Worker</code>被系统强行<code>Kill</code>，请检查是否有人为的<code>kill -9</code>操作，检查<code>dmesg</code>信息中是否存在<code>OOM（Out of memory）</code></li>
+<li>如果存在<code>OOM</code>，分配了过大的内存。1.检查<code>Server</code>的<code>setting</code>配置，是否<a href="/server/setting?id=socket_buffer_size">socket_buffer_size</a>等分配过大；2.是否创建了非常大的<a href="/memory/table">Swoole\Table</a>内存模块。
+<a name="onManagerStart"></a>
+<h2>onManagerStart</h2>
+<p>?&gt; <strong>当管理进程启动时触发此事件</strong></p>
+<pre><code class="language-php">function onManagerStart(Swoole\Server $server);</code></pre></li>
+</ul></li>
+<li><strong>提示</strong>
+<ul>
+<li>在这个回调函数中可以修改管理进程的名称。</li>
+<li>在<code>4.2.12</code>以前的版本中<code>manager</code>进程中不能添加定时器，不能投递task任务、不能用协程。</li>
+<li>在<code>4.2.12</code>或更高版本中<code>manager</code>进程可以使用基于信号实现的同步模式定时器</li>
+<li><code>manager</code>进程中可以调用<a href="/server/methods?id=sendMessage">sendMessage</a>接口向其他工作进程发送消息</li>
+<li><strong>启动顺序</strong>
+<ul>
+<li><code>Task</code>和<code>Worker</code>进程已创建</li>
+<li><code>Master</code>进程状态不明，因为<code>Manager</code>与<code>Master</code>是并行的，<code>onManagerStart</code>回调发生是不能确定<code>Master</code>进程是否已就绪</li>
+</ul></li>
+<li><strong>BASE 模式</strong>
+<ul>
+<li>在<a href="/learn?id=swoole_base">SWOOLE_BASE</a> 模式下，如果设置了<code>worker_num</code>、<code>max_request</code>、<code>task_worker_num</code>参数，底层将创建<code>manager</code>进程来管理工作进程。因此会触发<code>onManagerStart</code>和<code>onManagerStop</code>事件回调。
+<a name="onManagerStop"></a>
+<h2>onManagerStop</h2>
+<p>?&gt; <strong>当管理进程结束时触发</strong></p>
+<pre><code class="language-php">function onManagerStop(Swoole\Server $server);</code></pre></li>
+</ul></li>
+<li><strong>提示</strong></li>
+</ul></li>
+<li><code>onManagerStop</code>触发时，说明<code>Task</code>和<code>Worker</code>进程已结束运行，已被<code>Manager</code>进程回收。
+<a name="onBeforeReload"></a>
+<h2>onBeforeReload</h2>
+<p>?&gt; <strong>Worker进程<code>Reload</code>之前触发此事件，在Manager进程中回调</strong></p>
+<pre><code class="language-php">function onBeforeReload(Swoole\Server $server);</code></pre></li>
+<li><strong>参数</strong>
+<ul>
+<li><strong><code>Swoole\Server $server</code></strong>
+<ul>
+<li><strong>功能</strong>：Swoole\Server对象</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无
+<a name="onAfterReload"></a>
+<h2>onAfterReload</h2>
+<p>?&gt; <strong>Worker进程<code>Reload</code>之后触发此事件，在Manager进程中回调</strong></p>
+<pre><code class="language-php">function onAfterReload(Swoole\Server $server);</code></pre></li>
+</ul></li>
+</ul></li>
+<li><strong>参数</strong>
+<ul>
+<li><strong><code>Swoole\Server $server</code></strong>
+<ul>
+<li><strong>功能</strong>：Swoole\Server对象</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无
+<a name="事件执行顺序"></a>
+<h2>事件执行顺序</h2></li>
+</ul></li>
+<li>所有事件回调均在<code>$server-&gt;start</code>后发生</li>
+<li>服务器关闭程序终止时最后一次事件是<code>onShutdown</code></li>
+<li>服务器启动成功后，<code>onStart/onManagerStart/onWorkerStart</code>会在不同的进程内并发执行</li>
+<li><code>onReceive/onConnect/onClose</code>在<code>Worker</code>进程中触发</li>
+<li><code>Worker/Task</code>进程启动/结束时会分别调用一次<code>onWorkerStart/onWorkerStop</code></li>
+<li><a href="/server/events?id=ontask">onTask</a>事件仅在 <a href="/learn?id=taskworker进程">task进程</a>中发生</li>
+<li><a href="/server/events?id=onfinish">onFinish</a>事件仅在<code>worker</code>进程中发生</li>
+<li><code>onStart/onManagerStart/onWorkerStart</code> <code>3</code>个事件的执行顺序是不确定的
+<a name="面向对象风格"></a>
+<h2>面向对象风格</h2>
+<p>启用<a href="/server/setting?id=event_object">event_object</a>后，以下事件回调的参数将有所改变。</p></li>
+<li>客户端连接 <a href="/server/events?id=onconnect">onConnect</a>
+<pre><code class="language-php">$server-&gt;on('Connect', function (Swoole\Server $serv, Swoole\Server\Event $object) {
+var_dump($object);
+});</code></pre></li>
+<li>接收数据 <a href="/server/events?id=onreceive">onReceive</a>
+<pre><code class="language-php">$server-&gt;on('Receive', function (Swoole\Server $serv, Swoole\Server\Event $object) {
+var_dump($object);
+});</code></pre></li>
+<li>连接关闭 <a href="/server/events?id=onclose">onClose</a>
+<pre><code class="language-php">$server-&gt;on('Close', function (Swoole\Server $serv, Swoole\Server\Event $object) {
+var_dump($object);
+});</code></pre></li>
+<li>UDP收包 <a href="/server/events?id=onpacket">onPacket</a>
+<pre><code class="language-php">$server-&gt;on('Packet', function (Swoole\Server $serv, Swoole\Server\Packet $object) {
+var_dump($object);
+});</code></pre></li>
+<li>进程间通信 <a href="/server/events?id=onpipemessage">onPipeMessage</a>
+<pre><code class="language-php">$server-&gt;on('PipeMessage', function (Swoole\Server $serv, Swoole\Server\PipeMessage $msg) {
+var_dump($msg);
+$object = $msg-&gt;data;
+$serv-&gt;sendto($object-&gt;address, $object-&gt;port, $object-&gt;data, $object-&gt;server_socket);
+});</code></pre></li>
+<li>进程发生异常 <a href="/server/events?id=onworkererror">onWorkerError</a>
+<pre><code class="language-php">$serv-&gt;on('WorkerError', function (Swoole\Server $serv, Swoole\Server\StatusInfo $info) {
+var_dump($info);
+});</code></pre></li>
+<li>task进程接受任务 <a href="/server/events?id=ontask">onTask</a>
+<pre><code class="language-php">$server-&gt;on('Task', function (Swoole\Server $serv, Swoole\Server\Task $task) {
+var_dump($task);
+});</code></pre></li>
+<li>worker进程接收task进程的处理结果 <a href="/server/events?id=onfinish">onFinish</a>
+<pre><code class="language-php">$server-&gt;on('Finish', function (Swoole\Server $serv, Swoole\Server\TaskResult $result) {
+var_dump($result);
+});</code></pre></li>
+<li><a href="/server/event_class">Swoole\Server\Event</a></li>
+<li><a href="/server/packet_class">Swoole\Server\Packet</a></li>
+<li><a href="/server/pipemessage_class">Swoole\Server\PipeMessage</a></li>
+<li><a href="/server/statusinfo_class">Swoole\Server\StatusInfo</a></li>
+<li><a href="/server/task_class">Swoole\Server\Task</a></li>
+<li><a href="/server/taskresult_class">Swoole\Server\TaskResult</a></li>
+</ul></li>
+</ul>
+</body>
+</html>

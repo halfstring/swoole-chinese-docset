@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>Coroutine\Barrier</h1>
+<p>在 <a href="https://github.com/swoole/library">Swoole Library</a> 中底层提供了一个更便捷的协程并发管理工具：<code>Coroutine\Barrier</code> 协程屏障，或者叫协程栅栏。基于 <code>PHP</code> 引用计数和 <code>Coroutine API</code> 实现。
+相比于<a href="/coroutine/wait_group">Coroutine\WaitGroup</a>，<code>Coroutine\Barrier</code>使用更简单一些，只需通过参数传递或者闭包的<code>use</code>语法，引入子协程函数上即可。
+!&gt; Swoole 版本 &gt;= v4.5.5 时可用。
+<a name="使用示例"></a></p>
+<h2>使用示例</h2>
+<pre><code class="language-php">use Swoole\Coroutine\Barrier;
+use Swoole\Coroutine\System;
+use function Swoole\Coroutine\run;
+use Swoole\Coroutine;
+run(function () {
+    $barrier = Barrier::make();
+    $count = 0;
+    $N = 4;
+    foreach (range(1, $N) as $i) {
+        Coroutine::create(function () use ($barrier, &amp;$count) {
+            System::sleep(0.5);
+            $count++;
+        });
+    }
+    Barrier::wait($barrier);
+
+    assert($count == $N);
+});</code></pre>
+<p><a name="执行流程"></a></p>
+<h2>执行流程</h2>
+<ul>
+<li>先使用<code>Barrier::make()</code>创建了一个新的协程屏障</li>
+<li>在子协程用使用<code>use</code>语法传递屏障，增加引用计数</li>
+<li>在需要等待的位置加入<code>Barrier::wait($barrier)</code>，这时会自动挂起当前协程，等待引用该协程屏障的子协程退出</li>
+<li>子协程退出时会减少<code>$barrier</code>对象的引用计数，直到为<code>0</code></li>
+<li>当所有子协程完成了任务处理并退出时，<code>$barrier</code>对象引用计数为<code>0</code>，在<code>$barrier</code>对象析构函数中底层会自动恢复挂起的协程，从<code>Barrier::wait($barrier)</code>函数中返回
+<code>Coroutine\Barrier</code> 是一个比 <a href="/coroutine/wait_group">WaitGroup</a> 和 <a href="/coroutine/channel">Channel</a> 更易用的并发控制器，大幅提升了 <code>PHP</code> 并发编程的用户体验。</li>
+</ul>
+</body>
+</html>

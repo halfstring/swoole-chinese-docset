@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>多端口监听</h1>
+<p><code>Swoole\Server</code>可以监听多个端口，每个端口都可以设置不同的协议处理方式，例如80端口处理HTTP协议，9507端口处理TCP协议。<code>SSL/TLS</code>传输加密也可以只对特定的端口启用。
+!&gt; 例如主服务器是WebSocket或HTTP协议，新监听的TCP端口（<a href="/server/methods?id=listen">listen</a>的返回值，即<a href="server/server_port.md">Swoole\Server\Port</a>对象，以下简称port）默认会继承主Server的协议设置，必须单独调用<code>port</code>对象的<code>set</code>方法和<code>on</code>方法设置新的协议才会启用新协议。
+<a name="监听新端口"></a></p>
+<h2>监听新端口</h2>
+<pre><code class="language-php">//返回port对象
+$port1 = $server-&gt;listen("127.0.0.1", 9501, SWOOLE_SOCK_TCP);
+$port2 = $server-&gt;listen("127.0.0.1", 9502, SWOOLE_SOCK_UDP);
+$port3 = $server-&gt;listen("127.0.0.1", 9503, SWOOLE_SOCK_TCP | SWOOLE_SSL);</code></pre>
+<p><a name="设置网络协议"></a></p>
+<h2>设置网络协议</h2>
+<pre><code class="language-php">//port对象的调用set方法
+$port1-&gt;set([
+    'open_length_check' =&gt; true,
+    'package_length_type' =&gt; 'N',
+    'package_length_offset' =&gt; 0,
+    'package_max_length' =&gt; 800000,
+]);
+$port3-&gt;set([
+    'open_eof_split' =&gt; true,
+    'package_eof' =&gt; "\r\n",
+    'ssl_cert_file' =&gt; 'ssl.cert',
+    'ssl_key_file' =&gt; 'ssl.key',
+]);</code></pre>
+<p><a name="设置回调函数"></a></p>
+<h2>设置回调函数</h2>
+<pre><code class="language-php">//设置每个port的回调函数
+$port1-&gt;on('connect', function ($serv, $fd){
+    echo "Client:Connect.\n";
+});
+$port1-&gt;on('receive', function ($serv, $fd, $reactor_id, $data) {
+    $serv-&gt;send($fd, 'Swoole: '.$data);
+    $serv-&gt;close($fd);
+});
+$port1-&gt;on('close', function ($serv, $fd) {
+    echo "Client: Close.\n";
+});
+$port2-&gt;on('packet', function ($serv, $data, $addr) {
+    var_dump($data, $addr);
+});</code></pre>
+<p><a name="Http/WebSocket"></a></p>
+<h2>Http/WebSocket</h2>
+<p><code>Swoole\Http\Server</code>和<code>Swoole\WebSocket\Server</code>因为是使用继承子类实现的，无法通过调用<code>Swoole\Server</code>实例的<code>listen</code>来方法创建HTTP或者WebSocket服务器。
+如服务器的主要功能为<code>RPC</code>，但希望提供一个简单的Web管理界面。在这样的场景中，可以先创建<code>HTTP/WebSocket</code>服务器，然后再进行<code>listen</code>监听原生TCP的端口。
+<a name="示例"></a></p>
+<h3>示例</h3>
+<pre><code class="language-php">$http_server = new Swoole\Http\Server('0.0.0.0',9998);
+$http_server-&gt;set(['daemonize'=&gt; false]);
+$http_server-&gt;on('request', function ($request, $response) {
+    $response-&gt;header("Content-Type", "text/html; charset=utf-8");
+    $response-&gt;end("&lt;h1&gt;Hello Swoole. #".rand(1000, 9999)."&lt;/h1&gt;");
+});
+//多监听一个TCP端口，对外开启TCP服务，并设置TCP服务器的回调
+$tcp_server = $http_server-&gt;listen('0.0.0.0', 9999, SWOOLE_SOCK_TCP);
+//默认新监听的端口 9999 会继承主服务器的设置，也是 HTTP 协议
+//需要调用 set 方法覆盖主服务器的设置
+$tcp_server-&gt;set([]);
+$tcp_server-&gt;on('receive', function ($server, $fd, $threadId, $data) {
+    echo $data;
+});
+$http_server-&gt;start();</code></pre>
+<p>通过这样的代码，就可以建立一个对外提供HTTP服务，又同时对外提供TCP服务的Server，更加具体的优雅代码组合则由你自己来实现。
+<a name="TCP、HTTP、WebSocket多协议端口复合设置"></a></p>
+<h2>TCP、HTTP、WebSocket多协议端口复合设置</h2>
+<pre><code class="language-php">$port1 = $server-&gt;listen("127.0.0.1", 9501, SWOOLE_SOCK_TCP);
+$port1-&gt;set([
+    'open_websocket_protocol' =&gt; true, // 设置使得这个端口支持WebSocket协议
+]);</code></pre>
+<pre><code class="language-php">$port1 = $server-&gt;listen("127.0.0.1", 9501, SWOOLE_SOCK_TCP);
+$port1-&gt;set([
+    'open_http_protocol' =&gt; false, // 设置这个端口关闭HTTP协议功能
+]);</code></pre>
+<p>同理还有：<code>open_http_protocol</code>、<code>open_http2_protocol</code>、<code>open_mqtt_protocol</code> 等参数
+<a name="可选参数"></a></p>
+<h2>可选参数</h2>
+<ul>
+<li>监听端口<code>port</code>未调用<code>set</code>方法，设置协议处理选项的监听端口，将会继承主服务器的相关配置</li>
+<li>主服务器为<code>HTTP/WebSocket</code>服务器，如果未设置协议参数，监听的端口仍然会设置为<code>HTTP</code>或<code>WebSocket</code>协议，并且不会执行为端口设置的<a href="/server/events?id=onreceive">onReceive</a>回调</li>
+<li>主服务器为<code>HTTP/WebSocket</code>服务器，监听端口调用<code>set</code>设置配置参数，会清除主服务器的协议设定。监听端口将变为<code>TCP</code>协议。监听的端口如果希望仍然使用<code>HTTP/WebSocket</code>协议，需要在配置中增加<code>open_http_protocol =&gt; true</code> 和 <code>open_websocket_protocol =&gt; true</code>
+<strong><code>port</code>可以通过<code>set</code>设置的参数有：</strong></li>
+<li>socket参数：如<code>backlog</code>、<code>open_tcp_keepalive</code>、<code>open_tcp_nodelay</code>、<code>tcp_defer_accept</code>等</li>
+<li>协议相关：如<code>open_length_check</code>、<code>open_eof_check</code>、<code>package_length_type</code>等</li>
+<li>SSL证书相关：如<code>ssl_cert_file</code>、<code>ssl_key_file</code>等
+具体可参考<a href="/server/setting">配置章节</a>
+<a name="可选回调"></a>
+<h2>可选回调</h2>
+<p><code>port</code>未调用<code>on</code>方法，设置回调函数的监听端口，默认使用主服务器的回调函数，<code>port</code>可以通过<code>on</code>方法设置的回调有：</p></li>
+</ul>
+<p><a name="TCP服务器"></a></p>
+<h3>TCP服务器</h3>
+<ul>
+<li>onConnect</li>
+<li>onClose</li>
+<li>onReceive
+<a name="UDP服务器"></a>
+<h3>UDP服务器</h3></li>
+<li>onPacket</li>
+<li>onReceive</li>
+</ul>
+<p><a name="HTTP服务器"></a></p>
+<h3>HTTP服务器</h3>
+<ul>
+<li>onRequest</li>
+</ul>
+<p><a name="WebSocket服务器"></a></p>
+<h3>WebSocket服务器</h3>
+<ul>
+<li>onMessage</li>
+<li>onOpen</li>
+<li>onHandshake
+!&gt; 不同监听端口的回调函数，仍然是相同的<code>Worker</code>进程空间内执行
+<a name="多端口下的连接遍历"></a>
+<h2>多端口下的连接遍历</h2>
+<pre><code class="language-php">$server = new Swoole\WebSocket\Server("0.0.0.0", 9514, SWOOLE_BASE);
+$tcp = $server-&gt;listen("0.0.0.0", 9515, SWOOLE_SOCK_TCP);
+$tcp-&gt;set([]);
+$server-&gt;on("open", function ($serv, $req) {
+echo "new WebSocket Client, fd={$req-&gt;fd}\n";
+});
+$server-&gt;on("message", function ($serv, $frame) {
+echo "receive from {$frame-&gt;fd}:{$frame-&gt;data},opcode:{$frame-&gt;opcode},fin:{$frame-&gt;finish}\n";
+$serv-&gt;push($frame-&gt;fd, "this is server OnMessage");
+});
+$tcp-&gt;on('receive', function ($server, $fd, $reactor_id, $data) {
+//仅遍历 9514 端口的连接，因为是用的$server，不是$tcp
+$websocket = $server-&gt;ports[0];
+foreach ($websocket-&gt;connections as $_fd) {
+    var_dump($_fd);
+    if ($server-&gt;exist($_fd)) {
+        $server-&gt;push($_fd, "this is server onReceive");
+    }
+}
+$server-&gt;send($fd, 'receive: '.$data);
+});
+$server-&gt;start();</code></pre></li>
+</ul>
+</body>
+</html>

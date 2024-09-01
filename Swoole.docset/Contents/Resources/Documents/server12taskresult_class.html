@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>Swoole\Server\TaskResult</h1>
+<p>这里是对<code>Swoole\Server\TaskResult</code>的详细介绍。
+<a name="属性"></a></p>
+<h2>属性</h2>
+<p><a name="$task_id"></a></p>
+<h3>$task_id</h3>
+<p>返回所在的<code>Reactor</code>线程id，该属性是一个<code>int</code>类型的整数。</p>
+<pre><code class="language-php">Swoole\Server\TaskResult-&gt;task_id</code></pre>
+<p><a name="$task_worker_id"></a></p>
+<h3>$task_worker_id</h3>
+<p>返回该执行结果来自哪个<code>task</code>进程，该属性是一个<code>int</code>类型的整数。</p>
+<pre><code class="language-php">Swoole\Server\TaskResult-&gt;task_worker_id</code></pre>
+<p><a name="$dispatch_time"></a></p>
+<h3>$dispatch_time</h3>
+<p>返回该连接携带的数据<code>data</code>，该属性是一个<code>?string</code>类型的字符串。</p>
+<pre><code class="language-php">Swoole\Server\TaskResult-&gt;dispatch_time</code></pre>
+<p><a name="$data"></a></p>
+<h3>$data</h3>
+<p>返回该连接携带的数据<code>data</code>，该属性是一个<code>string</code>类型的字符串。</p>
+<pre><code class="language-php">Swoole\Server\StatusInfo-&gt;data</code></pre>
+</body>
+</html>

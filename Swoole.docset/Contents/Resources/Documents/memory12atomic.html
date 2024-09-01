@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>进程/线程间无锁计数器 Atomic</h1>
+<p><code>Atomic</code>是<code>Swoole</code>底层提供的原子计数操作类，可以方便整数的无锁原子增减。</p>
+<ul>
+<li>使用共享内存，可以在不同的进程之间操作计数</li>
+<li>基于<code>gcc/clang</code>提供的<code>CPU</code>原子指令，无需加锁</li>
+<li>在服务器程序中必须在<code>Server-&gt;start</code>前创建才能在<code>Worker</code>进程中使用</li>
+<li>默认使用<code>32</code>位无符号类型，如需要<code>64</code>有符号整型，可使用<code>Swoole\Atomic\Long</code></li>
+<li>多线程模式需要使用<code>Swoole\Thread\Atomic</code>和<code>Swoole\Thread\Atomic\Long</code>，除了命名空间不同，其接口与 <code>Swoole\Atomic</code> 、<code>Swoole\Atomic\Long</code> 完全一致。
+!&gt; 请勿在<a href="/server/events?id=onreceive">onReceive</a>等回调函数中创建计数器，否则内存会持续增长，造成内存泄漏。
+!&gt; 支持<code>64</code>位有符号长整型原子计数，需要使用<code>new Swoole\Atomic\Long</code>来创建。<code>Atomic\Long</code> 不支持<code>wait</code>和<code>wakeup</code>方法。
+<a name="完整示例"></a>
+<h2>完整示例</h2>
+<pre><code class="language-php">
+$atomic = new Swoole\Atomic();
+$serv = new Swoole\Server('127.0.0.1', '9501');
+$serv-&gt;set([
+'worker_num' =&gt; 1,
+'log_file' =&gt; '/dev/null'
+]);
+$serv-&gt;on("start", function ($serv) use ($atomic) {
+if ($atomic-&gt;add() == 2) {
+    $serv-&gt;shutdown();
+}
+});
+$serv-&gt;on("ManagerStart", function ($serv) use ($atomic) {
+if ($atomic-&gt;add() == 2) {
+    $serv-&gt;shutdown();
+}
+});
+$serv-&gt;on("ManagerStop", function ($serv) {
+echo "shutdown\n";
+});
+$serv-&gt;on("Receive", function () {</code></pre></li>
+</ul>
+<p>});
+$serv-&gt;start();</p>
+<pre><code>&lt;a name="方法"&gt;&lt;/a&gt;
+## 方法
+&lt;a name="__construct"&gt;&lt;/a&gt;
+### __construct()
+构造函数。创建一个原子计数对象。
+```php
+Swoole\Atomic::__construct(int $init_value = 0);</code></pre>
+<ul>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>int $init_value</code></strong>
+<ul>
+<li><strong>功能</strong>：指定初始化的数值</li>
+<li><strong>默认值</strong>：<code>0</code></li>
+<li><strong>其它值</strong>：无
+!&gt; -<code>Atomic</code>只能操作<code>32</code>位无符号整数，最大支持<code>42</code>亿，不支持负数；<br />
+-在<code>Server</code>中使用原子计数器，必须在<code>Server-&gt;start</code>前创建；<br />
+-在<a href="/process/process">Process</a>中使用原子计数器，必须在<code>Process-&gt;start</code>前创建。
+<a name="add"></a>
+<h3>add()</h3>
+<p>增加计数。</p>
+<pre><code class="language-php">Swoole\Atomic-&gt;add(int $add_value = 1): int</code></pre></li>
+</ul></li>
+</ul></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>int $add_value</code></strong>
+<ul>
+<li><strong>功能</strong>：要增加的数值【必须为正整数】</li>
+<li><strong>默认值</strong>：<code>1</code></li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+</ul></li>
+<li><strong>返回值</strong>
+<ul>
+<li><code>add</code>方法操作成功后返回结果数值
+!&gt; 与原值相加如果超过<code>42</code>亿，将会溢出，高位数值会被丢弃。
+<a name="sub"></a>
+<h3>sub()</h3>
+<p>减少计数。</p>
+<pre><code class="language-php">Swoole\Atomic-&gt;sub(int $sub_value = 1): int</code></pre></li>
+</ul></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>int $sub_value</code></strong>
+<ul>
+<li><strong>功能</strong>：要减少的数值【必须为正整数】</li>
+<li><strong>默认值</strong>：<code>1</code></li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+</ul></li>
+<li><strong>返回值</strong>
+<ul>
+<li><code>sub</code>方法操作成功后返回结果数值
+!&gt; 与原值相减如果低于0将会溢出，高位数值会被丢弃。
+<a name="get"></a>
+<h3>get()</h3>
+<p>获取当前计数的值。</p>
+<pre><code class="language-php">Swoole\Atomic-&gt;get(): int</code></pre></li>
+</ul></li>
+<li><strong>返回值</strong>
+<ul>
+<li>返回当前的数值
+<a name="set"></a>
+<h3>set()</h3>
+<p>将当前值设置为指定的数字。</p>
+<pre><code class="language-php">Swoole\Atomic-&gt;set(int $value): void</code></pre></li>
+</ul></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>int $value</code></strong>
+<ul>
+<li><strong>功能</strong>：指定要设置的目标数值</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无
+<a name="cmpset"></a>
+<h3>cmpset()</h3>
+<p>如果当前数值等于参数<code>1</code>，则将当前数值设置为参数<code>2</code>。   </p>
+<pre><code class="language-php">Swoole\Atomic-&gt;cmpset(int $cmp_value, int $set_value): bool</code></pre></li>
+</ul></li>
+</ul></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>int $cmp_value</code></strong>
+<ul>
+<li><strong>功能</strong>：如果当前数值等于<code>$cmp_value</code>返回<code>true</code>，并将当前数值设置为<code>$set_value</code>，如果不等于返回<code>false</code>【必须为小于<code>42</code>亿的整数】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $set_value</code></strong>
+<ul>
+<li><strong>功能</strong>：如果当前数值等于<code>$cmp_value</code>返回<code>true</code>，并将当前数值设置为<code>$set_value</code>，如果不等于返回<code>false</code>【必须为小于<code>42</code>亿的整数】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无
+<a name="wait"></a>
+<h3>wait()</h3>
+<p>设置为wait状态。
+!&gt; 当原子计数的值为0时程序进入等待状态。另外一个进程调用<code>wakeup</code>可以再次唤醒程序。底层基于<code>Linux Futex</code>实现，使用此特性，可以仅用<code>4</code>字节内存实现一个等待、通知、锁的功能。在不支持<code>Futex</code>的平台下，底层会使用循环<code>usleep(1000)</code>模拟实现。</p>
+<pre><code class="language-php">Swoole\Atomic-&gt;wait(float $timeout = 1.0): bool</code></pre></li>
+</ul></li>
+</ul></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>float $timeout</code></strong>
+<ul>
+<li><strong>功能</strong>：指定超时时间【设置为<code>-1</code>时表示永不超时，会持续等待直到有其他进程唤醒】</li>
+<li><strong>值单位</strong>：秒【支持浮点型，如<code>1.5</code>表示<code>1s</code>+<code>500ms</code>】</li>
+<li><strong>默认值</strong>：<code>1</code></li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+</ul></li>
+<li><strong>返回值</strong> 
+<ul>
+<li>超时返回<code>false</code>，错误码为<code>EAGAIN</code>，可使用<code>swoole_errno</code>函数获取</li>
+<li>成功返回<code>true</code>，表示有其他进程通过<code>wakeup</code>成功唤醒了当前的锁</li>
+</ul></li>
+<li><strong>协程环境</strong>
+<code>wait</code>会阻塞整个进程而不是协程，因此请勿在协程环境中使用<code>Atomic-&gt;wait()</code>避免引起进程挂起。
+!&gt; -使用<code>wait/wakeup</code>特性时，原子计数的值只能为<code>0</code>或<code>1</code>，否则会导致无法正常使用；<br />
+-当然原子计数的值为<code>1</code>时，表示不需要进入等待状态，资源当前就是可用。<code>wait</code>函数会立即返回<code>true</code>。</li>
+<li><strong>使用示例</strong>
+<pre><code class="language-php">$n = new Swoole\Atomic;
+if (pcntl_fork() &gt; 0) {
+    echo "master start\n";
+    $n-&gt;wait(1.5);
+    echo "master end\n";
+} else {
+    echo "child start\n";
+    sleep(1);
+    $n-&gt;wakeup();
+    echo "child end\n";
+}</code></pre>
+<p><a name="wakeup"></a></p>
+<h3>wakeup()</h3>
+<p>唤醒处于wait状态的其他进程。</p>
+<pre><code class="language-php">Swoole\Atomic-&gt;wakeup(int $n = 1): bool</code></pre></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>int $n</code></strong>
+<ul>
+<li><strong>功能</strong>：唤醒的进程数量</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li>当前原子计数如果为<code>0</code>时，表示没有进程正在<code>wait</code>，<code>wakeup</code>会立即返回<code>true</code>；</li>
+<li>当前原子计数如果为<code>1</code>时，表示当前有进程正在<code>wait</code>，<code>wakeup</code>会唤醒等待的进程，并返回<code>true</code>；</li>
+<li>被唤醒的进程返回后，会将原子计数设置为<code>0</code>，这时可以再次调用<code>wakeup</code>唤醒其他正在<code>wait</code>的进程。</li>
+</ul></li>
+</ul>
+</body>
+</html>

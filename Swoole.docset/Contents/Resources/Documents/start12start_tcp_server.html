@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>TCP 服务器</h1>
+<p><a name="程序代码"></a></p>
+<h2>程序代码</h2>
+<p>请将以下代码写入tcpServer.php。</p>
+<pre><code class="language-php">//创建Server对象，监听 127.0.0.1:9501 端口。
+$server = new Swoole\Server('127.0.0.1', 9501);
+//监听连接进入事件。
+$server-&gt;on('Connect', function ($server, $fd) {
+    echo "Client: Connect.\n";
+});
+//监听数据接收事件。
+$server-&gt;on('Receive', function ($server, $fd, $reactor_id, $data) {
+    $server-&gt;send($fd, "Server: {$data}");
+});
+//监听连接关闭事件。
+$server-&gt;on('Close', function ($server, $fd) {
+    echo "Client: Close.\n";
+});
+//启动服务器
+$server-&gt;start(); </code></pre>
+<p>这样就创建了一个<code>TCP</code>服务器，监听本机<code>9501</code>端口。它的逻辑很简单，当客户端<code>Socket</code>通过网络发送一个 <code>hello</code> 字符串时，服务器会回复一个 <code>Server: hello</code> 字符串。
+<code>Server</code>是异步服务器，所以是通过监听事件的方式来编写程序的。当对应的事件发生时底层会主动回调指定的函数。如当有新的<code>TCP</code>连接进入时会执行<a href="/server/events?id=onconnect">onConnect</a>事件回调，当某个连接向服务器发送数据时会回调<a href="/server/events?id=onreceive">onReceive</a>函数。</p>
+<ul>
+<li>服务器可以同时被成千上万个客户端连接，<code>$fd</code>就是客户端连接的唯一标识符。</li>
+<li>调用 <code>$server-&gt;send()</code> 方法向客户端连接发送数据，参数就是<code>$fd</code>客户端标识符。</li>
+<li>调用 <code>$server-&gt;close()</code> 方法可以强制关闭某个客户端连接。</li>
+<li>客户端可能会主动断开连接，此时会触发<a href="/server/events?id=onclose">onClose</a>事件回调。
+<a name="执行程序"></a>
+<h2>执行程序</h2>
+<pre><code class="language-shell">php tcpServer.php</code></pre>
+<p>在命令行下运行<code>server.php</code>程序，启动成功后可以使用 <code>netstat</code> 工具看到已经在监听<code>9501</code>端口。
+这时就可以使用<code>telnet/netcat</code>工具连接服务器。</p>
+<pre><code class="language-shell">telnet 127.0.0.1 9501
+hello
+Server: hello</code></pre>
+<p><a name="无法连接到服务器的简单检测手段"></a></p>
+<h2>无法连接到服务器的简单检测手段</h2></li>
+<li>在<code>Linux</code>下，使用<code>netstat -an | grep 端口</code>，查看端口是否已经被打开处于<code>Listening</code>状态。</li>
+<li>上一步确认后，再检查防火墙问题。</li>
+<li>注意服务器所使用的IP地址，如果是<code>127.0.0.1</code>回环地址，则客户端只能使用<code>127.0.0.1</code>才能连接上。</li>
+<li>用的阿里云服务或者腾讯服务，需要在安全权限组进行设置开发的端口。
+<a name="TCP数据包边界问题。"></a>
+<h2>TCP数据包边界问题。</h2>
+<p>参考<a href="/learn?id=tcp数据包边界问题">TCP数据包边界问题</a>。</p></li>
+</ul>
+</body>
+</html>

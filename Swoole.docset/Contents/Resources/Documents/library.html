@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>Library</h1>
+<p>Swoole 在 v4 版本后内置了 <a href="https://github.com/swoole/library">Library</a> 模块，<strong>使用 PHP 代码编写内核功能</strong>，使得底层设施更加稳定可靠
+!&gt; 该模块也可通过 composer 单独安装，单独安装使用时需要通过<code>php.ini</code>配置<code>swoole.enable_library=Off</code>关闭扩展内置的 library
+目前提供了以下工具组件：</p>
+<ul>
+<li><a href="https://github.com/swoole/library/blob/master/src/core/Coroutine/WaitGroup.php">Coroutine\WaitGroup</a> 用于等待并发协程任务，<a href="/coroutine/wait_group">文档</a></li>
+<li><a href="https://github.com/swoole/library/tree/master/src/core/Coroutine/FastCGI">Coroutine\FastCGI</a> FastCGI 客户端，<a href="/coroutine_client/fastcgi">文档</a></li>
+<li><a href="https://github.com/swoole/library/blob/master/src/core/Coroutine/Server.php">Coroutine\Server</a> 协程 Server，<a href="/coroutine/server">文档</a></li>
+<li><a href="https://github.com/swoole/library/blob/master/src/core/Coroutine/Barrier.php">Coroutine\Barrier</a> 协程屏障，<a href="/coroutine/barrier">文档</a></li>
+<li><a href="https://github.com/swoole/library/tree/master/src/core/Curl">CURL hook</a> CURL 协程化，<a href="/runtime?id=swoole_hook_curl">文档</a></li>
+<li><a href="https://github.com/swoole/library/tree/master/src/core/Database">Database</a> 各种数据库连接池和对象代理的高级封装，<a href="/coroutine/conn_pool?id=database">文档</a></li>
+<li><a href="https://github.com/swoole/library/blob/master/src/core/ConnectionPool.php">ConnectionPool</a> 原始连接池，<a href="/coroutine/conn_pool?id=connectionpool">文档</a></li>
+<li><a href="https://github.com/swoole/library/blob/master/src/core/Process/Manager.php">Process\Manager</a> 进程管理器，<a href="/process/process_manager">文档</a></li>
+<li><a href="https://github.com/swoole/library/blob/master/src/core/StringObject.php">StringObject</a> 、<a href="https://github.com/swoole/library/blob/master/src/core/ArrayObject.php">ArrayObject</a> 、<a href="https://github.com/swoole/library/blob/master/src/core/MultibyteStringObject.php">MultibyteStringObject</a> 面向对象风格的 Array 和 String 编程</li>
+<li><a href="https://github.com/swoole/library/blob/master/src/core/Coroutine/functions.php">functions</a> 提供的一些协程函数，<a href="/coroutine/coroutine?id=函数">文档</a></li>
+<li><a href="https://github.com/swoole/library/tree/master/src/core/Constant.php">Constant</a> 常用配置常量</li>
+<li><a href="https://github.com/swoole/library/blob/master/src/core/Http/Status.php">HTTP Status</a> HTTP 状态码
+<a name="示例代码"></a>
+<h2>示例代码</h2>
+<p><a href="https://github.com/swoole/library/tree/master/examples">Examples</a></p></li>
+</ul>
+</body>
+</html>

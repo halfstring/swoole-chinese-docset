@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>Swoole\Client</h1>
+<p><code>Swoole\Client</code>以下简称<code>Client</code>，提供了<code>TCP/UDP</code>、<code>socket</code>的客户端的封装代码，使用时仅需 <code>new Swoole\Client</code> 即可。可用于<code>FPM/Apache</code>环境。<br />
+相对传统的<a href="https://www.php.net/streams">streams</a>系列函数，有几大优势：</p>
+<ul>
+<li><code>stream</code>函数存在超时设置的陷阱和<code>Bug</code>，一旦没处理好会导致<code>Server</code>端长时间阻塞</li>
+<li><code>stream</code>函数的<code>fread</code>默认最大<code>8192</code>长度限制，无法支持<code>UDP</code>的大包</li>
+<li><code>Client</code>支持<code>waitall</code>，在有确定包长度时可一次取完，不必循环读取</li>
+<li><code>Client</code>支持<code>UDP Connect</code>，解决了<code>UDP</code>串包问题</li>
+<li><code>Client</code>是纯<code>C</code>的代码，专门处理<code>socket</code>，<code>stream</code>函数非常复杂。<code>Client</code>性能更好</li>
+<li><code>Client</code>支持长连接</li>
+<li>可以使用<a href="/client?id=swoole_client_select">swoole_client_select</a>函数实现多个<code>Client</code>的并发控制
+<a name="完整示例"></a>
+<h3>完整示例</h3>
+<pre><code class="language-php">$client = new Swoole\Client(SWOOLE_SOCK_TCP);
+if (!$client-&gt;connect('127.0.0.1', 9501, -1)) {
+exit("connect failed. Error: {$client-&gt;errCode}\n");
+}
+$client-&gt;send("hello world\n");
+echo $client-&gt;recv();
+$client-&gt;close();</code></pre>
+<p>!&gt; 不支持<code>Apache</code>的<code>prework</code>多线程模式
+<a name="方法"></a></p>
+<h2>方法</h2>
+<p><a name="__construct"></a></p>
+<h3>__construct()</h3>
+<p>构造方法</p>
+<pre><code class="language-php">Swoole\Client::__construct(int $sock_type, int $is_sync = SWOOLE_SOCK_SYNC, string $key);</code></pre>
+<ul>
+<li><strong>参数</strong> </li>
+</ul></li>
+<li><strong><code>int $sock_type</code></strong>
+<ul>
+<li><strong>功能</strong>：表示<code>socket</code>的类型【支持<code>SWOOLE_SOCK_TCP</code>、<code>SWOOLE_SOCK_TCP6</code>、<code>SWOOLE_SOCK_UDP</code>、<code>SWOOLE_SOCK_UDP6</code>】具体意义参考<a href="/server/methods?id=__construct">此节</a></li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $is_sync</code></strong>
+<ul>
+<li><strong>功能</strong>：同步阻塞模式，现在只有这一个类型，保留此参数只为了兼容api</li>
+<li><strong>默认值</strong>：<code>SWOOLE_SOCK_SYNC</code></li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>string $key</code></strong>
+<ul>
+<li><strong>功能</strong>：用于长连接的<code>Key</code>【默认使用<code>IP:PORT</code>作为<code>key</code>。相同的<code>key</code>，即使 new 两次也只用一个TCP连接】</li>
+<li><strong>默认值</strong>：<code>IP:PORT</code></li>
+<li><strong>其它值</strong>：无
+!&gt; 可以使用底层提供的宏来指定类型，请参考 <a href="/consts">常量定义</a>
+<a name="在 PHP-FPM/Apache 中创建长连接"></a>
+<h4>在 PHP-FPM/Apache 中创建长连接</h4>
+<pre><code class="language-php">$cli = new Swoole\Client(SWOOLE_SOCK_TCP | SWOOLE_KEEP);</code></pre>
+<p>加入 <a href="/client?id=swoole_keep">SWOOLE_KEEP</a> 标志后，创建的<code>TCP</code>连接在PHP请求结束或者调用<code>$cli-&gt;close()</code>时并不会关闭。下一次执行<code>connect</code>调用时会复用上一次创建的连接。长连接保存的方式默认是以<code>ServerHost:ServerPort</code>为<code>key</code>的。可以在第<code>3</code>个参数内指定<code>key</code>。
+<code>Client</code>对象析构会自动调用<a href="/client?id=close">close</a>方法关闭<code>socket</code>
+<a name="在 Server 中使用 Client"></a></p>
+<h4>在 Server 中使用 Client</h4></li>
+</ul></li>
+<li>必须在事件<a href="/server/events">回调函数</a>中使用<code>Client</code>。</li>
+<li><code>Server</code>可以用任何语言编写的 <code>socket client</code>来连接。同样<code>Client</code>也可以去连接任何语言编写的<code>socket server</code>
+!&gt; 在<code>Swoole4+</code>协程环境下使用此<code>Client</code>会导致退步为<a href="/learn?id=同步io异步io">同步模型</a>。
+<a name="set"></a>
+<h3>set()</h3>
+<p>设置客户端参数，必须在 <a href="/client?id=connect">connect</a> 前执行。</p>
+<pre><code class="language-php">Swoole\Client-&gt;set(array $settings);</code></pre>
+<p>可用的配置选项参考 Client - <a href="/client?id=配置">配置选项</a>
+<a name="connect"></a></p>
+<h3>connect()</h3>
+<p>连接到远程服务器。</p>
+<pre><code class="language-php">Swoole\Client-&gt;connect(string $host, int $port, float $timeout = 0.5, int $sock_flag = 0): bool</code></pre>
+<ul>
+<li><strong>参数</strong> </li>
+</ul></li>
+<li><strong><code>string $host</code></strong>
+<ul>
+<li><strong>功能</strong>：服务器地址【支持自动异步解析域名，<code>$host</code>可直接传入域名】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $port</code></strong>
+<ul>
+<li><strong>功能</strong>：服务器端口</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>float $timeout</code></strong>
+<ul>
+<li><strong>功能</strong>：设置超时时间</li>
+<li><strong>值单位</strong>：秒【支持浮点型，如<code>1.5</code>表示<code>1s</code>+<code>500ms</code>】</li>
+<li><strong>默认值</strong>：<code>0.5</code></li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $sock_flag</code></strong>
+<ul>
+<li>在<code>UDP</code>类型时表示是否启用<code>udp_connect</code> 设定此选项后将绑定<code>$host</code>与<code>$port</code>，此<code>UDP</code>将会丢弃非指定<code>host/port</code>的数据包。</li>
+<li>在<code>TCP</code>类型，<code>$sock_flag=1</code>表示设置为非阻塞<code>socket</code>，之后此fd会变成<a href="/learn?id=同步io异步io">异步IO</a>，<code>connect</code>会立即返回。如果将<code>$sock_flag</code>设置为<code>1</code>，那么在<code>send/recv</code>前必须使用<a href="/client?id=swoole_client_select">swoole_client_select</a>来检测是否完成了连接。</li>
+<li><strong>返回值</strong></li>
+</ul></li>
+<li>成功返回<code>true</code></li>
+<li>失败返回<code>false</code>，请检查<code>errCode</code>属性获取失败原因
+<ul>
+<li><strong>同步模式</strong>
+<code>connect</code>方法会阻塞，直到连接成功并返回<code>true</code>。这时候就可以向服务器端发送数据或者收取数据了。
+<pre><code class="language-php">if ($cli-&gt;connect('127.0.0.1', 9501)) {
+$cli-&gt;send("data");
+} else {
+echo "connect failed.";
+}</code></pre>
+<p>如果连接失败，会返回<code>false</code></p>
+<blockquote>
+<p>同步<code>TCP</code>客户端在执行<code>close</code>后，可以再次发起<code>Connect</code>创建新连接到服务器</p>
+</blockquote></li>
+<li><strong>失败重连</strong>
+<code>connect</code>失败后如果希望重连一次，必须先进行<code>close</code>关闭旧的<code>socket</code>，否则会返回<code>EINPROCESS</code>错误，因为当前的<code>socket</code>正在连接服务器，客户端并不知道是否连接成功，所以无法再次执行<code>connect</code>。调用<code>close</code>会关闭当前的<code>socket</code>，底层重新创建新的<code>socket</code>来进行连接。
+!&gt; 启用 <a href="/client?id=swoole_keep">SWOOLE_KEEP</a> 长连接后，<code>close</code>调用的第一个参数要设置为<code>true</code>表示强行销毁长连接<code>socket</code>
+<pre><code class="language-php">if ($socket-&gt;connect('127.0.0.1', 9502) === false) {
+$socket-&gt;close(true);
+$socket-&gt;connect('127.0.0.1', 9502);
+}</code></pre></li>
+<li><strong>UDP Connect</strong>
+默认底层并不会启用<code>udp connect</code>，一个<code>UDP</code>客户端执行<code>connect</code>时，底层在创建<code>socket</code>后会立即返回成功。这时此<code>socket</code>绑定的地址是<code>0.0.0.0</code>，任何其他对端均可向此端口发送数据包。
+如<code>$client-&gt;connect('192.168.1.100', 9502)</code>，这时操作系统为客户端<code>socket</code>随机分配了一个端口<code>58232</code>，其他机器，如<code>192.168.1.101</code>也可以向这个端口发送数据包。
+?&gt; 未开启<code>udp connect</code>，调用<code>getsockname</code>返回的<code>host</code>项为<code>0.0.0.0</code>
+将第<code>4</code>项参数设置为<code>1</code>，启用<code>udp connect</code>，<code>$client-&gt;connect('192.168.1.100', 9502, 1, 1)</code>。这时将会绑定客户端和服务器端，底层会根据服务器端的地址来绑定<code>socket</code>绑定的地址。如连接了<code>192.168.1.100</code>，当前<code>socket</code>会被绑定到<code>192.168.1.*</code>的本机地址上。启用<code>udp connect</code>后，客户端将不再接收其他主机向此端口发送的数据包。
+<a name="recv"></a>
+<h3>recv()</h3>
+<p>从服务器端接收数据。</p>
+<pre><code class="language-php">Swoole\Client-&gt;recv(int $size = 65535, int $flags = 0): string | false</code></pre></li>
+<li><strong>参数</strong> </li>
+</ul></li>
+<li><strong><code>int $size</code></strong>
+<ul>
+<li><strong>功能</strong>：接收数据的缓存区最大长度【此参数不要设置过大，否则会占用较大内存】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $flags</code></strong>
+<ul>
+<li><strong>功能</strong>：可设置额外的参数【如<a href="/client?id=clientmsg_waitall">Client::MSG_WAITALL</a>】,具体哪些参数参考<a href="/client?id=常量">此节</a></li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong>返回值</strong></li>
+</ul></li>
+<li>成功收到数据返回字符串</li>
+<li>连接关闭返回空字符串</li>
+<li>失败返回 <code>false</code>，并设置<code>$client-&gt;errCode</code>属性
+<ul>
+<li><strong>EOF/Length协议</strong></li>
+</ul></li>
+<li>客户端启用了<code>EOF/Length</code>检测后，无需设置<code>$size</code>和<code>$waitall</code>参数。扩展层会返回完整的数据包或者返回<code>false</code>，参考<a href="/client?id=协议解析">协议解析</a>章节。</li>
+<li>当收到错误的包头或包头中长度值超过<a href="/server/setting?id=package_max_length">package_max_length</a>设置时，<code>recv</code>会返回空字符串，PHP代码中应当关闭此连接。
+<a name="send"></a>
+<h3>send()</h3>
+<p>发送数据到远程服务器，必须在建立连接后，才可向对端发送数据。</p>
+<pre><code class="language-php">Swoole\Client-&gt;send(string $data): int|false</code></pre>
+<ul>
+<li><strong>参数</strong> </li>
+</ul></li>
+<li><strong><code>string $data</code></strong>
+<ul>
+<li><strong>功能</strong>：发送内容【支持二进制数据】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong>返回值</strong></li>
+</ul></li>
+<li>成功发送，返回已发数据长度</li>
+<li>失败返回<code>false</code>，并设置<code>errCode</code>属性
+<ul>
+<li><strong>提示</strong></li>
+</ul></li>
+<li>如果未执行<code>connect</code>，调用<code>send</code>会触发警告</li>
+<li>发送的数据没有长度限制</li>
+<li>发送的数据太大Socket缓存区塞满，程序会阻塞等待可写
+<a name="sendfile"></a>
+<h3>sendfile()</h3>
+<p>发送文件到服务器，本函数是基于<code>sendfile</code>操作系统调用实现</p>
+<pre><code class="language-php">Swoole\Client-&gt;sendfile(string $filename, int $offset = 0, int $length = 0): bool</code></pre>
+<p>!&gt; sendfile不能用于UDP客户端和SSL隧道加密连接</p>
+<ul>
+<li><strong>参数</strong> </li>
+</ul></li>
+<li><strong><code>string $filename</code></strong>
+<ul>
+<li><strong>功能</strong>：指定要发送文件的路径</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $offset</code></strong>
+<ul>
+<li><strong>功能</strong>：上传文件的偏移量【可以指定从文件的中间部分开始传输数据。此特性可用于支持断点续传。】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $length</code></strong>
+<ul>
+<li><strong>功能</strong>：发送数据的尺寸【默认为整个文件的尺寸】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong>返回值</strong></li>
+</ul></li>
+<li>如果传入的文件不存在，将返回<code>false</code></li>
+<li>执行成功返回<code>true</code>
+<ul>
+<li><strong>注意</strong></li>
+</ul></li>
+<li><code>sendfile</code>会一直阻塞直到整个文件发送完毕或者发生致命错误
+<a name="sendto"></a>
+<h3>sendto()</h3>
+<p>向任意<code>IP:PORT</code>的主机发送<code>UDP</code>数据包，仅支持<code>SWOOLE_SOCK_UDP/SWOOLE_SOCK_UDP6</code>类型</p>
+<pre><code class="language-php">Swoole\Client-&gt;sendto(string $ip, int $port, string $data): bool</code></pre>
+<ul>
+<li><strong>参数</strong> </li>
+</ul></li>
+<li><strong><code>string $ip</code></strong>
+<ul>
+<li><strong>功能</strong>：目标主机的<code>IP</code>地址，支持<code>IPv4/IPv6</code></li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $port</code></strong>
+<ul>
+<li><strong>功能</strong>：目标主机的端口</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>string $data</code></strong>
+<ul>
+<li><strong>功能</strong>：要发送的数据内容【不得超过<code>64K</code>】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无
+<a name="enableSSL"></a>
+<h3>enableSSL()</h3>
+<p>动态开启SSL隧道加密，只有在编译<code>swoole</code>时开启了<code>--enable-openssl</code>才能使用该函数。</p>
+<pre><code class="language-php">Swoole\Client-&gt;enableSSL(): bool</code></pre>
+<p>客户端在建立连接时使用明文通信，中途希望改为<code>SSL</code>隧道加密通信，可以使用<code>enableSSL</code>方法来实现。如果一开始就是SSL的请参考参考<a href="/client?id=ssl相关">SSL配置</a>。使用<code>enableSSL</code>动态开启<code>SSL</code>隧道加密，需要满足两个条件：</p></li>
+</ul></li>
+<li>客户端创建时类型必须为非<code>SSL</code></li>
+<li>客户端已与服务器建立了连接
+调用<code>enableSSL</code>会阻塞等待<code>SSL</code>握手完成。
+<ul>
+<li><strong>示例</strong>
+<pre><code class="language-php">$client = new Swoole\Client(SWOOLE_SOCK_TCP);
+if (!$client-&gt;connect('127.0.0.1', 9501, -1))
+{
+exit("connect failed. Error: {$client-&gt;errCode}\n");
+}
+$client-&gt;send("hello world\n");
+echo $client-&gt;recv();
+//启用SSL隧道加密
+if ($client-&gt;enableSSL())
+{
+//握手完成，此时发送和接收的数据是加密的
+$client-&gt;send("hello world\n");
+echo $client-&gt;recv();
+}
+$client-&gt;close();</code></pre>
+<p><a name="getPeerCert"></a></p>
+<h3>getPeerCert()</h3>
+<p>获取服务器端证书信息，只有在编译<code>swoole</code>时开启了<code>--enable-openssl</code>才能使用该函数。</p>
+<pre><code class="language-php">Swoole\Client-&gt;getPeerCert(): string|false</code></pre></li>
+<li><strong>返回值</strong></li>
+</ul></li>
+<li>成功返回一个<code>X509</code>证书字符串信息</li>
+<li>失败返回<code>false</code>
+!&gt; 必须在SSL握手完成后才可以调用此方法。</li>
+</ul>
+<p>可以使用<code>openssl</code>扩展提供的<code>openssl_x509_parse</code>函数解析证书的信息。
+!&gt; 需要在编译swoole时启用<a href="/environment?id=编译选项">--enable-openssl</a>
+<a name="verifyPeerCert"></a></p>
+<h3>verifyPeerCert()</h3>
+<p>验证服务器端证书，只有在编译<code>swoole</code>时开启了<code>--enable-openssl</code>才能使用该函数。</p>
+<pre><code class="language-php">Swoole\Client-&gt;verifyPeerCert()</code></pre>
+<p><a name="isConnected"></a></p>
+<h3>isConnected()</h3>
+<p>返回Client的连接状态</p>
+<ul>
+<li>返回false，表示当前未连接到服务器</li>
+<li>返回true，表示当前已连接到服务器
+<pre><code class="language-php">Swoole\Client-&gt;isConnected(): bool</code></pre>
+<p>!&gt; <code>isConnected</code>方法返回的是应用层状态，只表示<code>Client</code>执行了<code>connect</code>并成功连接到了<code>Server</code>，并且没有执行<code>close</code>关闭连接。<code>Client</code>可以执行<code>send</code>、<code>recv</code>、<code>close</code>等操作，但不能再次执行<code>connect</code> 。<br />
+这不代表连接一定是可用的，当执行<code>send</code>或<code>recv</code>时仍然有可能返回错误，因为应用层无法获得底层<code>TCP</code>连接的状态，执行<code>send</code>或<code>recv</code>时应用层与内核发生交互，才能得到真实的连接可用状态。
+<a name="getSockName"></a></p>
+<h3>getSockName()</h3>
+<p>用于获取客户端socket的本地host:port。
+!&gt; 必须在连接之后才可以使用</p>
+<pre><code class="language-php">Swoole\Client-&gt;getsockname(): array|false</code></pre></li>
+<li><strong>返回值</strong>
+<pre><code class="language-php">array('host' =&gt; '127.0.0.1', 'port' =&gt; 53652);</code></pre>
+<p><a name="getPeerName"></a></p>
+<h3>getPeerName()</h3>
+<p>获取对端socket的IP地址和端口
+!&gt; 仅支持<code>SWOOLE_SOCK_UDP/SWOOLE_SOCK_UDP6/SWOOLE_SOCK_UNIX_DGRAM</code>类型</p>
+<pre><code class="language-php">Swoole\Client-&gt;getpeername(): array|false</code></pre>
+<p><code>UDP</code>协议通信客户端向一台服务器发送数据包后，可能并非由此服务器向客户端发送响应。可以使用<code>getpeername</code>方法获取实际响应的服务器<code>IP:PORT</code>。
+!&gt; 此函数必须在<code>$client-&gt;recv()</code>之后调用
+<a name="close"></a></p>
+<h3>close()</h3>
+<p>关闭连接。</p>
+<pre><code class="language-php">Swoole\Client-&gt;close(bool $force = false): bool</code></pre></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>bool $force</code></strong></li>
+<li><strong>功能</strong>：强制关闭连接【可用于关闭 <a href="/client?id=swoole_keep">SWOOLE_KEEP</a> 长连接】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无
+当一个<code>swoole_client</code>连接被<code>close</code>后不要再次发起<code>connect</code>。正确的做法是销毁当前的<code>Client</code>，重新创建一个<code>Client</code>并发起新的连接。
+<code>Client</code>对象在析构时会自动<code>close</code>。
+<a name="shutdown"></a>
+<h3>shutdown()</h3>
+<p>关闭客户端</p>
+<pre><code class="language-php">Swoole\Client-&gt;shutdown(int $how): bool</code></pre></li>
+</ul></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>int $how</code></strong></li>
+<li><strong>功能</strong>：设置如何关闭客户端</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：Swoole\Client::SHUT_RDWR（关闭读写），SHUT_RD（关闭读），Swoole\Client::SHUT_WR（关闭写）
+<a name="getSocket"></a>
+<h3>getSocket()</h3>
+<p>获取底层的<code>socket</code>句柄，返回的对象为<code>sockets</code>资源句柄。
+!&gt; 此方法需要依赖<code>sockets</code>扩展，并且编译时需要开启<a href="/environment?id=编译选项">--enable-sockets</a>选项</p>
+<pre><code class="language-php">Swoole\Client-&gt;getSocket()</code></pre>
+<p>使用<code>socket_set_option</code>函数可以设置更底层的一些<code>socket</code>参数。</p>
+<pre><code class="language-php">$socket = $client-&gt;getSocket();
+if (!socket_set_option($socket, SOL_SOCKET, SO_REUSEADDR, 1)) {
+echo 'Unable to set option on socket: '. socket_strerror(socket_last_error()) . PHP_EOL;
+}</code></pre>
+<p><a name="swoole_client_select"></a></p>
+<h3>swoole_client_select</h3>
+<p>Swoole\Client的并行处理中用了select系统调用来做<a href="/learn?id=什么是eventloop">IO事件循环</a>，不是epoll_wait，与<a href="/event">Event模块</a>不同的是，此函数是用在同步IO环境中的(如果在Swoole的Worker进程中调用，会导致Swoole自己的 epoll <a href="/learn?id=什么是eventloop">IO事件循环</a>没有机会执行)。
+函数原型：</p>
+<pre><code class="language-php">int swoole_client_select(array &amp;$read, array &amp;$write, array &amp;$error, float $timeout);</code></pre></li>
+</ul></li>
+<li><code>swoole_client_select</code>接受4个参数，<code>$read</code>, <code>$write</code>, <code>$error</code> 分别是可读/可写/错误的文件描述符。  </li>
+<li>这3个参数必须是数组变量的引用。数组的元素必须<code>为swoole_client</code>对象。</li>
+<li>此方法基于<code>select</code>系统调用，最大支持<code>1024</code>个<code>socket</code></li>
+<li><code>$timeout</code>参数是<code>select</code>系统调用的超时时间，单位为秒，接受浮点数</li>
+<li>功能与PHP原生的<code>stream_select()</code>类似，不同的是stream_select只支持PHP的stream变量类型，而且性能差。
+调用成功后，会返回事件的数量，并修改<code>$read</code>/<code>$write</code>/<code>$error</code>数组。使用foreach遍历数组，然后执行<code>$item-&gt;recv</code>/<code>$item-&gt;send</code>来收发数据。或者调用<code>$item-&gt;close()</code>或<code>unset($item)</code>来关闭<code>socket</code>。
+<code>swoole_client_select</code>返回<code>0</code>表示在规定的时间内，没有任何IO可用，<code>select</code>调用已超时。
+!&gt; 此函数可以用于<code>Apache/PHP-FPM</code>环境    
+<pre><code class="language-php">$clients = array();
+for($i=0; $i&lt; 20; $i++)
+{
+$client = new Swoole\Client(SWOOLE_SOCK_TCP, SWOOLE_SOCK_SYNC); //同步阻塞
+$ret = $client-&gt;connect('127.0.0.1', 9501, 0.5, 0);
+if(!$ret)
+{
+    echo "Connect Server fail.errCode=".$client-&gt;errCode;
+}
+else
+{
+    $client-&gt;send("HELLO WORLD\n");
+    $clients[$client-&gt;sock] = $client;
+}
+}
+while (!empty($clients))
+{
+$write = $error = array();
+$read = array_values($clients);
+$n = swoole_client_select($read, $write, $error, 0.6);
+if ($n &gt; 0)
+{
+    foreach ($read as $index =&gt; $c)
+    {
+        echo "Recv #{$c-&gt;sock}: " . $c-&gt;recv() . "\n";
+        unset($clients[$c-&gt;sock]);
+    }
+}
+}</code></pre>
+<p><a name="属性"></a></p>
+<h2>属性</h2>
+<p><a name="errCode"></a></p>
+<h3>errCode</h3>
+<p>错误码</p>
+<pre><code class="language-php">Swoole\Client-&gt;errCode: int</code></pre>
+<p>当<code>connect/send/recv/close</code>失败时，会自动设置<code>$swoole_client-&gt;errCode</code>的值。
+<code>errCode</code>的值等于<code>Linux errno</code>。可使用<code>socket_strerror</code>将错误码转为错误信息。</p>
+<pre><code class="language-php">echo socket_strerror($client-&gt;errCode);</code></pre>
+<p>可参考：<a href="/other/errno?id=linux">Linux错误码列表</a>
+<a name="sock"></a></p>
+<h3>sock</h3>
+<p>socket连接的文件描述符。</p>
+<pre><code class="language-php">Swoole\Client-&gt;sock;</code></pre>
+<p>在PHP代码中可以使用</p>
+<pre><code class="language-php">$sock = fopen("php://fd/".$swoole_client-&gt;sock); </code></pre></li>
+<li>将<code>Swoole\Client</code>的<code>socket</code>转换成一个<code>stream socket</code>。可以调用<code>fread/fwrite/fclose</code>等函数进程操作。</li>
+<li><a href="/server/methods?id=__construct">Swoole\Server</a> 中的<code>$fd</code>不能用此方法转换，因为<code>$fd</code>只是一个数字，<code>$fd</code>文件描述符属于主进程，参考  <a href="/learn?id=swoole_process">SWOOLE_PROCESS</a>模式。</li>
+<li><code>$swoole_client-&gt;sock</code>可以转换成int作为数组的<code>key</code>。
+!&gt; 这里需要注意的是：<code>$swoole_client-&gt;sock</code>属性值，仅在<code>$swoole_client-&gt;connect</code>后才能取到。在未连接服务器之前，此属性的值为<code>null</code>。
+<a name="reuse"></a>
+<h3>reuse</h3>
+<p>表示此连接是新创建的还是复用已存在的。与<a href="/client?id=swoole_keep">SWOOLE_KEEP</a>配合使用。
+<a name="使用场景"></a></p>
+<h4>使用场景</h4>
+<p><code>WebSocket</code>客户端与服务器建立连接后需要进行握手，如果连接是复用的，那就不需要再次进行握手，直接发送<code>WebSocket</code>数据帧即可。</p>
+<pre><code class="language-php">if ($client-&gt;reuse) {
+$client-&gt;send($data);
+} else {
+$client-&gt;doHandShake();
+$client-&gt;send($data);
+}</code></pre>
+<p><a name="reuseCount"></a></p>
+<h3>reuseCount</h3>
+<p>表示此连接的复用次数。与<a href="/client?id=swoole_keep">SWOOLE_KEEP</a>配合使用。</p>
+<pre><code class="language-php">Swoole\Client-&gt;reuseCount;</code></pre>
+<p><a name="type"></a></p>
+<h3>type</h3>
+<p>表示<code>socket</code>的类型，会返回<code>Swoole\Client::__construct()</code>的<code>$sock_type</code>的值</p>
+<pre><code class="language-php">Swoole\Client-&gt;type;</code></pre>
+<p><a name="id"></a></p>
+<h3>id</h3>
+<p>返回<code>Swoole\Client::__construct()</code>的<code>$key</code>的值，与<a href="/client?id=swoole_keep">SWOOLE_KEEP</a>配合使用</p>
+<pre><code class="language-php">Swoole\Client-&gt;id;</code></pre>
+<p><a name="setting"></a></p>
+<h3>setting</h3>
+<p>返回客户端<code>Swoole\Client::set()</code>设置的配置</p>
+<pre><code class="language-php">Swoole\Client-&gt;setting;</code></pre>
+<p><a name="常量"></a></p>
+<h2>常量</h2>
+<p><a name="SWOOLE_KEEP"></a></p>
+<h3>SWOOLE_KEEP</h3>
+<p>Swoole\Client支持在<code>PHP-FPM/Apache</code>中创建一个TCP长连接到服务器端。使用方法：</p>
+<pre><code class="language-php">$client = new Swoole\Client(SWOOLE_SOCK_TCP | SWOOLE_KEEP);
+$client-&gt;connect('127.0.0.1', 9501);</code></pre>
+<p>启用<code>SWOOLE_KEEP</code>选项后，一个请求结束不会关闭<code>socket</code>，下一次再进行<code>connect</code>时会自动复用上次创建的连接。如果执行<code>connect</code>发现连接已经被服务器关闭，那么<code>connect</code>会创建新的连接。
+?&gt; SWOOLE_KEEP的优势</p></li>
+<li><code>TCP</code>长连接可以减少<code>connect</code> <code>3</code>次握手/<code>close</code> <code>4</code>次挥手带来的额外IO消耗</li>
+<li>降低服务器端<code>close</code>/<code>connect</code>次数
+<a name="Swoole\Client::MSG_WAITALL"></a>
+<h3>Swoole\Client::MSG_WAITALL</h3>
+<ul>
+<li>如果设定了Client::MSG_WAITALL参数就必须设定准确的<code>$size</code>，否则会一直等待，直到接收的数据长度达到$size</li>
+<li>未设置Client::MSG_WAITALL时，<code>$size</code>最大为<code>64K</code></li>
+<li>如果设置了错误的<code>$size</code>，会导致<code>recv</code>超时，返回 <code>false</code>
+<a name="Swoole\Client::MSG_DONTWAIT"></a>
+<h3>Swoole\Client::MSG_DONTWAIT</h3>
+<p>非阻塞接收数据，无论是否有数据都会立即返回。
+<a name="Swoole\Client::MSG_PEEK"></a></p>
+<h3>Swoole\Client::MSG_PEEK</h3>
+<p>窥视<code>socket</code>缓存区中的数据。设置<code>MSG_PEEK</code>参数后，<code>recv</code>读取数据不会修改指针，因此下一次调用<code>recv</code>仍然会从上一次的位置起返回数据。
+<a name="Swoole\Client::MSG_OOB"></a></p>
+<h3>Swoole\Client::MSG_OOB</h3>
+<p>读取带外数据，请自行搜索&quot;<code>TCP带外数据</code>&quot;。
+<a name="Swoole\Client::SHUT_RDWR"></a></p>
+<h3>Swoole\Client::SHUT_RDWR</h3>
+<p>关闭客户端的读写端。
+<a name="Swoole\Client::SHUT_RD"></a></p>
+<h3>Swoole\Client::SHUT_RD</h3>
+<p>关闭客户端的读端。
+<a name="Swoole\Client::SHUT_WR"></a></p>
+<h3>Swoole\Client::SHUT_WR</h3>
+<p>关闭客户端的写端。
+<a name="配置"></a></p>
+<h2>配置</h2>
+<p><code>Client</code>可以使用<code>set</code>方法设置一些选项，启用某些特性。
+<a name="协议解析"></a></p>
+<h3>协议解析</h3>
+<p>?&gt; 协议解析为了解决<a href="/learn?id=tcp数据包边界问题">TCP数据包边界问题</a>，相关配置的意义和<code>Swoole\Server</code>一致，详情请移步到<a href="/server/setting?id=open_eof_check">Swoole\Server协议</a>配置章节。</p></li>
+</ul></li>
+<li><strong>结束符检测</strong>
+<pre><code class="language-php">$client-&gt;set(array(
+'open_eof_check' =&gt; true,
+'package_eof' =&gt; "\r\n\r\n",
+'package_max_length' =&gt; 1024 * 1024 * 2,
+));</code></pre></li>
+<li><strong>长度检测</strong>
+<pre><code class="language-php">$client-&gt;set(array(
+'open_length_check' =&gt; true,
+'package_length_type' =&gt; 'N',
+'package_length_offset' =&gt; 0, //第N个字节是包长度的值
+'package_body_offset' =&gt; 4, //第几个字节开始计算长度
+'package_max_length' =&gt; 2000000, //协议最大长度
+));</code></pre>
+<p>!&gt; 目前支持 <a href="/server/setting?id=open_length_check">open_length_check</a> 和 <a href="/server/setting?id=open_eof_check">open_eof_check</a> 2种自动协议处理功能；<br />
+配置好协议解析后，客户端的<code>recv()</code>方法将不接受长度参数，每次必然返回一个完整的数据包。</p></li>
+<li><strong>MQTT协议</strong>
+!&gt; 启用<code>MQTT</code>协议解析，<a href="/server/events?id=onreceive">onReceive</a>回调将收到完整的<code>MQTT</code>数据包。
+<pre><code class="language-php">$client-&gt;set(array(
+'open_mqtt_protocol' =&gt; true,
+));</code></pre></li>
+<li><strong>Socket缓存区尺寸</strong><br />
+!&gt; 包括<code>socket</code>底层操作系统缓存区、应用层接收数据内存缓存区、应用层发送数据内存缓冲区。   
+<pre><code class="language-php">$client-&gt;set(array( 
+'socket_buffer_size' =&gt; 1024 * 1024 * 2, // 2M缓存区   
+)); </code></pre></li>
+<li><strong>关闭Nagle合并算法</strong>
+<pre><code class="language-php">$client-&gt;set(array(
+'open_tcp_nodelay' =&gt; true,
+));</code></pre>
+<p><a name="SSL相关"></a></p>
+<h3>SSL相关</h3></li>
+<li><strong>SSL/TLS证书配置</strong>
+<pre><code class="language-php">$client-&gt;set(array(
+'ssl_cert_file' =&gt; $your_ssl_cert_file_path,
+'ssl_key_file' =&gt; $your_ssl_key_file_path,
+));</code></pre></li>
+<li><strong>ssl_verify_peer</strong>
+验证服务器端证书。
+<pre><code class="language-php">$client-&gt;set([
+'ssl_verify_peer' =&gt; true,
+]);</code></pre>
+<p>启用后会验证证书和主机域名是否对应，如果为否将自动关闭连接</p></li>
+<li><strong>自签名证书</strong>
+可设置<code>ssl_allow_self_signed</code>为<code>true</code>，允许自签名证书。
+<pre><code class="language-php">$client-&gt;set([
+'ssl_verify_peer' =&gt; true,
+'ssl_allow_self_signed' =&gt; true,
+]);</code></pre></li>
+<li><strong>ssl_host_name</strong>
+设置服务器主机名称，与<code>ssl_verify_peer</code>配置配合使用或 <a href="/client?id=verifypeercert">Client::verifyPeerCert</a> 配合使用。
+<pre><code class="language-php">$client-&gt;set([
+'ssl_host_name' =&gt; 'www.google.com',
+]);</code></pre></li>
+<li><strong>ssl_cafile</strong>
+当设置<code>ssl_verify_peer</code>为<code>true</code>时，用来验证远端证书所用到的<code>CA</code>证书。本选项值为<code>CA</code>证书在本地文件系统的全路径及文件名。
+<pre><code class="language-php">$client-&gt;set([
+'ssl_cafile' =&gt; '/etc/CA',
+]);</code></pre></li>
+<li><strong>ssl_capath</strong>
+如果未设置ssl_cafile，或者ssl_cafile所指的文件不存在时，会在ssl_capath所指定的目录搜索适用的证书。该目录必须是已经经过哈希处理的证书目录。
+<pre><code class="language-php">$client-&gt;set([
+'ssl_capath' =&gt; '/etc/capath/',
+])</code></pre></li>
+<li><strong>ssl_passphrase</strong>
+本地证书<a href="/server/setting?id=ssl_cert_file">ssl_cert_file</a>文件的密码。</li>
+<li><strong>示例</strong>
+<pre><code class="language-php">$client = new Swoole\Client(SWOOLE_SOCK_TCP | SWOOLE_SSL);
+$client-&gt;set(array(
+'ssl_cert_file' =&gt; __DIR__.'/ca/client-cert.pem',
+'ssl_key_file' =&gt; __DIR__.'/ca/client-key.pem',
+'ssl_allow_self_signed' =&gt; true,
+'ssl_verify_peer' =&gt; true,
+'ssl_cafile' =&gt; __DIR__.'/ca/ca-cert.pem',
+));
+if (!$client-&gt;connect('127.0.0.1', 9501, -1))
+{
+exit("connect failed. Error: {$client-&gt;errCode}\n");
+}
+echo "connect ok\n";
+$client-&gt;send("hello world-" . str_repeat('A', $i) . "\n");
+echo $client-&gt;recv();</code></pre>
+<p><a name="package_length_func"></a></p>
+<h3>package_length_func</h3>
+<p>设置长度计算函数，与<code>Swoole\Server</code>的<a href="/server/setting?id=package_length_func">package_length_func</a>使用方法完全一致。与<a href="/server/setting?id=open_length_check">open_length_check</a>配合使用。长度函数必须返回一个整数。</p></li>
+<li>返回<code>0</code>，数据不足，需要接收更多数据</li>
+<li>返回<code>-1</code>，数据错误，底层会自动关闭连接</li>
+<li>返回包的总长度值（包括包头和包体的总长度），底层会自动将包拼好后返回给回调函数
+默认底层最大会读取<code>8K</code>的数据，如果包头的长度较小可能会存在内存复制的消耗。可设置<code>package_body_offset</code>参数，底层只读取包头进行长度解析。</li>
+<li><strong>示例</strong>
+<pre><code class="language-php">$client = new Swoole\Client(SWOOLE_SOCK_TCP);
+$client-&gt;set(array(
+'open_length_check' =&gt; true,
+'package_length_func' =&gt; function ($data) {
+    if (strlen($data) &lt; 8) {
+        return 0;
+    }
+    $length = intval(trim(substr($data, 0, 8)));
+    if ($length &lt;= 0) {
+        return -1;
+    }
+    return $length + 8;
+},
+));
+if (!$client-&gt;connect('127.0.0.1', 9501, -1))
+{
+exit("connect failed. Error: {$client-&gt;errCode}\n");
+}
+$client-&gt;send("hello world\n");
+echo $client-&gt;recv();
+$client-&gt;close();</code></pre>
+<p><a name="socks5_proxy"></a></p>
+<h3>socks5_proxy</h3>
+<p>配置socks5代理。
+!&gt; 仅设置一个选项是无效的, 每次必须设置<code>host</code>和<code>port</code>；<code>socks5_username</code>、<code>socks5_password</code>为可选参数。<code>socks5_port</code>、<code>socks5_password</code>不允许为<code>null</code>。</p>
+<pre><code class="language-php">$client-&gt;set(array(
+'socks5_host' =&gt; '192.168.1.100',
+'socks5_port' =&gt; 1080,
+'socks5_username' =&gt; 'username',
+'socks5_password' =&gt; 'password',
+));</code></pre>
+<p><a name="http_proxy"></a></p>
+<h3>http_proxy</h3>
+<p>配置HTTP代理。
+!&gt; <code>http_proxy_port</code>、<code>http_proxy_password</code>不允许为<code>null</code>。</p></li>
+<li><strong>基础设置</strong>
+<pre><code class="language-php">$client-&gt;set(array(
+'http_proxy_host' =&gt; '192.168.1.100',
+'http_proxy_port' =&gt; 1080,
+));</code></pre></li>
+<li><strong>验证设置</strong>
+<pre><code class="language-php">$client-&gt;set(array(
+'http_proxy_user' =&gt; 'test',
+'http_proxy_password' =&gt; 'test_123456',
+));</code></pre>
+<p><a name="bind"></a></p>
+<h3>bind</h3>
+<p>!&gt; 仅设置bind_port是无效的，请同时设置bind_port和bind_address
+?&gt; 机器有多个网卡的情况下，设置<code>bind_address</code>参数可以强制客户端<code>Socket</code>绑定某个网络地址。<br />
+设置<code>bind_port</code>可以使客户端<code>Socket</code>使用固定的端口连接到外网服务器。</p>
+<pre><code class="language-php">$client-&gt;set(array(
+'bind_address' =&gt; '192.168.1.100',
+'bind_port' =&gt; 36002,
+));</code></pre>
+<p><a name="作用范围"></a></p>
+<h3>作用范围</h3>
+<p>以上<code>Client</code>配置项对下面这些客户端同样生效</p>
+<ul>
+<li><a href="/coroutine_client/client">Swoole\Coroutine\Client</a></li>
+<li><a href="/coroutine_client/http_client">Swoole\Coroutine\Http\Client</a></li>
+<li><a href="/coroutine_client/http2_client">Swoole\Coroutine\Http2\Client</a></li>
+</ul></li>
+</ul>
+</body>
+</html>

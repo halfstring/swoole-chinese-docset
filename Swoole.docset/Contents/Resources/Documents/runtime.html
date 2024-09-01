@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>Runtime</h1>
+<p>相对于<code>Swoole1.x</code>，<code>Swoole4+</code>提供了协程这个大杀器，所有业务代码都是同步的，但底层的IO却是异步的，保证并发的同时避免了传统异步回调所带来的离散的代码逻辑和陷入多层回调中导致代码无法维护，要达到这个效果必须所有的<code>IO</code>请求都是<a href="/learn?id=同步io异步io">异步IO</a>，而<code>Swoole1.x</code>时代提供的<code>MySQL</code>、<code>Redis</code>等客户端虽然是异步IO，但是是异步回调的编程方式，不是协程方式，所以在<code>Swoole4</code>时代移除了这些客户端。
+为了解决这些客户端的协程支持问题Swoole开发组做了大量的工作：</p>
+<ul>
+<li>
+<p>刚开始，针对每种类型的客户端都做了一个协程客户端，详见<a href="/coroutine_client/init">协程客户端</a>，但这样做有3个问题：</p>
+<ul>
+<li>实现复杂，每个客户端细枝末节的协议都很复杂，想都完美的支持工作量巨大。</li>
+<li>用户需要更改的代码比较多，比如原来查询<code>MySQL</code>是用的PHP原生的<code>PDO</code>，那么现在需要用<a href="/coroutine_client/mysql">Swoole\Coroutine\MySQL</a>的方法。</li>
+<li>很难覆盖到所有的操作，比如<code>proc_open()</code>、<code>sleep()</code>函数等等也可能阻塞住导致程序变成同步阻塞的。</li>
+</ul>
+</li>
+<li>
+<p>针对上述问题，Swoole开发组换了实现思路，采用<code>Hook</code>原生PHP函数的方式实现协程客户端，通过一行代码就可以让原来的同步IO的代码变成可以<a href="/coroutine?id=协程调度">协程调度</a>的<a href="/learn?id=同步io异步io">异步IO</a>，即<code>一键协程化</code>。
+!&gt; 此特性在<code>v4.3</code>版本后开始稳定，能<code>协程化</code>的函数也越来越多，所以有些之前写的协程客户端已经不再推荐使用了，详情查看<a href="/coroutine_client/init">协程客户端</a>，例如：在<code>v4.3+</code>支持了文件操作(<code>file_get_contents</code>、<code>fread</code>等)的<code>协程化</code>，如果使用的是<code>v4.3+</code>版本就可以直接使用<code>协程化</code>而不是使用Swoole提供的<a href="/coroutine/system">协程文件操作</a>了。
+<a name="函数原型"></a></p>
+<h2>函数原型</h2>
+<p>通过<code>flags</code>设置要<code>协程化</code>的函数的范围</p>
+<pre><code class="language-php">Co::set(['hook_flags'=&gt; SWOOLE_HOOK_ALL]); // v4.4+版本使用此方法。
+// 或
+Swoole\Runtime::enableCoroutine($flags = SWOOLE_HOOK_ALL);</code></pre>
+<p>同时开启多个<code>flags</code>需要使用<code>|</code>操作</p>
+<pre><code class="language-php">Co::set(['hook_flags'=&gt; SWOOLE_HOOK_TCP | SWOOLE_HOOK_SLEEP]);</code></pre>
+<p>!&gt; 被<code>Hook</code>的函数需要在<a href="/coroutine/scheduler">协程容器</a>中使用
+<a name="常见问题 :id=runtime-qa"></a></p>
+<h4>常见问题 :id=runtime-qa</h4>
+<p>!&gt; <strong><code>Swoole\Runtime::enableCoroutine()</code> 和 <code>Co::set(['hook_flags'])</code>用哪个</strong></p>
+</li>
+<li>
+<p><code>Swoole\Runtime::enableCoroutine()</code>，可以在服务启动后(运行时)动态设置flags，调用方法后当前进程内全局生效，应该放在整个项目开始以获得100%覆盖的效果；</p>
+</li>
+<li>
+<p><code>Co::set()</code>可以理解为PHP的<code>ini_set()</code>，需要在<a href="/server/methods?id=start">Server-&gt;start()</a>前或<a href="/coroutine/scheduler">Co\run()</a>前调用，否则设置的<code>hook_flags</code>不会生效，在<code>v4.4+</code>版本应该用此种方式设置<code>flags</code>；</p>
+</li>
+<li>
+<p>无论是<code>Co::set(['hook_flags'])</code>还是<code>Swoole\Runtime::enableCoroutine()</code>都应该只调用一次，重复调用会被覆盖。
+<a name="选项"></a></p>
+<h2>选项</h2>
+<p><code>flags</code>支持的选项有：
+<a name="SWOOLE_HOOK_ALL"></a></p>
+<h3>SWOOLE_HOOK_ALL</h3>
+<p>打开下述所有类型的flags (不包括CURL)
+!&gt; 从 v4.5.4 版本起，<code>SWOOLE_HOOK_ALL</code> 包括 <code>SWOOLE_HOOK_CURL</code></p>
+<pre><code class="language-php">Co::set(['hook_flags' =&gt; SWOOLE_HOOK_ALL]); //不包括CURL
+Co::set(['hook_flags' =&gt; SWOOLE_HOOK_ALL | SWOOLE_HOOK_CURL]); //真正的协程化所有类型，包括CURL</code></pre>
+<p><a name="SWOOLE_HOOK_TCP"></a></p>
+<h3>SWOOLE_HOOK_TCP</h3>
+<p><code>v4.1</code>开始支持，TCP Socket类型的stream，包括最常见的<code>Redis</code>、<code>PDO</code>、<code>Mysqli</code>以及用PHP的 <a href="https://www.php.net/streams">streams</a> 系列函数操作TCP连接的操作，都可以<code>Hook</code>，示例：</p>
+<pre><code class="language-php">Co::set(['hook_flags' =&gt; SWOOLE_HOOK_TCP]);
+Co\run(function() {
+for ($c = 100; $c--;) {
+    go(function () {//创建100个协程
+        $redis = new Redis();
+        $redis-&gt;connect('127.0.0.1', 6379);//此处产生协程调度，cpu切到下一个协程，不会阻塞进程
+        $redis-&gt;get('key');//此处产生协程调度，cpu切到下一个协程，不会阻塞进程
+    });
+}
+});</code></pre>
+<p>上述代码使用的就是原生的<code>Redis</code>类，但是其实已经变成了<code>异步IO</code>，<code>Co\run()</code>是创建了<a href="/coroutine/scheduler">协程容器</a>，<code>go()</code>是创建协程，这两个操作在<code>Swoole</code>提供的<a href="/server/init">Swoole\Server类簇</a>都是自动做好的，不需要手动做，参考<a href="/server/setting?id=enable_coroutine">enable_coroutine</a>。
+也就是说传统的<code>PHP</code>程序员用最熟悉的逻辑代码就能写出高并发、高性能的程序，如下：</p>
+<pre><code class="language-php">Co::set(['hook_flags' =&gt; SWOOLE_HOOK_TCP]);
+$http = new Swoole\Http\Server("0.0.0.0", 9501);
+$http-&gt;set(['enable_coroutine' =&gt; true]);
+$http-&gt;on('request', function ($request, $response) {
+  $redis = new Redis();
+  $redis-&gt;connect('127.0.0.1', 6379);//此处产生协程调度，cpu切到下一个协程(下一个请求)，不会阻塞进程
+  $redis-&gt;get('key');//此处产生协程调度，cpu切到下一个协程(下一个请求)，不会阻塞进程
+});
+$http-&gt;start();</code></pre>
+<p><a name="SWOOLE_HOOK_UNIX"></a></p>
+<h3>SWOOLE_HOOK_UNIX</h3>
+<p><code>v4.2</code>开始支持。<code>Unix Stream Socket</code>类型的stream，示例：</p>
+<pre><code class="language-php">Co::set(['hook_flags' =&gt; SWOOLE_HOOK_UNIX]);
+Co\run(function () {
+$socket = stream_socket_server(
+    'unix://swoole.sock',
+    $errno,
+    $errstr,
+    STREAM_SERVER_BIND | STREAM_SERVER_LISTEN
+);
+if (!$socket) {
+    echo "$errstr ($errno)" . PHP_EOL;
+    exit(1);
+}
+while (stream_socket_accept($socket)) {
+}
+});</code></pre>
+<p><a name="SWOOLE_HOOK_UDP"></a></p>
+<h3>SWOOLE_HOOK_UDP</h3>
+<p><code>v4.2</code>开始支持。UDP Socket类型的stream，示例：</p>
+<pre><code class="language-php">Co::set(['hook_flags' =&gt; SWOOLE_HOOK_UDP]);
+Co\run(function () {
+$socket = stream_socket_server(
+    'udp://0.0.0.0:6666',
+    $errno,
+    $errstr,
+    STREAM_SERVER_BIND
+);
+if (!$socket) {
+    echo "$errstr ($errno)" . PHP_EOL;
+    exit(1);
+}
+while (stream_socket_recvfrom($socket, 1, 0)) {
+}
+});</code></pre>
+<p><a name="SWOOLE_HOOK_UDG"></a></p>
+<h3>SWOOLE_HOOK_UDG</h3>
+<p><code>v4.2</code>开始支持。Unix Dgram Socket类型的stream，示例：</p>
+<pre><code class="language-php">Co::set(['hook_flags' =&gt; SWOOLE_HOOK_UDG]);
+Co\run(function () {
+$socket = stream_socket_server(
+    'udg://swoole.sock',
+    $errno,
+    $errstr,
+    STREAM_SERVER_BIND
+);
+if (!$socket) {
+    echo "$errstr ($errno)" . PHP_EOL;
+    exit(1);
+}
+while (stream_socket_recvfrom($socket, 1, 0)) {
+}
+});</code></pre>
+<p><a name="SWOOLE_HOOK_SSL"></a></p>
+<h3>SWOOLE_HOOK_SSL</h3>
+<p><code>v4.2</code>开始支持。SSL Socket类型的stream，示例：</p>
+<pre><code class="language-php">Co::set(['hook_flags' =&gt; SWOOLE_HOOK_SSL]);
+Co\run(function () {
+$host = 'host.domain.tld';
+$port = 1234;
+$timeout = 10;
+$cert = '/path/to/your/certchain/certchain.pem';
+$context = stream_context_create(
+    array(
+        'ssl' =&gt; array(
+            'local_cert' =&gt; $cert,
+        )
+    )
+);
+if ($fp = stream_socket_client(
+    'ssl://' . $host . ':' . $port,
+    $errno,
+    $errstr,
+    30,
+    STREAM_CLIENT_CONNECT,
+    $context
+)) {
+    echo "connected\n";
+} else {
+    echo "ERROR: $errno - $errstr \n";
+}
+});</code></pre>
+<p><a name="SWOOLE_HOOK_TLS"></a></p>
+<h3>SWOOLE_HOOK_TLS</h3>
+<p><code>v4.2</code>开始支持。TLS Socket类型的stream，<a href="https://www.php.net/manual/en/context.ssl.php">参考</a>。
+示例：</p>
+<pre><code class="language-php">Co::set(['hook_flags' =&gt; SWOOLE_HOOK_TLS]);</code></pre>
+<p><a name="SWOOLE_HOOK_SLEEP"></a></p>
+<h3>SWOOLE_HOOK_SLEEP</h3>
+<p><code>v4.2</code>开始支持。<code>sleep</code>函数的<code>Hook</code>，包括了<code>sleep</code>、<code>usleep</code>、<code>time_nanosleep</code>、<code>time_sleep_until</code>，由于底层的定时器最小粒度是<code>1ms</code>，因此使用<code>usleep</code>等高精度睡眠函数时，如果设置为低于<code>1ms</code>时，将直接使用<code>sleep</code>系统调用。可能会引起非常短暂的睡眠阻塞。示例：</p>
+<pre><code class="language-php">Co::set(['hook_flags' =&gt; SWOOLE_HOOK_SLEEP]);
+Co\run(function () {
+go(function () {
+    sleep(1);
+    echo '1' . PHP_EOL;
+});
+go(function () {
+    echo '2' . PHP_EOL;
+});
+});
+//输出 
+2
+1</code></pre>
+<p><a name="SWOOLE_HOOK_FILE"></a></p>
+<h3>SWOOLE_HOOK_FILE</h3>
+<p><code>v4.3</code>开始支持。</p>
+</li>
+<li>
+<p><strong>文件操作的<code>协程化处理</code>，支持的函数有：</strong></p>
+<ul>
+<li><code>fopen</code></li>
+<li><code>fread</code>/<code>fgets</code></li>
+<li><code>fwrite</code>/<code>fputs</code></li>
+<li><code>file_get_contents</code>、<code>file_put_contents</code></li>
+<li><code>unlink</code></li>
+<li><code>mkdir</code></li>
+<li><code>rmdir</code>
+示例：
+<pre><code class="language-php">Co::set(['hook_flags' =&gt; SWOOLE_HOOK_FILE]);
+Co\run(function () {
+$fp = fopen("test.log", "a+");
+fwrite($fp, str_repeat('A', 2048));
+fwrite($fp, str_repeat('B', 2048));
+});</code></pre>
+<p><a name="SWOOLE_HOOK_STREAM_FUNCTION"></a></p>
+<h3>SWOOLE_HOOK_STREAM_FUNCTION</h3>
+<p><code>v4.4</code>开始支持。<code>stream_select()</code>的<code>Hook</code>，示例：</p>
+<pre><code class="language-php">Co::set(['hook_flags' =&gt; SWOOLE_HOOK_STREAM_FUNCTION]);
+Co\run(function () {
+$fp1 = stream_socket_client("tcp://www.baidu.com:80", $errno, $errstr, 30);
+$fp2 = stream_socket_client("tcp://www.qq.com:80", $errno, $errstr, 30);
+if (!$fp1) {
+echo "$errstr ($errno) \n";
+} else {
+fwrite($fp1, "GET / HTTP/1.0\r\nHost: www.baidu.com\r\nUser-Agent: curl/7.58.0\r\nAccept: */*\r\n\r\n");
+$r_array = [$fp1, $fp2];
+$w_array = $e_array = null;
+$n = stream_select($r_array, $w_array, $e_array, 10);
+$html = '';
+while (!feof($fp1)) {
+    $html .= fgets($fp1, 1024);
+}
+fclose($fp1);
+}
+});</code></pre>
+<p><a name="SWOOLE_HOOK_BLOCKING_FUNCTION"></a></p>
+<h3>SWOOLE_HOOK_BLOCKING_FUNCTION</h3>
+<p><code>v4.4</code>开始支持。这里的<code>blocking function</code>包括了：<code>gethostbyname</code>、<code>exec</code>、<code>shell_exec</code>，示例：</p>
+<pre><code class="language-php">Co::set(['hook_flags' =&gt; SWOOLE_HOOK_BLOCKING_FUNCTION]);
+Co\run(function () {
+echo shell_exec('ls');
+});</code></pre>
+<p><a name="SWOOLE_HOOK_PROC"></a></p>
+<h3>SWOOLE_HOOK_PROC</h3>
+<p><code>v4.4</code>开始支持。协程化 <code>proc*</code> 函数，包括了：<code>proc_open</code>、<code>proc_close</code>、<code>proc_get_status</code>、<code>proc_terminate</code>。
+示例：</p>
+<pre><code class="language-php">Co::set(['hook_flags' =&gt; SWOOLE_HOOK_PROC]);
+Co\run(function () {
+$descriptorspec = array(
+0 =&gt; array("pipe", "r"),  // stdin, child process read from it
+1 =&gt; array("pipe", "w"),  // stdout, child process write to it
+);
+$process = proc_open('php', $descriptorspec, $pipes);
+if (is_resource($process)) {
+fwrite($pipes[0], 'I am process');
+fclose($pipes[0]);
+while (true) {
+    echo fread($pipes[1], 1024);
+}
+fclose($pipes[1]);
+$return_value = proc_close($process);
+echo "command returned $return_value" . PHP_EOL;
+}
+});</code></pre>
+<p><a name="SWOOLE_HOOK_CURL"></a></p>
+<h3>SWOOLE_HOOK_CURL</h3>
+<p><a href="https://github.com/swoole/swoole-src/tree/v4.4.x">v4.4LTS</a>后或<code>v4.5</code>开始正式支持。</p></li>
+</ul>
+</li>
+<li>
+<p><strong>CURL的HOOK，支持的函数有：</strong></p>
+<ul>
+<li>curl_init</li>
+<li>curl_setopt</li>
+<li>curl_exec</li>
+<li>curl_multi_getcontent</li>
+<li>curl_setopt_array</li>
+<li>curl_error</li>
+<li>curl_getinfo</li>
+<li>curl_errno</li>
+<li>curl_close</li>
+<li>curl_reset
+示例：
+<pre><code class="language-php">Co::set(['hook_flags' =&gt; SWOOLE_HOOK_CURL]);
+Co\run(function () {
+$ch = curl_init();  
+curl_setopt($ch, CURLOPT_URL, "http://www.xinhuanet.com/");  
+curl_setopt($ch, CURLOPT_HEADER, false);  
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+$result = curl_exec($ch);  
+curl_close($ch);
+var_dump($result);
+});</code></pre>
+<p><a name="SWOOLE_HOOK_NATIVE_CURL"></a></p>
+<h3>SWOOLE_HOOK_NATIVE_CURL</h3>
+<p>对原生CURL的<code>协程化处理</code>。
+!&gt; Swoole版本 &gt;= <code>v4.6.0</code> 可用
+!&gt; 使用前需要在编译时开启<a href="/environment?id=通用参数">--enable-swoole-curl</a>选项；<br />
+开启该选项后将自动设置<code>SWOOLE_HOOK_NATIVE_CURL</code>，关闭<a href="/runtime?id=swoole_hook_all">SWOOLE_HOOK_CURL</a>；<br />
+同时<code>SWOOLE_HOOK_ALL</code>包含<code>SWOOLE_HOOK_NATIVE_CURL</code></p>
+<pre><code class="language-php">Co::set(['hook_flags' =&gt; SWOOLE_HOOK_NATIVE_CURL]);
+Co::set(['hook_flags' =&gt; SWOOLE_HOOK_ALL | SWOOLE_HOOK_NATIVE_CURL]);</code></pre>
+<p>示例：</p>
+<pre><code class="language-php">Co::set(['hook_flags' =&gt; SWOOLE_HOOK_ALL]);
+Co\run(function () {
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, "http://httpbin.org/get");
+curl_setopt($ch, CURLOPT_HEADER, false);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+$result = curl_exec($ch);
+curl_close($ch);
+var_dump($result);
+});</code></pre>
+<p><a name="SWOOLE_HOOK_SOCKETS"></a></p>
+<h3>SWOOLE_HOOK_SOCKETS</h3>
+<p>对 sockets 扩展的<code>协程化处理</code>。
+!&gt; Swoole版本 &gt;= <code>v4.6.0</code> 可用</p>
+<pre><code class="language-php">Co::set(['hook_flags' =&gt; SWOOLE_HOOK_SOCKETS]);</code></pre>
+<p><a name="SWOOLE_HOOK_STDIO"></a></p>
+<h3>SWOOLE_HOOK_STDIO</h3>
+<p>对 STDIO 的<code>协程化处理</code>。
+!&gt; Swoole版本 &gt;= <code>v4.6.2</code> 可用</p>
+<pre><code class="language-php">Co::set(['hook_flags' =&gt; SWOOLE_HOOK_STDIO]);</code></pre>
+<p>示例：</p>
+<pre><code class="language-php">use Swoole\Process;
+Co::set(['socket_read_timeout' =&gt; -1, 'hook_flags' =&gt; SWOOLE_HOOK_STDIO]);
+$proc = new Process(function ($p) {
+Co\run(function () use($p) {
+$p-&gt;write('start'.PHP_EOL);
+go(function() {
+    co::sleep(0.05);
+    echo "sleep\n";
+});
+echo fread(STDIN, 1024);
+});
+}, true, SOCK_STREAM);
+$proc-&gt;start();
+echo $proc-&gt;read();
+usleep(100000);
+$proc-&gt;write('hello world'.PHP_EOL);
+echo $proc-&gt;read();
+echo $proc-&gt;read();
+Process::wait();</code></pre>
+<p><a name="SWOOLE_HOOK_PDO_PGSQL"></a></p>
+<h3>SWOOLE_HOOK_PDO_PGSQL</h3>
+<p>对 <code>pdo_pgsql</code> 的<code>协程化处理</code>。
+!&gt; Swoole版本 &gt;= <code>v5.1.0</code> 可用</p>
+<pre><code class="language-php">Co::set(['hook_flags' =&gt; SWOOLE_HOOK_PDO_PGSQL]);</code></pre>
+<p>示例：</p>
+<pre><code class="language-php">&lt;?php
+function test()
+{
+$dbname   = "test";
+$username = "test";
+$password = "test";
+try {
+$dbh = new PDO("pgsql:dbname=$dbname;host=127.0.0.1:5432", $username, $password);
+$dbh-&gt;exec('create table test (id int)');
+$dbh-&gt;exec('insert into test values(1)');
+$dbh-&gt;exec('insert into test values(2)');
+$res = $dbh-&gt;query("select * from test");
+var_dump($res-&gt;fetchAll());
+$dbh = null;
+} catch (PDOException $exception) {
+echo $exception-&gt;getMessage();
+exit;
+}
+}
+Co::set(['trace_flags' =&gt; SWOOLE_HOOK_PDO_PGSQL]);
+Co\run(function () {
+test();
+});</code></pre>
+<p><a name="SWOOLE_HOOK_PDO_ODBC"></a></p>
+<h3>SWOOLE_HOOK_PDO_ODBC</h3>
+<p>对 <code>pdo_odbc</code> 的<code>协程化处理</code>。
+!&gt; Swoole版本 &gt;= <code>v5.1.0</code> 可用</p>
+<pre><code class="language-php">Co::set(['hook_flags' =&gt; SWOOLE_HOOK_PDO_ODBC]);</code></pre>
+<p>示例：</p>
+<pre><code class="language-php">&lt;?php
+function test()
+{
+$username = "test";
+$password = "test";
+try {
+$dbh = new PDO("odbc:mysql-test");
+$res = $dbh-&gt;query("select sleep(1) s");
+var_dump($res-&gt;fetchAll());
+$dbh = null;
+} catch (PDOException $exception) {
+echo $exception-&gt;getMessage();
+exit;
+}
+}
+Co::set(['trace_flags' =&gt; SWOOLE_TRACE_CO_ODBC, 'log_level' =&gt; SWOOLE_LOG_DEBUG]);
+Co\run(function () {
+test();
+});</code></pre>
+<p><a name="SWOOLE_HOOK_PDO_ORACLE"></a></p>
+<h3>SWOOLE_HOOK_PDO_ORACLE</h3>
+<p>对 <code>pdo_oci</code> 的<code>协程化处理</code>。
+!&gt; Swoole版本 &gt;= <code>v5.1.0</code> 可用</p>
+<pre><code class="language-php">Co::set(['hook_flags' =&gt; SWOOLE_HOOK_PDO_ORACLE]);</code></pre>
+<p>示例：</p>
+<pre><code class="language-php">&lt;?php
+function test()
+{
+$tsn = 'oci:dbname=127.0.0.1:1521/xe;charset=AL32UTF8';
+$username = "test";
+$password = "test";
+try {
+$dbh = new PDO($tsn, $username, $password);
+$dbh-&gt;exec('create table test (id int)');
+$dbh-&gt;exec('insert into test values(1)');
+$dbh-&gt;exec('insert into test values(2)');
+$res = $dbh-&gt;query("select * from test");
+var_dump($res-&gt;fetchAll());
+$dbh = null;
+} catch (PDOException $exception) {
+echo $exception-&gt;getMessage();
+exit;
+}
+}
+Co::set(['hook_flags' =&gt; SWOOLE_HOOK_PDO_ORACLE]);
+Co\run(function () {
+test();
+});</code></pre>
+<p><a name="SWOOLE_HOOK_PDO_SQLITE"></a></p>
+<h3>SWOOLE_HOOK_PDO_SQLITE</h3>
+<p>对 <code>pdo_sqlite</code> 的<code>协程化处理</code>。
+!&gt; Swoole版本 &gt;= <code>v5.1.0</code> 可用</p>
+<pre><code class="language-php">Co::set(['hook_flags' =&gt; SWOOLE_HOOK_PDO_SQLITE]);</code></pre></li>
+</ul>
+</li>
+<li>
+<p><strong>注意</strong>
+!&gt; 由于<code>swoole</code>在协程化<code>sqlite</code>数据库的时候，采用的是<code>串行化</code>模式保证<a href="https://www.sqlite.org/threadsafe.html">线程安全</a>。<br />
+如果<code>sqlite</code>数据库编译时指定的线程模式是单线程模式的话，<code>swoole</code>无法协程化<code>sqlite</code>，并且抛出一个警告，但是不影响使用，只是在增删改查的过程中不会发生协程切换。这种情况下只能重新编译<code>sqlite</code>并且指定线程模式为<code>串行化</code>或者<code>多线程</code>，<a href="https://www.sqlite.org/compile.html#threadsafe">原因</a>。<br />
+协程环境中创建的<code>sqlite</code>连接全部是<code>串行化的</code>，非协程环境中创建的<code>sqlite</code>连接默认与<code>sqlite</code>的线程模式一致。<br />
+如果<code>sqlite</code>的线程模式是<code>多线程</code>，那么非协程环境下创建的连接是不能给多个协程共享的，因为此时数据库连接是<code>多线程模式</code>的，在协程化环境下使用也不会升级成<code>串行化</code>。<br />
+<code>sqlite</code>默认线程模式就是<code>串行化</code>，<a href="https://www.sqlite.org/c3ref/c_config_covering_index_scan.html#sqliteconfigserialized">串行化说明</a>，<a href="https://www.sqlite.org/compile.html#threadsafe">默认线程模式</a>。<br />
+示例：</p>
+<pre><code class="language-php">&lt;?php
+use function Swoole\Coroutine\run;
+use function Swoole\Coroutine\go;
+Co::set(['hook_flags'=&gt; SWOOLE_HOOK_PDO_SQLITE]);
+run(function() {
+for($i = 0; $i &lt;= 5; $i++) {
+    go(function() use ($i) {
+        $db = new PDO('sqlite::memory:');
+        $db-&gt;query('select randomblob(99999999)');
+        var_dump($i);
+    });
+}
+});</code></pre>
+<p><a name="方法"></a></p>
+<h2>方法</h2>
+<p><a name="setHookFlags"></a></p>
+<h3>setHookFlags()</h3>
+<p>通过<code>flags</code>设置要<code>Hook</code>的函数的范围
+!&gt; Swoole版本 &gt;= <code>v4.5.0</code> 可用</p>
+<pre><code class="language-php">Swoole\Runtime::setHookFlags(int $flags): bool</code></pre>
+<p><a name="getHookFlags"></a></p>
+<h3>getHookFlags()</h3>
+<p>获取当前已<code>Hook</code>内容的<code>flags</code>，可能会与开启<code>Hook</code>时传入的<code>flags</code>不一致（由于未<code>Hook</code>成功的<code>flags</code>将会被清除）
+!&gt; Swoole版本 &gt;= <code>v4.4.12</code> 可用</p>
+<pre><code class="language-php">Swoole\Runtime::getHookFlags(): int</code></pre>
+<p><a name="常见的Hook列表"></a></p>
+<h2>常见的Hook列表</h2>
+<p><a name="可用列表"></a></p>
+<h3>可用列表</h3>
+<ul>
+<li><code>redis</code>扩展</li>
+<li>使用<code>mysqlnd</code>模式的<code>pdo_mysql</code>、<code>mysqli</code>扩展，如果未启用<code>mysqlnd</code>将不支持协程化</li>
+<li><code>soap</code>扩展</li>
+<li><code>file_get_contents</code>、<code>fopen</code></li>
+<li><code>stream_socket_client</code> (<code>predis</code>、<code>php-amqplib</code>)</li>
+<li><code>stream_socket_server</code></li>
+<li><code>stream_select</code> (需要<code>4.3.2</code>以上版本)</li>
+<li><code>fsockopen</code></li>
+<li><code>proc_open</code> (需要<code>4.4.0</code>以上版本)</li>
+<li><code>curl</code>
+<a name="不可用列表"></a>
+<h3>不可用列表</h3>
+<p>!&gt; <strong>不支持协程化</strong>表示会使协程降级为阻塞模式，此时使用协程无实际意义</p></li>
+<li><code>mysql</code>：底层使用<code>libmysqlclient</code></li>
+<li><code>mongo</code>：底层使用<code>mongo-c-client</code></li>
+<li><code>pdo_pgsql</code>，Swoole版本 &gt;= <code>v5.1.0</code>之后，使用<code>pdo_pgsql</code>可以协程化处理</li>
+<li><code>pdo_oci</code>，Swoole版本 &gt;= <code>v5.1.0</code>之后，使用<code>pdo_oci</code>可以协程化处理</li>
+<li><code>pdo_odbc</code>，Swoole版本 &gt;= <code>v5.1.0</code>之后，使用<code>pdo_odbc</code>可以协程化处理</li>
+<li><code>pdo_firebird</code></li>
+<li><code>php-amqp</code>
+<a name="API变更"></a>
+<h2>API变更</h2>
+<p><code>v4.3</code>及以前版本，<code>enableCoroutine</code>的API需要2个参数。</p>
+<pre><code class="language-php">Swoole\Runtime::enableCoroutine(bool $enable = true, int $flags = SWOOLE_HOOK_ALL);</code></pre></li>
+</ul>
+</li>
+<li>
+<p><code>$enable</code>：打开或关闭协程化。</p>
+</li>
+<li>
+<p><code>$flags</code>：选择要<code>协程化</code>的类型，可以多选，默认为全选。仅在<code>$enable = true</code>时有效。
+!&gt; <code>Runtime::enableCoroutine(false)</code>关闭上一次设置的所有选项协程<code>Hook</code>设置。</p>
+</li>
+</ul>
+</body>
+</html>

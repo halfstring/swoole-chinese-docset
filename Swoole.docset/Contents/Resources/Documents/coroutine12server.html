@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>TCP服务器</h1>
+<p>?&gt; <code>Swoole\Coroutine\Server</code> 是一个完全<a href="/coroutine">协程</a>化的类，用于创建协程<code>TCP</code>服务器，支持TCP和<a href="/learn?id=什么是IPC">unixSocket</a>类型。
+与<a href="/server/tcp_init">Server</a>模块不同之处：</p>
+<ul>
+<li>动态创建销毁，在运行时可以动态监听端口，也可以动态关闭服务器</li>
+<li>
+<p>处理连接的过程是完全同步的，程序可以顺序处理<code>Connect</code>、<code>Receive</code>、<code>Close</code>事件
+!&gt; 在4.4以上版本中可用
+<a name="短命名"></a></p>
+<h2>短命名</h2>
+<p>可使用<code>Co\Server</code>短名。
+<a name="方法"></a></p>
+<h2>方法</h2>
+<p><a name="__construct"></a></p>
+<h3>__construct()</h3>
+<p>?&gt; <strong>构造方法。</strong> </p>
+<pre><code class="language-php">Swoole\Coroutine\Server::__construct(string $host, int $port = 0, bool $ssl = false, bool $reuse_port = false);</code></pre>
+<ul>
+<li>
+<p><strong>参数</strong> </p>
+</li>
+<li>
+<p><strong><code>string $host</code></strong></p>
+<ul>
+<li><strong>功能</strong>：监听的地址</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul>
+</li>
+<li>
+<p><strong><code>int $port</code></strong></p>
+<ul>
+<li><strong>功能</strong>：监听的端口【如果为0将由操作系统随机分配一个端口】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul>
+</li>
+<li>
+<p><strong><code>bool $ssl</code></strong></p>
+<ul>
+<li><strong>功能</strong>：是否开启SSL加密</li>
+<li><strong>默认值</strong>：<code>false</code></li>
+<li><strong>其它值</strong>：<code>true</code></li>
+</ul>
+</li>
+<li>
+<p><strong><code>bool $reuse_port</code></strong></p>
+<ul>
+<li><strong>功能</strong>：是否开启端口重用，效果和<a href="/server/setting?id=enable_reuse_port">此节</a>的配置一样</li>
+<li><strong>默认值</strong>：<code>false</code></li>
+<li><strong>其它值</strong>：<code>true</code></li>
+<li><strong>版本影响</strong>：Swoole版本 &gt;= v4.4.4</li>
+</ul>
+</li>
+<li>
+<p><strong>提示</strong></p>
+</li>
+<li>
+<p><strong>$host 参数支持 3 种格式</strong></p>
+<ul>
+<li><code>0.0.0.0/127.0.0.1</code>: IPv4地址</li>
+<li><code>::/::1</code>: IPv6地址</li>
+<li><code>unix:/tmp/test.sock</code>: <a href="/learn?id=什么是IPC">UnixSocket</a>地址</li>
+</ul>
+</li>
+<li>
+<p><strong>异常</strong></p>
+<ul>
+<li>参数错误、绑定地址和端口失败、<code>listen</code>失败时将抛出<code>Swoole\Exception</code>异常。
+<a name="set"></a>
+<h3>set()</h3>
+<p>?&gt; <strong>设置协议处理参数。</strong> </p>
+<pre><code class="language-php">Swoole\Coroutine\Server-&gt;set(array $options);</code></pre></li>
+</ul>
+</li>
+<li>
+<p><strong>配置参数</strong></p>
+</li>
+<li>
+<p>参数<code>$options</code>必须为一维的关联索引数组，与 <a href="/coroutine_client/socket?id=setprotocol">setprotocol</a> 方法接受的配置项完全一致。
+!&gt; 必须在 <a href="/coroutine/server?id=start">start()</a> 方法之前设置参数</p>
+</li>
+<li>
+<p><strong>长度协议</strong></p>
+<pre><code class="language-php">$server = new Swoole\Coroutine\Server('127.0.0.1', $port, $ssl);
+$server-&gt;set([
+'open_length_check' =&gt; true,
+'package_max_length' =&gt; 1024 * 1024,
+'package_length_type' =&gt; 'N',
+'package_length_offset' =&gt; 0,
+'package_body_offset' =&gt; 4,
+]);</code></pre>
+</li>
+<li>
+<p><strong>SSL证书设置</strong></p>
+<pre><code class="language-php">$server-&gt;set([
+'ssl_cert_file' =&gt; dirname(__DIR__) . '/ssl/server.crt',
+'ssl_key_file' =&gt; dirname(__DIR__) . '/ssl/server.key',
+]);</code></pre>
+<p><a name="handle"></a></p>
+<h3>handle()</h3>
+<p>?&gt; <strong>设置连接处理函数。</strong>
+!&gt; 必须在 <a href="/coroutine/server?id=start">start()</a> 之前设置处理函数</p>
+<pre><code class="language-php">Swoole\Coroutine\Server-&gt;handle(callable $fn);</code></pre>
+</li>
+<li>
+<p><strong>参数</strong> </p>
+</li>
+<li>
+<p><strong><code>callable $fn</code></strong></p>
+<ul>
+<li><strong>功能</strong>：设置连接处理函数</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul>
+</li>
+<li>
+<p><strong>示例</strong> </p>
+<pre><code class="language-php">$server-&gt;handle(function (Swoole\Coroutine\Server\Connection $conn) {
+while (true) {
+    $data = $conn-&gt;recv();
+}
+});</code></pre>
+<p>!&gt; -服务器在<code>Accept</code>(建立连接)成功后，会自动创建<a href="/coroutine?id=协程调度">协程</a>并执行<code>$fn</code> ；<br />
+-<code>$fn</code>是在新的子协程空间内执行，因此在函数内无需再次创建协程；<br />
+-<code>$fn</code>接受一个参数，类型为<a href="/coroutine/server?id=coroutineserverconnection">Swoole\Coroutine\Server\Connection</a>对象;<br />
+-可以使用<a href="/coroutine/server?id=exportsocket">exportSocket()</a>得到当前连接的Socket对象
+<a name="shutdown"></a></p>
+<h3>shutdown()</h3>
+<p>?&gt; <strong>终止服务器。</strong>
+?&gt; 底层支持<code>start</code>和<code>shutdown</code>多次调用</p>
+<pre><code class="language-php">Swoole\Coroutine\Server-&gt;shutdown(): bool</code></pre>
+<p><a name="start"></a></p>
+<h3>start()</h3>
+<p>?&gt; <strong>启动服务器。</strong> </p>
+<pre><code class="language-php">Swoole\Coroutine\Server-&gt;start(): bool</code></pre>
+</li>
+<li>
+<p><strong>返回值</strong></p>
+</li>
+<li>
+<p>启动失败会返回<code>false</code>，并设置<code>errCode</code>属性</p>
+</li>
+<li>
+<p>启动成功将进入循环，<code>Accept</code>连接</p>
+</li>
+<li>
+<p><code>Accept</code>(建立连接)后会创建一个新的协程，并在协程中调用handle方法指定的函数</p>
+</li>
+<li>
+<p><strong>错误处理</strong></p>
+</li>
+<li>
+<p>当<code>Accept</code>(建立连接)发生<code>Too many open file</code>错误、或者无法创建子协程时，将暂停<code>1</code>秒然后再继续<code>Accept</code></p>
+</li>
+<li>
+<p>发生错误时，<code>start()</code>方法将返回，错误信息将会以<code>Warning</code>的形式报出。
+<a name="对象"></a></p>
+<h2>对象</h2>
+<p><a name="Coroutine\Server\Connection"></a></p>
+<h3>Coroutine\Server\Connection</h3>
+<p><code>Swoole\Coroutine\Server\Connection</code>对象提供了四个方法：</p>
+</li>
+</ul>
+</li>
+</ul>
+<p><a name="recv"></a></p>
+<h4>recv()</h4>
+<p>接收数据，如果设置了协议处理，将每次返回完整的包</p>
+<pre><code class="language-php">function recv(float $timeout = 0)</code></pre>
+<p><a name="send"></a></p>
+<h4>send()</h4>
+<p>发送数据</p>
+<pre><code class="language-php">function send(string $data)</code></pre>
+<p><a name="close"></a></p>
+<h4>close()</h4>
+<p>关闭连接</p>
+<pre><code class="language-php">function close(): bool</code></pre>
+<p><a name="exportSocket"></a></p>
+<h4>exportSocket()</h4>
+<p>得到当前连接的Socket对象。可调用更多底层的方法，请参考 <a href="/coroutine_client/socket">Swoole\Coroutine\Socket</a></p>
+<pre><code class="language-php">function exportSocket(): Swoole\Coroutine\Socket</code></pre>
+<p><a name="完整示例"></a></p>
+<h2>完整示例</h2>
+<pre><code class="language-php">use Swoole\Process;
+use Swoole\Coroutine;
+use Swoole\Coroutine\Server\Connection;
+//多进程管理模块
+$pool = new Process\Pool(2);
+//让每个OnWorkerStart回调都自动创建一个协程
+$pool-&gt;set(['enable_coroutine' =&gt; true]);
+$pool-&gt;on('workerStart', function ($pool, $id) {
+    //每个进程都监听9501端口
+    $server = new Swoole\Coroutine\Server('127.0.0.1', 9501, false, true);
+    //收到15信号关闭服务
+    Process::signal(SIGTERM, function () use ($server) {
+        $server-&gt;shutdown();
+    });
+    //接收到新的连接请求 并自动创建一个协程
+    $server-&gt;handle(function (Connection $conn) {
+        while (true) {
+            //接收数据
+            $data = $conn-&gt;recv(1);
+            if ($data === '' || $data === false) {
+                $errCode = swoole_last_error();
+                $errMsg = socket_strerror($errCode);
+                echo "errCode: {$errCode}, errMsg: {$errMsg}\n";
+                $conn-&gt;close();
+                break;
+            }
+            //发送数据
+            $conn-&gt;send('hello');
+            Coroutine::sleep(1);
+        }
+    });
+    //开始监听端口
+    $server-&gt;start();
+});
+$pool-&gt;start();</code></pre>
+<p>!&gt; 如果在Cygwin环境下运行请修改为单进程。<code>$pool = new Swoole\Process\Pool(1);</code></p>
+</body>
+</html>

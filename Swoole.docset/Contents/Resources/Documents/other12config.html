@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>ini配置</h1>
+<table>
+<thead>
+<tr>
+<th>配置</th>
+<th>默认值</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>swoole.enable_coroutine</td>
+<td>On</td>
+<td><code>On</code>, <code>Off</code> 开关内置协程，<a href="/server/setting?id=enable_coroutine">详见</a>。</td>
+</tr>
+<tr>
+<td>swoole.display_errors</td>
+<td>On</td>
+<td>开启/关闭<code>Swoole</code>错误信息。</td>
+</tr>
+<tr>
+<td>swoole.unixsock_buffer_size</td>
+<td>8M</td>
+<td>设置进程间通信的<code>Socket</code>缓存区尺寸，等价于<a href="/server/setting?id=socket_buffer_size">socket_buffer_size</a>。</td>
+</tr>
+<tr>
+<td>swoole.use_shortname</td>
+<td>On</td>
+<td>是否启用短别名，<a href="/other/alias?id=协程短名称">详见</a>。</td>
+</tr>
+<tr>
+<td>swoole.enable_preemptive_scheduler</td>
+<td>Off</td>
+<td>可防止某些协程死循环占用CPU时间过长(10ms的CPU时间)导致其它协程得不到<a href="/coroutine?id=协程调度">调度</a>，<a href="https://github.com/swoole/swoole-src/tree/master/tests/swoole_coroutine_scheduler/preemptive">示例</a>。</td>
+</tr>
+<tr>
+<td>swoole.enable_library</td>
+<td>On</td>
+<td>开启/关闭扩展内置的library</td>
+</tr>
+</tbody>
+</table>
+</body>
+</html>

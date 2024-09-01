@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>版本更新记录</h1>
+<p>从<code>v1.5</code>版本开始建立起严格的版本更新记录。目前平均迭代时间为每半年一个大版本，每<code>2-4</code>周一个小版本。
+<a name="建议使用的PHP版本"></a></p>
+<h2>建议使用的PHP版本</h2>
+<ul>
+<li>8.0</li>
+<li>8.1</li>
+<li>8.2</li>
+<li>8.3
+<a name="建议使用的Swoole版本"></a>
+<h2>建议使用的Swoole版本</h2>
+<p><code>Swoole6.x</code>和<code>Swoole5.x</code>
+两者的差别在于：<code>v6.x</code> 是主动迭代分支，<code>v5.x</code> 是<strong>非</strong>主动迭代分支，仅修复<code>BUG</code>
+!&gt; <code>v4.x</code>以上版本可通过设置<a href="/server/setting?id=enable_coroutine">enable_coroutine</a>关闭协程特性，使其变为非协程版本
+<a name="版本类型"></a></p>
+<h2>版本类型</h2></li>
+<li><code>alpha</code> 特性预览版本，表示开发计划中的任务已完成，进行开放预览，可能会存在较多<code>BUG</code></li>
+<li><code>beta</code> 测试版本，表示已经可以用于开发环境测试，可能存在<code>BUG</code></li>
+<li><code>rc[1-n]</code> 候选发布版本，表示进入发布周期，正在做大范围的测试，在此期间仍可能发现<code>BUG</code></li>
+<li>无后缀即代表稳定版，表示此版本已开发完毕，可正式投入使用
+<a name="查看当前版本信息"></a>
+<h2>查看当前版本信息</h2>
+<pre><code class="language-shell">php --ri swoole</code></pre>
+<p><a name="v6.0.0"></a></p>
+<h2>v6.0.0</h2>
+<p><a name="新特性"></a></p>
+<h3>新特性</h3></li>
+<li><code>Swoole</code>支持多线程模式，当<code>php</code>是<code>zts</code>模式，编译<code>Swoole</code>时开启<code>--enable-swoole-thread</code>时，就能使用多线程模式。</li>
+<li>新增线程管理类<code>Swoole\Thread</code>。 @matyhtf</li>
+<li>新增线程锁<code>Swoole\Thread\Lock</code>。 @matyhtf</li>
+<li>新增线程原子计数<code>Swoole\Thread\Atomic</code>，<code>Swoole\Thread\Atomic\Long</code>。 @matyhtf</li>
+<li>新增安全并发容器<code>Swoole\Thread\Map</code>，<code>Swoole\Thread\ArrayList</code>，<code>Swoole\Thread\Queue</code>。 @matyhtf</li>
+<li>文件异步操作支持<code>iouring</code>作为底层引擎，安装了<code>liburing</code>和编译<code>Swoole</code>时开启<code>--enable-iouring</code>，<code>file_get_contents</code>，<code>file_put_contents</code>，<code>fopen</code>，<code>fclose</code>，<code>fread</code>，<code>fwrite</code>，<code>mkdir</code>，<code>unlink</code>，<code>fsync</code>，<code>fdatasync</code>，<code>rename</code>，<code>fstat</code>，<code>lstat</code>，<code>filesize</code>这些函数的异步操作将会由<code>iouring</code>实现。 @matyhtf @NathanFreeman</li>
+<li>升级<code>Boost Context</code>版本到1.84。现在，龙芯CPU也能够使用协程了。 @NathanFreeman
+<a name="Bug修复"></a>
+<h3>Bug修复</h3></li>
+<li>修复无法通过<code>pecl</code>安装的问题。 @remicollet</li>
+<li>修复<code>Swoole\Coroutine\FastCGI\Client</code>客户端无法设置keepalive。 @NathanFreeman</li>
+<li>修复请求参数超过<code>max_input_vars</code>时会抛出错误导致进程不断重启的问题。 @NathanFreeman</li>
+<li>修复在协程中使用<code>Swoole\Event::wait()</code>导致的未知问题。 @matyhtf</li>
+<li>修复<code>proc_open</code>在协程化的时候不支持pty的问题。 @matyhtf</li>
+<li>修复<code>pdo_sqlite</code>在PHP8.3会出现段错误的问题。 @NathanFreeman</li>
+<li>修复编译<code>Swoole</code>时的无用警告。 @Appla @NathanFreeman</li>
+<li>修复如果<code>STDOUT/STDERR</code>已经关闭时，底层调用zend_fetch_resource2_ex会抛出错误。 @Appla @matyhtf</li>
+<li>修复无效的<code>set_tcp_nodelay</code>配置。 @matyhtf</li>
+<li>修复文件上传的时候偶尔会触发不可达的分支问题。 @NathanFreeman</li>
+<li>修复设置了<code>dispatch_func</code>，会导致php底层抛出错误的问题。 @NathanFreeman</li>
+<li>修复AC_PROG_CC_C99在autoconf &gt;= 2.70版本中已过时。 @petk</li>
+<li>当线程创建失败时，捕获其抛出的异常。 @matyhtf</li>
+<li>修复<code>_tsrm_ls_cache</code>未定义问题。 @jingjingxyk</li>
+<li>修复在<code>GCC 14</code>编译会导致致命错误。 @remicollet
+<a name="内核优化"></a>
+<h3>内核优化</h3></li>
+<li>移除对<code>socket structs</code>的无用检查。 @petk</li>
+<li>升级swoole Library。 @deminy</li>
+<li><code>Swoole\Http\Response</code>增加对451状态码的支持。 @abnegate</li>
+<li>同步PHP不同版本的<code>文件</code>操作代码。 @NathanFreeman</li>
+<li>同步PHP不同版本的<code>pdo</code>操作代码。 @NathanFreeman</li>
+<li>优化<code>Socket::ssl_recv()</code>的代码。 @matyhtf</li>
+<li>优化了config.m4，一些配置可以通过<code>pkg-config</code>设置依赖库位置。 @NathanFreeman</li>
+<li>优化<code>解析请求头</code>的时候使用动态数组的问题 。 @NathanFreeman</li>
+<li>优化在多线程模式下，文件描述符<code>fd</code>的生命周期问题。 @matyhtf</li>
+<li>优化协程一些基本逻辑。 @matyhtf
+<a name="废弃"></a>
+<h3>废弃</h3></li>
+<li>不再支持<code>PHP 8.0</code>。</li>
+<li>不再支持<code>Swoole\Coroutine\MySQL</code>协程客户端。</li>
+<li>不再支持<code>Swoole\Coroutine\Redis</code>协程客户端。</li>
+<li>不再支持<code>Swoole\Coroutine\PostgreSQL</code>协程客户端。
+<a name="v5.1.3"></a>
+<h2>v5.1.3</h2>
+<p><a name="Bug修复："></a></p>
+<h3>Bug修复：</h3></li>
+<li>修复无法通过<code>pecl</code>安装的问题。</li>
+<li>修复<code>Swoole\Coroutine\FastCGI\Client</code>客户端无法设置keepalive。</li>
+<li>修复请求参数超过<code>max_input_vars</code>时会抛出错误导致进程不断重启的问题。</li>
+<li>修复在协程中使用<code>Swoole\Event::wait()</code>导致的未知问题。</li>
+<li>修复<code>proc_open</code>在协程化的时候不支持pty的问题。</li>
+<li>修复<code>pdo_sqlite</code>在PHP8.3会出现段错误的问题。</li>
+<li>修复编译<code>Swoole</code>时的无用警告。</li>
+<li>修复如果<code>STDOUT/STDERR</code>已经关闭时，底层调用zend_fetch_resource2_ex会抛出错误。</li>
+<li>修复无效的<code>set_tcp_nodelay</code>配置。</li>
+<li>修复文件上传的时候偶尔会触发不可达的分支问题。</li>
+<li>修复设置了<code>dispatch_func</code>，会导致php底层抛出错误的问题。</li>
+<li>修复AC_PROG_CC_C99在autoconf &gt;= 2.70版本中已过时。
+<a name="内核优化："></a>
+<h3>内核优化：</h3></li>
+<li>移除对<code>socket structs</code>的无用检查。</li>
+<li>升级swoole Library。</li>
+<li><code>Swoole\Http\Response</code>增加对451状态码的支持。</li>
+<li>同步PHP不同版本的<code>文件</code>操作代码。</li>
+<li>同步PHP不同版本的<code>pdo</code>操作代码。</li>
+<li>优化<code>Socket::ssl_recv()</code>的代码。</li>
+<li>优化了config.m4，一些配置可以通过<code>pkg-config</code>设置依赖库位置。 </li>
+<li>优化<code>解析请求头</code>的时候使用动态数组的问题。
+<a name="v5.1.2"></a>
+<h2>v5.1.2</h2>
+<p><a name="Bug修复"></a></p>
+<h3>Bug修复</h3></li>
+<li>支持嵌入 sapi。</li>
+<li>修复 PHP 8.3 中 ZEND_CHECK_STACK_LIMIT 的兼容性问题。</li>
+<li>修复范围请求返回文件全部内容时没有 Content-Range 响应头的错误。</li>
+<li>修复截断的 cookie。</li>
+<li>修复了 PHP 8.3 上的 native-curl 崩溃问题。</li>
+<li>修复了 Server::Manager::wait() 后的无效 errno 错误。</li>
+<li>修复了 HTTP2 的拼写错误。</li>
+</ul>
+<p><a name="优化"></a></p>
+<h3>优化</h3>
+<ul>
+<li>优化 HTTP 服务器性能。</li>
+<li>添加 CLOSE_SERVICE_RESTART、CLOSE_TRY_AGAIN_LATER、CLOSE_BAD_GATEWAY 作为 websocket 的有效关闭原因
+<a name="v5.1.1"></a>
+<h2>v5.1.1</h2>
+<p><a name="Bug 修复"></a></p>
+<h3>Bug 修复</h3></li>
+<li>修复<code>http协程客户端</code>内存泄漏问题。</li>
+<li>修复<code>pdo_odbc</code>无法协程化的问题。</li>
+<li>修复<code>socket_import_stream()</code>执行错误的问题。</li>
+<li>修复<code>Context::parse_multipart_data()</code>无法处理空请求体的问题。</li>
+<li>修复<code>PostgreSQL协程客户端</code>参数不起作用的问题。</li>
+<li>修复<code>curl</code>在析构时会崩溃的bug。</li>
+<li>修复<code>Swoole5.x</code>与新版的<code>xdebug</code>不兼容问题。</li>
+<li>修复类<code>自动加载</code>的过程中发生协程切换导致提示<code>类不存在</code>的问题。</li>
+<li>修复无法在<code>OpenBSD</code>编译<code>swoole</code>的问题。
+<a name="v5.1.0"></a>
+<h2>v5.1.0</h2>
+<p><a name="新特性"></a></p>
+<h3>新特性</h3></li>
+<li>增加对<code>pdo_pgsql</code>的协程化支持</li>
+<li>增加对<code>pdo_odbc</code>的协程化支持</li>
+<li>增加对<code>pdo_oci</code>的协程化支持</li>
+<li>增加对<code>pdo_sqlite</code>的协程化支持</li>
+<li>增加<code>pdo_pgsql</code>，<code>pdo_odbc</code>，<code>pdo_oci</code>，<code>pdo_sqlite</code>的连接池配置
+<a name="增强"></a>
+<h3>增强</h3></li>
+<li>改进了<code>Http\Server</code>的性能，极限情况下可以提升<code>60%</code>
+<a name="修复"></a>
+<h3>修复</h3></li>
+<li>修复<code>WebSocket</code>协程客户端每次请求造成的内存泄漏</li>
+<li>修复<code>http协程服务端</code>优雅退出导致客户端不退出的问题</li>
+<li>修复编译的时候加入了<code>--enable-thread-context</code>选项会导致<code>Process::signal()</code>不起作</li>
+<li>修复在<code>SWOOLE_BASE</code>模式下，当进程非正常退出时，连接数统计错误的问题</li>
+<li>修复<code>stream_select()</code>函数签名错误</li>
+<li>修复文件MIME信息大小写敏感错误</li>
+<li>修复<code>Http2\Request::$usePipelineRead</code>拼写错误导致在PHP8.2的环境下会抛出警告</li>
+<li>修复在<code>SWOOLE_BASE</code>模式下的内存泄漏问题</li>
+<li>修复当<code>Http\Response::cookie()</code>设置cookie的过期时间导致的内存泄漏问题</li>
+<li>修复在<code>SWOOLE_BASE</code>模式下的连接泄漏问题
+<a name="内核"></a>
+<h3>内核</h3></li>
+<li>修复swoole在php8.3下的php_url_encode的函数签名问题</li>
+<li>修复单元测试选项问题</li>
+<li>优化，重构代码</li>
+<li>兼容PHP8.3</li>
+<li>不支持32位操作系统上编译
+<a name="v5.0.3"></a>
+<h2>v5.0.3</h2>
+<p><a name="增强"></a></p>
+<h3>增强</h3></li>
+<li>添加了<code>--with-nghttp2_dir</code>选项，用于使用系统中的<code>nghttp2</code>库</li>
+<li>支持字节长度或大小相关的选项</li>
+<li>增加<code>Process\Pool::sendMessage()</code>函数</li>
+<li><code>Http\Response:cookie()</code>支持<code>max-age</code>
+<a name="修复"></a>
+<h3>修复</h3></li>
+<li>修复<code>Server task/pipemessage/finish</code>事件导致内存泄漏
+<a name="内核"></a>
+<h3>内核</h3></li>
+<li><code>http</code>响应头冲突将不会抛出错误</li>
+<li><code>Server</code>连接关闭将不会抛出错误
+<a name="v5.0.2"></a>
+<h2>v5.0.2</h2>
+<p><a name="增强"></a></p>
+<h3>增强</h3></li>
+<li>支持对<code>http2</code>的默认设置进行配置</li>
+<li>支持8.1或更高版本的<code>xdebug</code></li>
+<li>重构了原生的curl以支持具有多个套接字的curl句柄，例如curl ftp协议</li>
+<li>在<code>Process::setPriority/getPriority</code>中添加了<code>who</code>参数</li>
+<li>添加了<code>Coroutine\Socket::getBoundCid()</code>方法</li>
+<li>调整了<code>Coroutine\Socket::recvLine/recvWithBuffer</code>方法的<code>length</code>参数的默认值为<code>65536</code></li>
+<li>重构了跨协程退出特性，使内存释放更安全，并解决了致命错误发生时的崩溃问题</li>
+<li>为<code>Coroutine\Client</code>、<code>Coroutine\Http\Client</code>、<code>Coroutine\Http2\Client</code>添加了<code>socket</code>属性，允许直接操作<code>socket</code>资源</li>
+<li>持<code>Http\Server</code>向<code>http2</code>客户端发送空文件</li>
+<li>支持<code>Coroutine\Http\Server</code>的优雅重启。当服务器关闭时，客户端连接不再被强制关闭，只停止监听新请求</li>
+<li>将<code>pcntl_rfork</code>和<code>pcntl_sigwaitinfo</code>添加到不安全函数列表中，在协程容器启动时将被关闭</li>
+<li>重构了<code>SWOOLE_BASE</code>模式进程管理器，关闭和重载行为将<code>SWOOLE_PROCESS</code>一致
+<a name="v5.0.1"></a>
+<h2>v5.0.1</h2>
+<p><a name="增强"></a></p>
+<h3>增强</h3></li>
+<li>支持<code>PHP-8.2</code>，改进了协程异常处理，与<code>ext-soap</code>兼容</li>
+<li>添加了<code>pgsql</code>协程客户端的<code>LOB</code>支持</li>
+<li>改进了<code>websocket</code>客户端，升级头部包含<code>websocket</code>而不是使用<code>=</code></li>
+<li>优化了<code>http 客户端</code>，在服务器发送<code>connection close</code>时禁用<code>keep-alive</code></li>
+<li>优化了<code>http 客户端</code>，在没有压缩库的情况下禁止添加<code>Accept-Encoding</code>头部</li>
+<li>改进了调试信息，在<code>PHP-8.2</code>下将密码设置为敏感参数</li>
+<li>加强了<code>Server::taskWaitMulti()</code>，在协程环境下不会阻塞</li>
+<li>优化了日志函数，在写入日志文件失败时不再打印到屏幕上
+<a name="修复"></a>
+<h3>修复</h3></li>
+<li>修复了<code>Coroutine::printBackTrace()</code>和<code>debug_print_backtrace()</code>的参数兼容性问题</li>
+<li>修复了<code>Event::add()</code>对套接字资源的支持</li>
+<li>修复了在没有<code>zlib</code>时的编译错误</li>
+<li>修复了在解析为意外字符串时解包服务器任务的崩溃问题</li>
+<li>修复了添加小于<code>1ms</code>的定时器被强制设置为<code>0</code>的问题</li>
+<li>修复了在添加列之前使用<code>Table::getMemorySize()</code>引起崩溃的问题</li>
+<li>修改了<code>Http\Response::setCookie()</code>方法的过期参数名为<code>expires</code>
+<a name="v5.0.0"></a>
+<h2>v5.0.0</h2>
+<p><a name="新特性"></a></p>
+<h3>新特性</h3></li>
+<li>添加了<code>Server</code>的<code>max_concurrency</code>选项</li>
+<li>添加了<code>Coroutine\Http\Client</code>的<code>max_retries</code>选项</li>
+<li>添加了<code>name_resolver</code>全局选项。 添加了<code>Server</code>的<code>upload_max_filesize</code>选项</li>
+<li>添加了<code>Coroutine::getExecuteTime()</code>方法</li>
+<li>为<code>Server</code>添加了<code>SWOOLE_DISPATCH_CONCURRENT_LB</code>的<code>dispatch_mode</code></li>
+<li>强化了类型系统，为所有函数的参数和返回值添加了类型</li>
+<li>优化了错误处理，所有构造函数在失败时将抛出异常</li>
+<li>调整了<code>Server</code>的默认模式，默认为<code>SWOOLE_BASE</code>模式</li>
+<li>将<code>pgsql</code>协程客户端迁移到核心库中。 包含了<code>4.8.x</code>分支中的所有<code>bug</code>修复
+<a name="移除"></a>
+<h3>移除</h3></li>
+<li>移除了<code>PSR-0</code>风格的类名</li>
+<li>移除了在关闭函数中自动添加<code>Event::wait()</code>的功能</li>
+<li>移除了<code>Server::tick/after/clearTimer/defer</code>的别名</li>
+<li>移除了<code>--enable-http2/--enable-swoole-json</code>，调整为默认启用
+<a name="废弃"></a>
+<h3>废弃</h3></li>
+<li>协程客户端<code>Coroutine\Redis</code>和<code>Coroutine\MySQL</code>默认废弃
+<a name="v4.8.13"></a>
+<h2>v4.8.13</h2>
+<p><a name="增强"></a></p>
+<h3>增强</h3></li>
+<li>重构原生的curl以支持具有多个套接字的curl句柄，例如curl FTP协议</li>
+<li>支持手动设置<code>http2</code>设置</li>
+<li>改进<code>WebSocket客户端</code>，升级标头包含了<code>websocket</code>而不是<code>equal</code></li>
+<li>优化HTTP客户端，在服务器发送连接关闭时禁用<code>keep-alive</code></li>
+<li>改进调试信息，在PHP-8.2下将密码设置为敏感参数</li>
+<li>支持<code>HTTP Range Requests</code>
+<a name="修复"></a>
+<h3>修复</h3></li>
+<li>修复了<code>Coroutine::printBackTrace()</code>和<code>debug_print_backtrace()</code>的参数兼容性问题</li>
+<li>修复了在<code>WebSocket</code>服务器同时启用<code>HTTP2</code>和<code>WebSocket</code>协议时解析长度错误的问题</li>
+<li>修复了在<code>Server::send()</code>、<code>Http\Response::end()</code>、<code>Http\Response::write()</code>和<code>WebSocket/Server::push()</code>中发生<code>send_yield</code>时的内存泄漏问题</li>
+<li>修复了在添加列之前使用<code>Table::getMemorySize()</code>时导致崩溃的问题。
+<a name="v4.8.12"></a>
+<h2>v4.8.12</h2>
+<p><a name="增强"></a></p>
+<h3>增强</h3></li>
+<li>支持PHP8.2</li>
+<li><code>Event::add()</code>函数支持<code>sockets resources</code></li>
+<li><code>Http\Client::sendfile()</code>支持超过4G的文件</li>
+<li><code>Server::taskWaitMulti()</code>支持协程环境
+<a name="修复"></a>
+<h3>修复</h3></li>
+<li>修复接收到错误的<code>multipart body</code>会抛出错误信息</li>
+<li>修复定时器的超时时间小于<code>1ms</code>导致的错误</li>
+<li>修复磁盘已满导致的死锁问题
+<a name="v4.8.11"></a>
+<h2>v4.8.11</h2>
+<p><a name="增强"></a></p>
+<h3>增强</h3></li>
+<li>支持 <code>Intel CET</code> 安全防御机制</li>
+<li>添加 <code>Server::$ssl</code>属性</li>
+<li>使用<code>pecl</code>编译<code>swoole</code>时，增加<code>enable-cares</code>属性</li>
+<li>重构<code>multipart_parser</code>解释器
+<a name="修复"></a>
+<h3>修复</h3></li>
+<li>修复<code>pdo</code>持久化连接抛出异常导致的段错误</li>
+<li>修复析构函数使用协程导致段错误</li>
+<li>修复<code>Server::close()</code>的不正确的错误信息
+<a name="v4.8.10"></a>
+<h2>v4.8.10</h2>
+<p><a name="修复"></a></p>
+<h3>修复</h3></li>
+<li>当<code>stream_select</code>的超时参数小于<code>1ms</code>时将其重置为<code>0</code></li>
+<li>修复编译时添加<code>-Werror=format-security</code>会导致编译失败</li>
+<li>修复使用<code>curl</code>导致<code>Swoole\Coroutine\Http\Server</code>段错误
+<a name="v4.8.9"></a>
+<h2>v4.8.9</h2>
+<p><a name="增强"></a></p>
+<h3>增强</h3></li>
+<li>支持 <code>Http2</code> 服务器下的 <code>http_auto_index</code> 选项
+<a name="修复"></a>
+<h3>修复</h3></li>
+<li>优化 <code>Cookie</code> 解析器，支持传入 <code>HttpOnly</code> 选项</li>
+<li>修复 #4657，Hook <code>socket_create</code> 方法返回类型问题</li>
+<li>修复 <code>stream_select</code> 内存泄漏
+<a name="CLI 更新"></a>
+<h3>CLI 更新</h3></li>
+<li><code>CygWin</code> 下携带了 SSL 证书链，解决了 SSL 认证出错的问题</li>
+<li>更新至 <code>PHP-8.1.5</code>
+<a name="v4.8.8"></a>
+<h2>v4.8.8</h2>
+<p><a name="优化"></a></p>
+<h3>优化</h3></li>
+<li>将 SW_IPC_BUFFER_MAX_SIZE 减少到 64k</li>
+<li>优化 http2 的 header_table_size 设置
+<a name="修复"></a>
+<h3>修复</h3></li>
+<li>修复使用 enable_static_handler 下载静态文件大量套接字错误</li>
+<li>修复 http2 server NPN 错误
+<a name="v4.8.7"></a>
+<h2>v4.8.7</h2>
+<p><a name="增强"></a></p>
+<h3>增强</h3></li>
+<li>添加 curl_share 支持
+<a name="修复"></a>
+<h3>修复</h3></li>
+<li>修复 arm32 架构下的未定义符号错误</li>
+<li>修复 <code>clock_gettime()</code> 兼容性</li>
+<li>修复当内核缺乏大块内存时，PROCESS 模式服务器发送失败的问题
+<a name="v4.8.6"></a>
+<h2>v4.8.6</h2>
+<p><a name="修复"></a></p>
+<h3>修复</h3></li>
+<li>为 boost/context API 名称添加了前缀</li>
+<li>优化配置选项
+<a name="v4.8.5"></a>
+<h2>v4.8.5</h2>
+<p><a name="修复"></a></p>
+<h3>修复</h3></li>
+<li>还原 Table 的参数类型</li>
+<li>修复使用 Websocket 协议接收错误数据时 crash
+<a name="v4.8.4"></a>
+<h2>v4.8.4</h2>
+<p><a name="修复"></a></p>
+<h3>修复</h3></li>
+<li>修复 sockets hook 与 PHP-8.1 的兼容性</li>
+<li>修复 Table 与 PHP-8.1 的兼容性</li>
+<li>修复在部分情况下协程风格的 HTTP 服务器解析 <code>Content-Type</code> 为 <code>application/x-www-form-urlencoded</code> 的 <code>POST</code> 参数不符合预期
+<a name="v4.8.3"></a>
+<h2>v4.8.3</h2>
+<p><a name="新增 API"></a></p>
+<h3>新增 API</h3></li>
+<li>增加 <code>Coroutine\Socket::isClosed()</code> 方法
+<a name="修复"></a>
+<h3>修复</h3></li>
+<li>修复 curl native hook 在 php8.1 版本下的兼容性问题</li>
+<li>修复 sockets hook 在 php8 下的兼容性问题</li>
+<li>修复 sockets hook 函数返回值错误</li>
+<li>修复 Http2Server sendfile 无法设置 content-type</li>
+<li>优化 HttpServer date header 的性能，增加了 cache
+<a name="v4.8.2"></a>
+<h2>v4.8.2</h2>
+<p><a name="修复"></a></p>
+<h3>修复</h3></li>
+<li>修复 proc_open hook 内存泄露的问题</li>
+<li>修复 curl native hook 与 PHP-8.0、PHP-8.1 的兼容性问题</li>
+<li>修复 Manager 进程中无法正常关闭连接的问题</li>
+<li>修复 Manager 进程无法使用 sendMessage 的问题</li>
+<li>修复 <code>Coroutine\Http\Server</code> 接收超大 POST 数据解析异常的问题</li>
+<li>修复 PHP8 环境下致命错误时进行不能直接退出的问题</li>
+<li>调整 coroutine <code>max_concurrency</code> 配置项，只允许在 <code>Co::set()</code> 中使用</li>
+<li>调整 <code>Coroutine::join()</code> 忽略不存在的协程
+<a name="v4.8.1"></a>
+<h2>v4.8.1</h2>
+<p><a name="新增 API"></a></p>
+<h3>新增 API</h3></li>
+<li>新增 <code>swoole_error_log_ex()</code> 和 <code>swoole_ignore_error()</code> 函数 (#4440) (@matyhtf)
+<a name="增强"></a>
+<h3>增强</h3></li>
+<li>迁移 ext-swoole_plus 中的 admin api 到 ext-swoole (#4441) (@matyhtf)</li>
+<li>admin server 新增 get_composer_packages 命令 (swoole/library@07763f46) (swoole/library@8805dc05) (swoole/library@175f1797) (@sy-records) (@yunbaoi)</li>
+<li>增加了写操作的 POST 方法请求限制 (swoole/library@ac16927c) (@yunbaoi)</li>
+<li>admin server 支持获取类方法信息 (swoole/library@690a1952) (@djw1028769140) (@sy-records)</li>
+<li>优化 admin server 代码 (swoole/library#128) (swoole/library#131) (@sy-records)</li>
+<li>admin server 支持并发请求多个目标和并发请求多个 API (swoole/library#124) (@sy-records)</li>
+<li>admin server 支持获取接口信息 (swoole/library#130) (@sy-records)</li>
+<li>SWOOLE_HOOK_CURL 支持 CURLOPT_HTTPPROXYTUNNEL (swoole/library#126) (@sy-records)
+<a name="修复"></a>
+<h3>修复</h3></li>
+<li>join 方法禁止并发调用同一个协程 (#4442) (@matyhtf)</li>
+<li>修复 Table 原子锁意外释放的问题 (#4446) (@Txhua) (@matyhtf)</li>
+<li>修复丢失的 helper options (swoole/library#123) (@sy-records)</li>
+<li>修复 get_static_property_value 命令参数错误 (swoole/library#129) (@sy-records)
+<a name="v4.8.0"></a>
+<h2>v4.8.0</h2>
+<p><a name="向下不兼容改动"></a></p>
+<h3>向下不兼容改动</h3></li>
+<li>在 base 模式下，onStart 回调将始终在第一个工作进程 (worker id 为 0) 启动时回调，先于 onWorkerStart 执行 (#4389) (@matyhtf)
+<a name="新增 API"></a>
+<h3>新增 API</h3></li>
+<li>新增 <code>Co::getStackUsage()</code> 方法 (#4398) (@matyhtf) (@twose)</li>
+<li>新增 <code>Coroutine\Redis</code> 的一些 API (#4390) (@chrysanthemum)</li>
+<li>新增 <code>Table::stats()</code> 方法 (#4405) (@matyhtf)</li>
+<li>新增 <code>Coroutine::join()</code> 方法 (#4406) (@matyhtf)
+<a name="新增功能"></a>
+<h3>新增功能</h3></li>
+<li>支持 server command (#4389) (@matyhtf)</li>
+<li>支持 <code>Server::onBeforeShutdown</code> 事件回调 (#4415) (@matyhtf)
+<a name="增强"></a>
+<h3>增强</h3></li>
+<li>当 Websocket pack 失败时设置错误码 (swoole/swoole-src@d27c5a5) (@matyhtf)</li>
+<li>新增 <code>Timer::exec_count</code> 字段 (#4402) (@matyhtf)</li>
+<li>hook mkdir 支持使用 open_basedir ini 配置 (#4407) (@NathanFreeman)</li>
+<li>library 新增 vendor_init.php 脚本 (swoole/library@6c40b02) (@matyhtf)</li>
+<li>SWOOLE_HOOK_CURL 支持 CURLOPT_UNIX_SOCKET_PATH (swoole/library#121) (@sy-records)</li>
+<li>Client 支持设置 ssl_ciphers 配置项 (#4432) (@amuluowin)</li>
+<li>为 <code>Server::stats()</code> 添加了一些新的信息 (#4410) (#4412) (@matyhtf)
+<a name="修复"></a>
+<h3>修复</h3></li>
+<li>修复文件上传时，对文件名字进行不必要的 URL decode (swoole/swoole-src@a73780e) (@matyhtf)</li>
+<li>修复 HTTP2 max_frame_size 问题 (#4394) (@twose)</li>
+<li>修复 curl_multi_select bug #4393 (#4418) (@matyhtf)</li>
+<li>修复丢失的 coroutine options (#4425) (@sy-records)</li>
+<li>修复当发送缓冲区满的时候，连接无法被 close 的问题 (swoole/swoole-src@2198378) (@matyhtf)
+<a name="v4.7.1"></a>
+<h2>v4.7.1</h2>
+<p><a name="增强"></a></p>
+<h3>增强</h3></li>
+<li><code>System::dnsLookup</code> 支持查询 <code>/etc/hosts</code> (#4341) (#4349) (@zmyWL) (@NathanFreeman)</li>
+<li>增加对 mips64 的 boost context 支持 (#4358) (@dixyes)</li>
+<li><code>SWOOLE_HOOK_CURL</code> 支持 <code>CURLOPT_RESOLVE</code> 选项 (swoole/library#107) (@sy-records)</li>
+<li><code>SWOOLE_HOOK_CURL</code> 支持 <code>CURLOPT_NOPROGRESS</code> 选项 (swoole/library#117) (@sy-records)</li>
+<li>增加对 riscv64 的 boost context 支持 (#4375) (@dixyes)
+<a name="修复"></a>
+<h3>修复</h3></li>
+<li>修复 PHP-8.1 在 on shutdown 时产生的内存错误 (#4325) (@twose)</li>
+<li>修复 8.1.0beta1 的不可序列化类 (#4335) (@remicollet)</li>
+<li>修复多个协程递归创建目录失败的问题 (#4337) (@NathanFreeman)</li>
+<li>修复 native curl 在外网发送大文件偶发超时的问题，以及在 CURL WRITEFUNCTION 中使用协程文件 API 出现 crash 的问题 (#4360) (@matyhtf)</li>
+<li>修复 <code>PDOStatement::bindParam()</code> 期望参数1为字符串的问题 (swoole/library#116) (@sy-records)
+<a name="v4.7.0"></a>
+<h2>v4.7.0</h2>
+<p><a name="新增 API"></a></p>
+<h3>新增 API</h3></li>
+<li>新增 <code>Process\Pool::detach()</code> 方法 (#4221) (@matyhtf)</li>
+<li><code>Server</code> 支持 <code>onDisconnect</code> 回调函数 (#4230) (@matyhtf)</li>
+<li>新增 <code>Coroutine::cancel()</code> 和 <code>Coroutine::isCanceled()</code> 方法 (#4247) (#4249) (@matyhtf)</li>
+<li><code>Http\Client</code> 支持 <code>http_compression</code> 和 <code>body_decompression</code> 选项 (#4299) (@matyhtf)
+<a name="增强"></a>
+<h3>增强</h3></li>
+<li>支持协程 MySQL 客户端在 <code>prepare</code> 时字段严格类型 (#4238) (@Yurunsoft)</li>
+<li>DNS 支持 <code>c-ares</code> 库 (#4275) (@matyhtf)</li>
+<li><code>Server</code> 支持在多端口监听时给不同的端口配置心跳检测时间 (#4290) (@matyhtf)</li>
+<li><code>Server</code> 的 <code>dispatch_mode</code> 支持 <code>SWOOLE_DISPATCH_CO_CONN_LB</code> 和 <code>SWOOLE_DISPATCH_CO_REQ_LB</code> 模式 (#4318) (@matyhtf)</li>
+<li><code>ConnectionPool::get()</code> 支持 <code>timeout</code> 参数 (swoole/library#108) (@leocavalcante)</li>
+<li>Hook Curl 支持 <code>CURLOPT_PRIVATE</code> 选项 (swoole/library#112) (@sy-records)</li>
+<li>优化 <code>PDOStatementProxy::setFetchMode()</code> 方法的函数声明 (swoole/library#109) (@yespire)
+<a name="修复"></a>
+<h3>修复</h3></li>
+<li>修复使用线程上下文的时候，创建大量协程时抛出无法创建线程的异常 (8ce5041) (@matyhtf)</li>
+<li>修复安装 Swoole 时 php_swoole.h 头文件丢失的问题 (#4239) (@sy-records)</li>
+<li>修复 EVENT_HANDSHAKE 不向下兼容的问题 (#4248) (@sy-records)</li>
+<li>修复 SW_LOCK_CHECK_RETURN 宏可能会调用两次函数的问题 (#4302) (@zmyWL)</li>
+<li>修复 <code>Atomic\Long</code> 在 M1 芯片下的问题 (e6fae2e) (@matyhtf)</li>
+<li>修复 <code>Coroutine\go()</code> 丢失返回值的问题 (swoole/library@1ed49db) (@matyhtf)</li>
+<li>修复 <code>StringObject</code> 返回值类型问题 (swoole/library#111) (swoole/library#113) (@leocavalcante) (@sy-records)
+<a name="内核"></a>
+<h3>内核</h3></li>
+<li>禁止 Hook 已经被 PHP 禁用的函数 (#4283) (@twose)
+<a name="测试"></a>
+<h3>测试</h3></li>
+<li>新增 <code>Cygwin</code> 环境下的构建 (#4222) (@sy-records)</li>
+<li>新增 <code>alpine 3.13</code> 和 <code>3.14</code> 的编译测试 (#4309) (@limingxinleo)
+<a name="v4.6.7"></a>
+<h2>v4.6.7</h2>
+<p><a name="增强"></a></p>
+<h3>增强</h3></li>
+<li>Manager 进程和 Task 同步进程支持调用<code>Process::signal()</code>函数 (#4190) (@matyhtf)
+<a name="修复"></a>
+<h3>修复</h3></li>
+<li>修复信号不能被重复注册的问题 (#4170) (@matyhtf)</li>
+<li>修复在 OpenBSD/NetBSD 上编译失败的问题 (#4188) (#4194) (@devnexen)</li>
+<li>修复监听可写事件时特殊情况 onClose 事件丢失 (#4204) (@matyhtf)</li>
+<li>修复 Symfony HttpClient 使用 native curl 的问题 (#4204) (@matyhtf)</li>
+<li>修复<code>Http\Response::end()</code>方法总是返回 true 的问题 (swoole/swoole-src@66fcc35) (@matyhtf)</li>
+<li>修复 PDOStatementProxy 产生的 PDOException (swoole/library#104) (@twose)
+<a name="内核"></a>
+<h3>内核</h3></li>
+<li>重构 worker buffer，给 event data 加上 msg id 标志 (#4163) (@matyhtf)</li>
+<li>修改 Request Entity Too Large 日志等级为 warning 级别 (#4175) (@sy-records)</li>
+<li>替换 inet_ntoa and inet_aton 函数 (#4199) (@remicollet)</li>
+<li>修改 output_buffer_size 默认值为 UINT_MAX (swoole/swoole-src@46ab345) (@matyhtf)
+<a name="v4.6.6"></a>
+<h2>v4.6.6</h2>
+<p><a name="增强"></a></p>
+<h3>增强</h3></li>
+<li>支持在 FreeBSD 下 Master 进程退出后向 Manager 进程发送 SIGTERM 信号 (#4150) (@devnexen)</li>
+<li>支持将 Swoole 静态编译到 PHP 中 (#4153) (@matyhtf)</li>
+<li>支持 SNI 使用 HTTP 代理  (#4158) (@matyhtf)
+<a name="修复"></a>
+<h3>修复</h3></li>
+<li>修复同步客户端异步连接的错误 (#4152) (@matyhtf)</li>
+<li>修复 Hook 原生 curl multi 导致的内存泄漏 (swoole/swoole-src@91bf243) (@matyhtf)
+<a name="v4.6.5"></a>
+<h2>v4.6.5</h2>
+<p><a name="新增 API"></a></p>
+<h3>新增 API</h3></li>
+<li>在 WaitGroup 中增加 count 方法(swoole/library#100) (@sy-records) (@deminy)
+<a name="增强"></a>
+<h3>增强</h3></li>
+<li>支持原生 curl multi (#4093) (#4099) (#4101) (#4105) (#4113) (#4121) (#4147) (swoole/swoole-src@cd7f51c) (@matyhtf) (@sy-records) (@huanghantao)</li>
+<li>允许在使用 HTTP/2 的 Response 中使用数组设置 headers
+<a name="修复"></a>
+<h3>修复</h3></li>
+<li>修复 NetBSD 构建 (#4080) (@devnexen)</li>
+<li>修复 OpenBSD 构建 (#4108) (@devnexen)</li>
+<li>修复 illumos/solaris 构建，只有成员别名 (#4109) (@devnexen)</li>
+<li>修复握手未完成时，SSL 连接的心跳检测不生效 (#4114) (@matyhtf)</li>
+<li>修复 Http\Client 使用代理时<code>host</code>中存在<code>host:port</code>产生的错误 (#4124) (@Yurunsoft)</li>
+<li>修复 Swoole\Coroutine\Http::request 中 header 和 cookie 的设置 (swoole/library#103) (@leocavalcante) (@deminy)
+<a name="内核"></a>
+<h3>内核</h3></li>
+<li>支持 BSD 上的 asm context (#4082) (@devnexen)</li>
+<li>在 FreeBSD 下使用 arc4random_buf 来实现 getrandom (#4096) (@devnexen)</li>
+<li>优化 darwin arm64 context：删除 workaround 使用 label (#4127) (@devnexen)
+<a name="测试"></a>
+<h3>测试</h3></li>
+<li>添加 alpine 的构建脚本 (#4104) (@limingxinleo)
+<a name="v4.6.4"></a>
+<h2>v4.6.4</h2>
+<p><a name="新增 API"></a></p>
+<h3>新增 API</h3></li>
+<li>新增 Coroutine\Http::request, Coroutine\Http::post, Coroutine\Http::get 函数 (swoole/library#97) (@matyhtf)
+<a name="增强"></a>
+<h3>增强</h3></li>
+<li>支持 ARM 64 构建 (#4057) (@devnexen)</li>
+<li>支持在 Swoole TCP 服务器中设置 open_http_protocol (#4063) (@matyhtf)</li>
+<li>支持 ssl 客户端只设置 certificate (91704ac) (@matyhtf)</li>
+<li>支持 FreeBSD 的 tcp_defer_accept 选项 (#4049) (@devnexen)
+<a name="修复"></a>
+<h3>修复</h3></li>
+<li>修复使用 Coroutine\Http\Client 时缺少代理授权的问题 (edc0552) (@matyhtf)</li>
+<li>修复 Swoole\Table 的内存分配问题 (3e7770f) (@matyhtf)</li>
+<li>修复 Coroutine\Http2\Client 并发连接时的 crash (630536d) (@matyhtf)</li>
+<li>修复 DTLS 的 enable_ssl_encrypt 问题 (842733b) (@matyhtf)</li>
+<li>修复 Coroutine\Barrier 内存泄漏(swoole/library#94) (@Appla) (@FMiS)</li>
+<li>修复由 CURLOPT_PORT 和 CURLOPT_URL 顺序引起的偏移错误 (swoole/library#96) (@sy-records)</li>
+<li>修复<code>Table::get($key, $field)</code>当字段类型为 float 时的错误 (08ea20c) (@matyhtf)</li>
+<li>修复 Swoole\Table 内存泄漏 (d78ca8c) (@matyhtf)
+<a name="v4.4.24"></a>
+<h2>v4.4.24</h2>
+<p><a name="修复"></a></p>
+<h3>修复</h3></li>
+<li>修复 http2 客户端并发连接时的 crash (#4079)
+<a name="v4.6.3"></a>
+<h2>v4.6.3</h2>
+<p><a name="新增 API"></a></p>
+<h3>新增 API</h3></li>
+<li>新增 Swoole\Coroutine\go 函数 (swoole/library@82f63be) (@matyhtf)</li>
+<li>新增 Swoole\Coroutine\defer 函数 (swoole/library@92fd0de) (@matyhtf)
+<a name="增强"></a>
+<h3>增强</h3></li>
+<li>为 HTTP 服务器添加 compression_min_length 选项 (#4033) (@matyhtf)</li>
+<li>允许在应用层设置 Content-Length HTTP 头 (#4041) (@doubaokun)
+<a name="修复"></a>
+<h3>修复</h3></li>
+<li>修复程序达到文件打开限制时的 coredump (swoole/swoole-src@709813f) (@matyhtf)</li>
+<li>修复 JIT 被禁用问题 (#4029) (@twose)</li>
+<li>修复 <code>Response::create()</code> 参数错误问题 (swoole/swoole-src@a630b5b) (@matyhtf)</li>
+<li>修复 ARM 平台下投递 task 时 task_worker_id 误报 (#4040) (@doubaokun)</li>
+<li>修复 PHP8 开启 native curl hook 时的 coredump (#4042)(#4045) (@Yurunsoft) (@matyhtf)</li>
+<li>修复 fatal error 时 shutdown 阶段的内存越界错误 (#4050) (@matyhtf)
+<a name="内核"></a>
+<h3>内核</h3></li>
+<li>优化 ssl_connect/ssl_shutdown (#4030) (@matyhtf)</li>
+<li>发生 fatal error 时直接退出进程 (#4053) (@matyhtf)
+<a name="v4.6.2"></a>
+<h2>v4.6.2</h2>
+<p><a name="新增 API"></a></p>
+<h3>新增 API</h3></li>
+<li>新增 <code>Http\Request\getMethod()</code> 方法 (#3987) (@luolaifa000)</li>
+<li>新增 <code>Coroutine\Socket-&gt;recvLine()</code> 方法 (#4014) (@matyhtf)</li>
+<li>新增 <code>Coroutine\Socket-&gt;readWithBuffer()</code> 方法 (#4017) (@matyhtf)
+<a name="增强"></a>
+<h3>增强</h3></li>
+<li>增强 <code>Response\create()</code> 方法，可以独立于 Server 使用 (#3998) (@matyhtf)</li>
+<li>支持 <code>Coroutine\Redis-&gt;hExists</code> 在设置了 compatibility_mode 之后返回 bool 类型 (swoole/swoole-src@b8cce7c) (@matyhtf)</li>
+<li>支持 <code>socket_read</code> 设置 PHP_NORMAL_READ 选项 (swoole/swoole-src@b1a0dcc) (@matyhtf)
+<a name="修复"></a>
+<h3>修复</h3></li>
+<li>修复 <code>Coroutine::defer</code> 在 PHP8 下 coredump 的问题 (#3997) (@huanghantao)</li>
+<li>修复当使用 thread context 的时候，错误设置 <code>Coroutine\Socket::errCode</code> 的问题 (swoole/swoole-src@004d08a) (@matyhtf)</li>
+<li>修复在最新的 macos 下 Swoole 编译失败的问题 (#4007) (@matyhtf)</li>
+<li>修复当 md5_file 参数传入 url 导致 php stream context 为空指针的问题 (#4016) (@ZhiyangLeeCN)
+<a name="内核"></a>
+<h3>内核</h3></li>
+<li>使用 AIO 线程池 hook stdio（解决之前把 stdio 视为 socket 导致的多协程读写问题） (#4002) (@matyhtf)</li>
+<li>重构 HttpContext (#3998) (@matyhtf)</li>
+<li>重构 <code>Process::wait()</code> (#4019) (@matyhtf)
+<a name="v4.6.1"></a>
+<h2>v4.6.1</h2>
+<p><a name="增强"></a></p>
+<h3>增强</h3></li>
+<li>增加 <code>--enable-thread-context</code> 编译选项 (#3970) (@matyhtf)</li>
+<li>在操作 session_id 时检查连接是否存在 (#3993) (@matyhtf)</li>
+<li>增强 CURLOPT_PROXY (swoole/library#87) (@sy-records)
+<a name="修复"></a>
+<h3>修复</h3></li>
+<li>修复 pecl 安装中的最小 PHP 版本 (#3979) (@remicollet)</li>
+<li>修复 pecl 安装时没有 <code>--enable-swoole-json</code> 和 <code>--enable-swoole-curl</code> 选项 (#3980) (@sy-records)</li>
+<li>修复 openssl 线程安全问题 (b516d69f) (@matyhtf)</li>
+<li>修复 enableSSL coredump (#3990) (@huanghantao)
+<a name="内核"></a>
+<h3>内核</h3></li>
+<li>优化 ipc writev ，避免当事件数据为空时产生 coredump (9647678) (@matyhtf)
+<a name="v4.5.11"></a>
+<h2>v4.5.11</h2>
+<p><a name="增强"></a></p>
+<h3>增强</h3></li>
+<li>优化 Swoole\Table (#3959) (@matyhtf)</li>
+<li>增强 CURLOPT_PROXY (swoole/library#87) (@sy-records)
+<a name="修复"></a>
+<h3>修复</h3></li>
+<li>修复 Table 递增和递减时不能清除所有列问题 (#3956) (@matyhtf) (@sy-records)</li>
+<li>修复编译时产生的<code>clock_id_t</code>错误 (49fea171) (@matyhtf)</li>
+<li>修复 fread bugs (#3972) (@matyhtf)</li>
+<li>修复 ssl 多线程 crash (7ee2c1a0) (@matyhtf)</li>
+<li>兼容 uri 格式错误导致报错 Invalid argument supplied for foreach (swoole/library#80) (@sy-records)</li>
+<li>修复 trigger_error 参数错误 (swoole/library#86) (@sy-records)
+<a name="v4.6.0"></a>
+<h2>v4.6.0</h2>
+<p><a name="向下不兼容改动"></a></p>
+<h3>向下不兼容改动</h3></li>
+<li>移除了<code>session id</code>的最大限制，不再重复 (#3879) (@matyhtf)</li>
+<li>使用协程时禁用不安全功能，包括<code>pcntl_fork</code>/<code>pcntl_wait</code>/<code>pcntl_waitpid</code>/<code>pcntl_sigtimedwait</code> (#3880) (@matyhtf)</li>
+<li>默认启用 coroutine hook (#3903) (@matyhtf)
+<a name="移除"></a>
+<h3>移除</h3></li>
+<li>不再支持 PHP7.1 (4a963df) (9de8d9e) (@matyhtf)
+<a name="废弃"></a>
+<h3>废弃</h3></li>
+<li>将 <code>Event::rshutdown()</code> 标记为已弃用，请改用 Coroutine\run (#3881) (@matyhtf)
+<a name="新增 API"></a>
+<h3>新增 API</h3></li>
+<li>支持 setPriority/getPriority (#3876) (@matyhtf)</li>
+<li>支持 native-curl hook (#3863) (@matyhtf) (@huanghantao)</li>
+<li>支持 Server 事件回调函数传递对象风格的参数，默认不传递对象风格的参数 (#3888) (@matyhtf)</li>
+<li>支持 hook sockets 扩展 (#3898) (@matyhtf)</li>
+<li>支持重复 header (#3905) (@matyhtf)</li>
+<li>支持 SSL sni (#3908) (@matyhtf)</li>
+<li>支持 hook stdio (#3924) (@matyhtf)</li>
+<li>支持 stream_socket 的 capture_peer_cert 选项 (#3930) (@matyhtf)</li>
+<li>添加 Http\Request::create/parse/isCompleted (#3938) (@matyhtf)</li>
+<li>添加 Http\Response::isWritable (db56827) (@matyhtf)
+<a name="增强"></a>
+<h3>增强</h3></li>
+<li>Server 的所有时间精度都从 int 修改为 double (#3882) (@matyhtf)</li>
+<li>在 swoole_client_select 函数里面检查 poll 函数的 EINTR 情况 (#3909) (@shiguangqi)</li>
+<li>添加协程死锁检测 (#3911) (@matyhtf)</li>
+<li>支持使用 SWOOLE_BASE 模式在另一个进程中关闭连接 (#3916) (@matyhtf)</li>
+<li>优化 Server master 进程与 worker 进程通信的性能，减少内存拷贝 (#3910) (@huanghantao) (@matyhtf)
+<a name="修复"></a>
+<h3>修复</h3></li>
+<li>当 Coroutine\Channel 被关闭时，pop 出里面所有的数据 (960431d) (@matyhtf)</li>
+<li>修复使用 JIT 时的内存错误 (#3907) (@twose)</li>
+<li>修复 <code>port-&gt;set()</code> dtls 编译错误 (#3947) (@Yurunsoft)</li>
+<li>修复 connection_list 错误 (#3948) (@sy-records)</li>
+<li>修复 ssl verify (#3954) (@matyhtf)</li>
+<li>修复 Table 递增和递减时不能清除所有列问题 (#3956) (@matyhtf) (@sy-records)</li>
+<li>修复使用 LibreSSL 2.7.5 编译失败 (#3962) (@matyhtf)</li>
+<li>修复未定义的常量 CURLOPT_HEADEROPT 和 CURLOPT_PROXYHEADER (swoole/library#77) (@sy-records)
+<a name="内核"></a>
+<h3>内核</h3></li>
+<li>默认情况下忽略 SIGPIPE 信号 (9647678) (@matyhtf)</li>
+<li>支持同时运行 PHP 协程和 C 协程 (c94bfd8) (@matyhtf)</li>
+<li>添加 get_elapsed 测试 (#3961) (@luolaifa000)</li>
+<li>添加 get_init_msec 测试 (#3964) (@luffluo)
+<a name="v4.5.10"></a>
+<h2>v4.5.10</h2>
+<p><a name="修复"></a></p>
+<h3>修复</h3></li>
+<li>修复使用 Event::cycle 时产生的 coredump (93901dc) (@matyhtf)</li>
+<li>兼容 PHP8 (f0dc6d3) (@matyhtf)</li>
+<li>修复 connection_list 错误 (#3948) (@sy-records)
+<a name="v4.4.23"></a>
+<h2>v4.4.23</h2>
+<p><a name="修复"></a></p>
+<h3>修复</h3></li>
+<li>修复 Swoole\Table 自减时数据错误 (bcd4f60d)(0d5e72e7) (@matyhtf)</li>
+<li>修复同步客户端错误信息 (#3784)</li>
+<li>修复解析表单数据边界时出现的内存溢出问题 (#3858)</li>
+<li>修复 channel 的bug，关闭后无法 pop 已有数据
+<a name="v4.5.9"></a>
+<h2>v4.5.9</h2>
+<p><a name="增强"></a></p>
+<h3>增强</h3></li>
+<li>为 Coroutine\Http\Client 添加 SWOOLE_HTTP_CLIENT_ESTATUS_SEND_FAILED 常量 (#3873) (@sy-records)
+<a name="修复"></a>
+<h3>修复</h3></li>
+<li>兼容 PHP8 (#3868) (#3869) (#3872) (@twose) (@huanghantao) (@doubaokun)</li>
+<li>修复未定义的常量 CURLOPT_HEADEROPT 和 CURLOPT_PROXYHEADER (swoole/library#77) (@sy-records)</li>
+<li>修复 CURLOPT_USERPWD (swoole/library@7952a7b) (@twose)
+<a name="v4.5.8"></a>
+<h2>v4.5.8</h2>
+<p><a name="新增 API"></a></p>
+<h3>新增 API</h3></li>
+<li>新增 swoole_error_log 函数，优化log_rotation (swoole/swoole-src@67d2bff) (@matyhtf)</li>
+<li>readVector 和 writeVector 支持 SSL (#3857) (@huanghantao)
+<a name="增强"></a>
+<h3>增强</h3></li>
+<li>当子进程退出后，让 System::wait 退出阻塞 (#3832) (@matyhtf)</li>
+<li>DTLS 支持 16K 的包 (#3849) (@matyhtf)</li>
+<li>Response::cookie 方法支持 priority 参数 (#3854) (@matyhtf)</li>
+<li>支持更多的 CURL 选项 (swoole/library#71) (@sy-records)</li>
+<li>处理 CURL HTTP header 没有区分名字大小写导致被覆盖问题 (swoole/library#76) (@filakhtov) (@twose) (@sy-records)
+<a name="修复"></a>
+<h3>修复</h3></li>
+<li>修复 readv_all 和 writev_all 错误处理 EAGAIN 的问题 (#3830) (@huanghantao)</li>
+<li>修复 PHP8 编译警告的问题 (swoole/swoole-src@03f3fb0) (@matyhtf)</li>
+<li>修复 Swoole\Table 二进制安全的问题 (#3842) (@twose)</li>
+<li>修复 MacOS 下 System::writeFile 追加文件覆盖的问题 (swoole/swoole-src@a71956d) (@matyhtf)</li>
+<li>修复 CURL 的 CURLOPT_WRITEFUNCTION (swoole/library#74) (swoole/library#75) (@sy-records)</li>
+<li>修复解析 HTTP form-data 时内存溢出的问题 (#3858) (@twose)</li>
+<li>修复在 PHP8 中 <code>is_callable()</code> 无法访问类私有方法的问题 (#3859) (@twose)
+<a name="内核"></a>
+<h3>内核</h3></li>
+<li>重构内存分配函数，使用 SwooleG.std_allocator (#3853) (@matyhtf)</li>
+<li>重构管道 (#3841) (@matyhtf)
+<a name="v4.5.7"></a>
+<h2>v4.5.7</h2>
+<p><a name="新增 API"></a></p>
+<h3>新增 API</h3></li>
+<li>Coroutine\Socket 客户端新增 writeVector, writeVectorAll, readVector, readVectorAll 方法 (#3764) (@huanghantao)
+<a name="增强"></a>
+<h3>增强</h3></li>
+<li>为 server-&gt;stats 增加 task_worker_num 和 dispatch_count (#3771) (#3806) (@sy-records) (@matyhtf)</li>
+<li>添加了扩展依赖项，包括 json, mysqlnd, sockets (#3789) (@remicollet)</li>
+<li>限制 server-&gt;bind 的 uid 最小值为 INT32_MIN (#3785) (@sy-records)</li>
+<li>为 swoole_substr_json_decode 添加了编译选项，支持负偏移量 (#3809) (@matyhtf)</li>
+<li>支持 CURL 的 CURLOPT_TCP_NODELAY 选项 (swoole/library#65) (@sy-records) (@deminy)
+<a name="修复"></a>
+<h3>修复</h3></li>
+<li>修复同步客户端连接信息错误 (#3784) (@twose)</li>
+<li>修复 hook scandir 函数的问题 (#3793) (@twose)</li>
+<li>修复协程屏障 barrier 中的错误 (swoole/library#68) (@sy-records)
+<a name="内核"></a>
+<h3>内核</h3></li>
+<li>使用 boost.stacktrace 优化 print-backtrace (#3788) (@matyhtf)
+<a name="v4.5.6"></a>
+<h2>v4.5.6</h2>
+<p><a name="新增 API"></a></p>
+<h3>新增 API</h3></li>
+<li>新增 <a href="/functions?id=swoole_substr_unserialize">swoole_substr_unserialize</a> 和 <a href="/functions?id=swoole_substr_json_decode">swoole_substr_json_decode</a> (#3762) (@matyhtf)
+<a name="增强"></a>
+<h3>增强</h3></li>
+<li>修改 <code>Coroutine\Http\Server</code> 的 <code>onAccept</code> 方法为私有 (dfcc83b) (@matyhtf)
+<a name="修复"></a>
+<h3>修复</h3></li>
+<li>修复 coverity 的问题 (#3737) (#3740) (@matyhtf)</li>
+<li>修复 Alpine 环境下的一些问题 (#3738) (@matyhtf)</li>
+<li>修复 swMutex_lockwait (0fc5665) (@matyhtf)</li>
+<li>修复 PHP-8.1 安装失败 (#3757) (@twose)
+<a name="内核"></a>
+<h3>内核</h3></li>
+<li>为 <code>Socket::read/write/shutdown</code> 添加了活性检测 (#3735) (@matyhtf)</li>
+<li>将 session_id 和 task_id 的类型更改为 int64 (#3756) (@matyhtf)
+<a name="v4.5.5"></a>
+<h2>v4.5.5</h2>
+<p>!&gt; 此版本增加了<a href="/server/setting">配置项</a>检测功能，如果设置了不是Swoole提供的选项，会产生一个Warning。</p>
+<pre><code class="language-shell">PHP Warning:  unsupported option [foo] in @swoole-src/library/core/Server/Helper.php </code></pre>
+<pre><code class="language-php">$http = new Swoole\Http\Server('0.0.0.0', 9501);
+$http-&gt;set(['foo' =&gt; 'bar']);
+$http-&gt;on('request', function ($request, $response) {
+$response-&gt;header("Content-Type", "text/html; charset=utf-8");
+$response-&gt;end("&lt;h1&gt;Hello Swoole. #".rand(1000, 9999)."&lt;/h1&gt;");
+});
+$http-&gt;start();</code></pre>
+<p><a name="新增 API"></a></p>
+<h3>新增 API</h3></li>
+<li>增加 Process\Manager，修改 Process\ProcessManager 为别名 (swoole/library#eac1ac5) (@matyhtf)</li>
+<li>支持 HTTP2 服务器 GOAWAY (#3710) (@doubaokun)</li>
+<li>增加 <code>Co\map()</code> 函数 (swoole/library#57) (@leocavalcante)
+<a name="增强"></a>
+<h3>增强</h3></li>
+<li>支持 http2 unix socket 客户端 (#3668) (@sy-records)</li>
+<li>当 worker 进程退出之后设置 worker 进程状态为 SW_WORKER_EXIT (#3724) (@matyhtf)</li>
+<li>在 <code>Server::getClientInfo()</code> 的返回值中增加 send_queued_bytes 和 recv_queued_bytes (#3721) (#3731) (@matyhtf) (@Yurunsoft)</li>
+<li>Server 支持 stats_file 配置选项 (#3725) (@matyhtf) (@Yurunsoft)
+<a name="修复"></a>
+<h3>修复</h3></li>
+<li>修复 PHP8 下的编译问题 (zend_compile_string change) (#3670) (@twose)</li>
+<li>修复 PHP8 下的编译问题 (ext/sockets compatibility) (#3684) (@twose)</li>
+<li>修复 PHP8 下的编译问题 (php_url_encode_hash_ex change) (#3713) (@remicollet)</li>
+<li>修复从'const char<em>' to 'char</em>'的错误类型转化 (#3686) (@remicollet)</li>
+<li>修复 HTTP2 client 在 HTTP proxy 下无法工作的问题 (#3677) (@matyhtf) (@twose)</li>
+<li>修复 PDO 断线重连时数据混乱的问题 (swoole/library#54) (@sy-records)</li>
+<li>修复 UDP Server 使用ipv6时端口解析错误</li>
+<li>修复 Lock::lockwait 超时无效的问题
+<a name="v4.5.4"></a>
+<h2>v4.5.4</h2>
+<p><a name="向下不兼容改动"></a></p>
+<h3>向下不兼容改动</h3></li>
+<li>SWOOLE_HOOK_ALL 包括 SWOOlE_HOOK_CURL (#3606) (@matyhtf)</li>
+<li>移除 ssl_method，增加 ssl_protocols (#3639) (@Yurunsoft)
+<a name="新增 API"></a>
+<h3>新增 API</h3></li>
+<li>增加数组的 firstKey 和 lastKey 方法 (swoole/library#51) (@sy-records)
+<a name="增强"></a>
+<h3>增强</h3></li>
+<li>增加 Websocket 服务器的 open_websocket_ping_frame, open_websocket_pong_frame 配置项 (#3600) (@Yurunsoft)
+<a name="修复"></a>
+<h3>修复</h3></li>
+<li>修复文件大于 2G 时候，fseek ftell 不正确的问题 (#3619) (@Yurunsoft)</li>
+<li>修复 Socket barrier 的问题 (#3627) (@matyhtf)</li>
+<li>修复 http proxy handshake 的问题 (#3630) (@matyhtf)</li>
+<li>修复对端发送 chunk 数据的时候，解析 HTTP Header 出错的问题 (#3633) (@matyhtf)</li>
+<li>修复 zend_hash_clean 断言失败的问题 (#3634) (@twose)</li>
+<li>修复不能从事件循环移除 broken fd 的问题 (#3650) (@matyhtf)</li>
+<li>修复收到无效的 packet 时导致 coredump 的问题 (#3653) (@matyhtf)</li>
+<li>修复 array_key_last 的 bug (swoole/library#46) (@sy-records)
+<a name="内核"></a>
+<h3>内核</h3></li>
+<li>代码优化 (#3615) (#3617) (#3622) (#3635) (#3640) (#3641) (#3642) (#3645) (#3658) (@matyhtf)</li>
+<li>当往 Swoole Table 写入数据的时候减少不必要的内存操作 (#3620) (@matyhtf)</li>
+<li>重构 AIO (#3624) (@Yurunsoft)</li>
+<li>支持 readlink/opendir/readdir/closedir hook (#3628) (@matyhtf)</li>
+<li>优化 swMutex_create, 支持 SW_MUTEX_ROBUST (#3646) (@matyhtf)
+<a name="v4.5.3"></a>
+<h2>v4.5.3</h2>
+<p><a name="新增API"></a></p>
+<h3>新增API</h3></li>
+<li>增加 <code>Swoole\Process\ProcessManager</code> (swoole/library#88f147b) (@huanghantao)</li>
+<li>增加 ArrayObject::append, StringObject::equals (swoole/library#f28556f) (@matyhtf)</li>
+<li>增加 <a href="/coroutine/coroutine?id=parallel">Coroutine::parallel</a> (swoole/library#6aa89a9) (@matyhtf)</li>
+<li>增加 <a href="/coroutine/barrier">Coroutine\Barrier</a> (swoole/library#2988b2a) (@matyhtf)
+<a name="增强"></a>
+<h3>增强</h3></li>
+<li>增加 usePipelineRead 来支持 http2 client streaming (#3354) (@twose)</li>
+<li>http 客户端下载文件时，在接受数据前不创建文件 (#3381) (@twose)</li>
+<li>http client 支持<code>bind_address</code>和<code>bind_port</code>配置 (#3390) (@huanghantao)</li>
+<li>http client 支持<code>lowercase_header</code>配置 (#3399) (@matyhtf)</li>
+<li><code>Swoole\Server</code>支持<code>tcp_user_timeout</code>配置 (#3404) (@huanghantao)</li>
+<li><code>Coroutine\Socket</code>增加 event barrier 来减少协程切换 (#3409) (@matyhtf)</li>
+<li>为特定的 swString 增加<code>memory allocator</code> (#3418) (@matyhtf)</li>
+<li>cURL 支持<code>__toString</code> (swoole/library#38) (@twose)</li>
+<li>支持直接在 WaitGroup 构造函数中设置<code>wait count</code> (swoole/library#2fb228b8) (@matyhtf)</li>
+<li>增加<code>CURLOPT_REDIR_PROTOCOLS</code> (swoole/library#46) (@sy-records)</li>
+<li>http1.1 server 支持 trailer (#3485) (@huanghantao)</li>
+<li>协程 sleep 时间小于 1ms 将会 yield 当前协程 (#3487) (@Yurunsoft)</li>
+<li>http static handler 支持软连接的文件 (#3569) (@LeiZhang-Hunter)</li>
+<li>在 Server 调用完 close 方法之后立刻关闭 WebSocket 连接 (#3570) (@matyhtf)</li>
+<li>支持 hook stream_set_blocking (#3585) (@Yurunsoft)</li>
+<li>异步 HTTP2 server 支持流控 (#3486) (@huanghantao) (@matyhtf)</li>
+<li>释放 socket buffer 在 onPackage 回调函数执行完 (#3551) (@huanghantao) (@matyhtf)
+<a name="修复"></a>
+<h3>修复</h3></li>
+<li>修复 WebSocket coredump, 处理协议错误的状态 (#3359) (@twose)</li>
+<li>修复 swSignalfd_setup 函数以及 wait_signal 函数里的空指针错误 (#3360) (@twose)</li>
+<li>修复在设置了 dispatch_func 时候，调用<code>Swoole\Server::close</code>会报错的问题 (#3365) (@twose)</li>
+<li>修复<code>Swoole\Redis\Server::format</code>函数中 format_buffer 初始化问题 (#3369) (@matyhtf) (@twose)</li>
+<li>修复 MacOS 上无法获取 mac 地址的问题 (#3372) (@twose)</li>
+<li>修复 MySQL 测试用例 (#3374) (@qiqizjl)</li>
+<li>修复多处 PHP8 兼容性问题 (#3384) (#3458) (#3578) (#3598) (@twose)</li>
+<li>修复 hook 的 socket write 中丢失了 php_error_docref, timeout_event 和返回值问题 (#3383) (@twose)</li>
+<li>修复异步 Server 无法在<code>WorkerStart</code>回调函数中关闭 Server 的问题 (#3382) (@huanghantao)</li>
+<li>修复心跳线程在操作 conn-&gt;socket 的时候，可能会发生 coredump 的问题 (#3396) (@huanghantao)</li>
+<li>修复 send_yield 的逻辑问题 (#3397) (@twose) (@matyhtf)</li>
+<li>修复 Cygwin64 上的编译问题 (#3400) (@twose)</li>
+<li>修复 WebSocket finish 属性无效的问题 (#3410) (@matyhtf)</li>
+<li>修复遗漏的 MySQL transaction 错误状态 (#3429) (@twose)</li>
+<li>修复 hook 后的<code>stream_select</code>与 hook 之前返回值行为不一致的问题 (#3440) (@Yurunsoft)</li>
+<li>修复使用<code>Coroutine\System</code>来创建子进程时丢失<code>SIGCHLD</code>信号的问题 (#3446) (@huanghantao)</li>
+<li>修复<code>sendwait</code>不支持 SSL 的问题 (#3459) (@huanghantao)</li>
+<li>修复<code>ArrayObject</code>和<code>StringObject</code>的若干问题 (swoole/library#44) (@matyhtf)</li>
+<li>修复 mysqli 异常信息错误 (swoole/library#45) (@sy-records)</li>
+<li>修复当设置<code>open_eof_check</code>后，<code>Swoole\Client</code>无法获取正确的<code>errCode</code>的问题 (#3478) (@huanghantao)</li>
+<li>修复 MacOS 上 <code>atomic-&gt;wait()</code>/<code>wakeup()</code>的若干问题 (#3476) (@Yurunsoft)</li>
+<li>修复<code>Client::connect</code>连接拒绝的时候，返回成功状态的问题 (#3484) (@matyhtf)</li>
+<li>修复 alpine 环境下 nullptr_t 没有被声明的问题 (#3488) (@limingxinleo)</li>
+<li>修复 HTTP Client 下载文件的时候，double-free 的问题 (#3489) (@Yurunsoft)</li>
+<li>修复<code>Server</code>被销毁时候，<code>Server\Port</code>没释放导致的内存泄漏问题 (#3507) (@twose)</li>
+<li>修复 MQTT 协议解析问题 (318e33a) (84d8214) (80327b3) (efe6c63) (@GXhua) (@sy-records)</li>
+<li>修复<code>Coroutine\Http\Client-&gt;getHeaderOut</code>方法导致的 coredump 问题 (#3534) (@matyhtf)</li>
+<li>修复 SSL 验证失败后，丢失了错误信息的问题 (#3535) (@twose)</li>
+<li>修复 README 中，<code>Swoole benchmark</code>链接错误的问题 (#3536) (@sy-records) (@santalex)</li>
+<li>修复在<code>HTTP header/cookie</code>中使用<code>CRLF</code>后导致的<code>header</code>注入问题 (#3539) (#3541) (#3545) (@chromium1337) (@huanghantao)</li>
+<li>修复 issue #3463 中提到的变量错误的问题 (#3547) (chromium1337) (@huanghantao)</li>
+<li>修复 pr #3463 中提到的错别字问题 (#3547) (@deminy)</li>
+<li>修复协程 WebSocket 服务器 frame-&gt;fd 为空的问题 (#3549) (@huanghantao)</li>
+<li>修复心跳线程错误判断连接状态导致的连接泄漏问题 (#3534) (@matyhtf)</li>
+<li>修复<code>Process\Pool</code>中阻塞了信号的问题 (#3582) (@huanghantao) (@matyhtf)</li>
+<li>修复<code>SAPI</code>中使用 send headers 的问题 (#3571) (@twose) (@sshymko)</li>
+<li>修复<code>CURL</code>执行失败的时候，未设置<code>errCode</code>和<code>errMsg</code>的问题 (swoole/library#1b6c65e) (@sy-records)</li>
+<li>修复当调用了<code>setProtocol</code>方法后，<code>swoole_socket_coro</code>accept coredump 的问题 (#3591) (@matyhtf)
+<a name="内核"></a>
+<h3>内核</h3></li>
+<li>使用 C++风格 (#3349) (#3351) (#3454) (#3479) (#3490) (@huanghantao) (@matyhtf)</li>
+<li>增加<code>Swoole known strings</code>来提高<code>PHP</code>对象读属性的性能 (#3363) (@huanghantao)</li>
+<li>多处代码优化 (#3350) (#3356) (#3357) (#3423) (#3426) (#3461) (#3463) (#3472) (#3557) (#3583) (@huanghantao) (@twose) (@matyhtf)</li>
+<li>多处测试代码的优化 (#3416) (#3481) (#3558) (@matyhtf)</li>
+<li>简化<code>Swoole\Table</code>的<code>int</code>类型 (#3407) (@matyhtf)</li>
+<li>增加<code>sw_memset_zero</code>，并且替换<code>bzero</code>函数 (#3419) (@CismonX)</li>
+<li>优化日志模块 (#3432) (@matyhtf)</li>
+<li>多处 libswoole 重构 (#3448) (#3473) (#3475) (#3492) (#3494) (#3497) (#3498) (#3526) (@matyhtf)</li>
+<li>多处头文件引入重构 (#3457) (@matyhtf) (@huanghantao)</li>
+<li>增加<code>Channel::count()</code>和<code>Channel::get_bytes()</code> (f001581) (@matyhtf)</li>
+<li>增加<code>scope guard</code> (#3504) (@huanghantao)</li>
+<li>增加 libswoole 覆盖率测试 (#3431) (@huanghantao)</li>
+<li>增加 lib-swoole/ext-swoole MacOS 环境的测试 (#3521) (@huanghantao)</li>
+<li>增加 lib-swoole/ext-swoole Alpine 环境的测试 (#3537) (@limingxinleo)
+<a name="v4.5.2"></a>
+<h2>v4.5.2</h2>
+<p><a href="https://github.com/swoole/swoole-src/releases/tag/v4.5.2">v4.5.2</a>，这是一个 BUG 修复版本, 没有任何向下不兼容改动
+<a name="增强"></a></p>
+<h3>增强</h3></li>
+<li>支持 <code>Server-&gt;set(['log_rotation' =&gt; SWOOLE_LOG_ROTATION_DAILY])</code> 来按日期生成日志 (#3311) (@matyhtf)</li>
+<li>支持 <code>swoole_async_set(['wait_signal' =&gt; true])</code>, 若存在信号监听器时 reactor 将不会退出 (#3314) (@matyhtf)</li>
+<li>支持 <code>Server-&gt;sendfile</code> 发送空文件 (#3318) (@twose)</li>
+<li>优化 worker 忙闲警告信息 (#3328) (@huanghantao)</li>
+<li>优化 HTTPS 代理下关于 Host 标头的配置 (使用 ssl_host_name 来配置) (#3343) (@twose)</li>
+<li>SSL 默认使用 ecdh auto 模式 (#3316) (@matyhtf)</li>
+<li>SSL 客户端在连接断开时使用静默退出 (#3342) (@huanghantao)
+<a name="修复"></a>
+<h3>修复</h3></li>
+<li>修复 <code>Server-&gt;taskWait</code> 在 OSX 平台上的问题 (#3330) (@matyhtf)</li>
+<li>修复 MQTT 协议解析错误的 bug (8dbf506b) (@guoxinhua) (2ae8eb32) (@twose)</li>
+<li>修复 Content-Length int 类型溢出的问题 (#3346) (@twose)</li>
+<li>修复 PRI 包长度检查缺失的问题 (#3348) (@twose)</li>
+<li>修复 CURLOPT_POSTFIELDS 无法置空的问题 (swoole/library@ed192f64) (@twose)</li>
+<li>修复 最新的连接对象在接收到下一个连接之前无法被释放的问题 (swoole/library@1ef79339) (@twose)
+<a name="内核"></a>
+<h3>内核</h3></li>
+<li>Socket 写入零拷贝特性 (#3327) (@twose)</li>
+<li>使用 swoole_get_last_error/swoole_set_last_error 两个来替代全局变量读写 (e25f262a) (@matyhtf) (#3315) (@huanghantao)
+<a name="v4.5.1"></a>
+<h2>v4.5.1</h2>
+<p><a href="https://github.com/swoole/swoole-src/releases/tag/v4.5.1">v4.5.1</a>，这是一个 BUG 修复版本, 补充了本应在<code>v4.5.0</code>引入的 System 文件函数废弃标记
+<a name="增强"></a></p>
+<h3>增强</h3></li>
+<li>支持 hook 下的 socket_context 的 bindto 配置 (#3275) (#3278) (@codinghuang)</li>
+<li>支持 client::sendto 自动 dns 解析地址 (#3292) (@codinghuang)</li>
+<li>Process-&gt;exit(0)将会直接导致进程退出, 若要执行 shutdown_functions 再退出请使用 PHP 提供的 exit (a732fe56) (@matyhtf)</li>
+<li>支持配置<code>log_date_format</code>以更改日志日期格式, <code>log_date_with_microseconds</code>在日志中显示微秒时间戳 (baf895bc) (@matyhtf)</li>
+<li>支持 CURLOPT_CAINFO and CURLOPT_CAPATH (swoole/library#32) (@sy-records)</li>
+<li>支持 CURLOPT_FORBID_REUSE (swoole/library#33) (@sy-records)
+<a name="修复"></a>
+<h3>修复</h3></li>
+<li>修复 32 位下构建失败 (#3276) (#3277) (@remicollet) (@twose)</li>
+<li>修复协程 Client 重复连接时没有 EISCONN 错误信息的问题 (#3280) (@codinghuang)</li>
+<li>修复 Table 模块中潜在的 bug (d7b87b65) (@matyhtf)</li>
+<li>修复 Server 中由于未定义行为导致的空指针(防御性编程) (#3304) (#3305) (@twose)</li>
+<li>修复心跳配置开启后产生空指针错误的问题 (#3307) (@twose)</li>
+<li>修复 mysqli 配置不生效 (swoole/library#35)</li>
+<li>修复 response 中不规范的 header(缺少空格)时解析的问题 (swoole/library#27) (@Yurunsoft)
+<a name="废弃"></a>
+<h3>废弃</h3></li>
+<li>将 Coroutine\System::(fread/fgets/fwrite)等方法标记为废弃 (请使用 hook 特性替代, 直接使用 PHP 提供的文件函数) (c7c9bb40) (@twose)
+<a name="内核"></a>
+<h3>内核</h3></li>
+<li>使用 zend_object_alloc 为自定义对象分配内存 (cf1afb25) (@twose)</li>
+<li>一些优化, 为日志模块添加更多配置项 (#3296) (@matyhtf)</li>
+<li>大量代码优化工作和增加单测 (swoole/library) (@deminy)
+<a name="v4.5.0"></a>
+<h2>v4.5.0</h2>
+<p><a href="https://github.com/swoole/swoole-src/releases/tag/v4.5.0">v4.5.0</a>，这是一个大版本更新, 仅删除了一些在 v4.4.x 已标记废弃的模块
+<a name="新增 API"></a></p>
+<h3>新增 API</h3></li>
+<li>DTLS 支持, 现在可以此功能来构建 WebRTC 应用 (#3188) (@matyhtf)</li>
+<li>内置的<code>FastCGI</code>客户端, 可以通过一行代码来代理请求到 FPM 或是调用 FPM 应用 (swoole/library#17) (@twose)</li>
+<li><code>Co::wait</code>, <code>Co::waitPid</code> (用于回收子进程) <code>Co::waitSignal</code> (用于等待信号) (#3158) (@twose)</li>
+<li><code>Co::waitEvent</code> (用于等待 socket 上发生的指定的事件) (#3197) (@twose)</li>
+<li><code>Co::set(['exit_condition' =&gt; $callable])</code> (用于自定义程序退出的条件) (#2918) (#3012) (@twose)</li>
+<li><code>Co::getElapsed</code> (获取协程运行的时间以便于分析统计或找出僵尸协程) (#3162) (@doubaokun)</li>
+<li><code>Socket::checkLiveness</code> (通过系统调用判断连接是否活跃), <code>Socket::peek</code> (窥视读缓冲区) (#3057) (@twose)</li>
+<li><code>Socket-&gt;setProtocol(['open_fastcgi_protocol' =&gt; $bool])</code> (内置的 FastCGI 解包支持) (#3103) (@twose)</li>
+<li><code>Server::get(Master|Manager|Worker)Pid</code>, <code>Server::getWorkerId</code> (获取异步 Server 单例和其信息) (#2793) (#3019) (@matyhtf)</li>
+<li><code>Server::getWorkerStatus</code> (获取 worker 进程状态, 返回常量 SWOOLE_WORKER_BUSY, SWOOLE_WORKER_IDLE 以表示忙闲状态) (#3225) (@matyhtf)</li>
+<li><code>Server-&gt;on('beforeReload', $callable)</code> 和 <code>Server-&gt;on('afterReload', $callable)</code> (服务重启事件, 发生在 manager 进程) (#3130) (@hantaohuang)</li>
+<li><code>Http\Server</code>静态文件处理器现在支持<code>http_index_files</code>和<code>http_autoindex</code>配置 (#3171) (@hantaohuang)</li>
+<li><code>Http2\Client-&gt;read(float $timeout = -1)</code>方法支持读取流式的响应 (#3011) (#3117) (@twose)</li>
+<li><code>Http\Request-&gt;getContent</code> (rawContent 方法的别名) (#3128) (@hantaohuang)</li>
+<li><code>swoole_mime_type_(add|set|delete|get|exists)()</code> (mime 相关 APIs, 可增删查改内置的 mime 类型) (#3134) (@twose)
+<a name="增强"></a>
+<h3>增强</h3></li>
+<li>优化 master 和 worker 进程间的内存拷贝(极限情况下提升了四倍性能) (#3075) (#3087) (@hantaohuang)</li>
+<li>优化 WebSocket 派遣逻辑 (#3076) (@matyhtf)</li>
+<li>优化 WebSocket 构造帧时的一次内存拷贝 (#3097) (@matyhtf)</li>
+<li>优化 SSL 验证模块 (#3226) (@matyhtf)</li>
+<li>分离 SSL accept 和 SSL handshake, 解决慢速 SSL 客户端可能会造成协程服务器假死的问题 (#3214) (@twose)</li>
+<li>支持 MIPS 架构 (#3196) (@ekongyun)</li>
+<li>UDP 客户端现在可以自动解析传入的域名 (#3236) (#3239) (@huanghantao)</li>
+<li>Coroutine\Http\Server 增加支持了一些常用的选项 (#3257) (@twose)</li>
+<li>支持在 WebSocket 握手时设置 cookie (#3270) (#3272) (@twose)</li>
+<li>支持 CURLOPT_FAILONERROR (swoole/library#20) (@sy-records)</li>
+<li>支持 CURLOPT_SSLCERTTYPE, CURLOPT_SSLCERT, CURLOPT_SSLKEYTYPE, CURLOPT_SSLKEY (swoole/library#22) (@sy-records)</li>
+<li>支持 CURLOPT_HTTPGET (swoole/library@d730bd08) (@shiguangqi)
+<a name="移除"></a>
+<h3>移除</h3></li>
+<li>移除<code>Runtime::enableStrictMode</code>方法 (b45838e3) (@twose)</li>
+<li>移除<code>Buffer</code>类 (559a49a8) (@twose)
+<a name="内核相关"></a>
+<h3>内核相关</h3></li>
+<li>新的 C++的 API: coroutine::async 函数传入 lambda 即可发起异步线程任务 (#3127) (@matyhtf)</li>
+<li>重构底层 event-API 中的整数型 fd 为 swSocket 对象 (#3030) (@matyhtf)</li>
+<li>所有核心的 C 文件都已转化为 C++文件 (#3030) (71f987f3) (@matyhtf)</li>
+<li>一系列代码优化 (#3063) (#3067) (#3115) (#3135) (#3138) (#3139) (#3151) (#3168) (@hantaohuang)</li>
+<li>对于头文件的规范化优化 (#3051) (@matyhtf)</li>
+<li>重构<code>enable_reuse_port</code>配置项使其更加规范 (#3192) (@matyhtf)</li>
+<li>重构 Socket 相关 API 使其更加规范 (#3193) (@matyhtf)</li>
+<li>通过缓冲区预测来减少一次不必要的系统调用 (3b5aa85d) (@matyhtf)</li>
+<li>移除底层的刷新定时器 swServerGS::now, 直接使用时间函数获取时间 (#3152) (@hantaohuang)</li>
+<li>优化协议配置器 (#3108) (@twose)</li>
+<li>兼容性更好的 C 结构初始化写法 (#3069) (@twose)</li>
+<li>bit 字段统一为 uchar 类型 (#3071) (@twose)</li>
+<li>支持并行测试, 速度更快 (#3215) (@twose)
+<a name="修复"></a>
+<h3>修复</h3></li>
+<li>修复 enable_delay_receive 开启后 onConnect 无法触发的问题 (#3221) (#3224) (@matyhtf)</li>
+<li>所有其它的 bug 修复都已合并到 v4.4.x 分支并在更新日志中体现, 在此不再赘述
+<a name="v4.4.22"></a>
+<h2>v4.4.22</h2>
+<p><a name="修复"></a></p>
+<h3>修复</h3></li>
+<li>修复 HTTP2 client 在 HTTP proxy 下无法工作的问题 (#3677) (@matyhtf) (@twose)</li>
+<li>修复 PDO 断线重连时数据混乱的问题 (swoole/library#54) (@sy-records)</li>
+<li>修复 swMutex_lockwait (0fc5665) (@matyhtf)</li>
+<li>修复 UDP Server 使用ipv6时端口解析错误</li>
+<li>修复 systemd fds 的问题
+<a name="v4.4.20"></a>
+<h2>v4.4.20</h2>
+<p><a href="https://github.com/swoole/swoole-src/releases/tag/v4.4.20">v4.4.20</a>，这是一个BUG修复版本, 没有任何向下不兼容改动
+<a name="修复"></a></p>
+<h3>修复</h3></li>
+<li>修复在设置了 dispatch_func 时候，调用<code>Swoole\Server::close</code>会报错的问题 (#3365) (@twose)</li>
+<li>修复<code>Swoole\Redis\Server::format</code>函数中 format_buffer 初始化问题 (#3369) (@matyhtf) (@twose)</li>
+<li>修复 MacOS 上无法获取 mac 地址的问题 (#3372) (@twose)</li>
+<li>修复 MySQL 测试用例 (#3374) (@qiqizjl)</li>
+<li>修复异步 Server 无法在<code>WorkerStart</code>回调函数中关闭 Server 的问题 (#3382) (@huanghantao)</li>
+<li>修复遗漏的 MySQL transaction 错误状态 (#3429) (@twose)</li>
+<li>修复 HTTP Client 下载文件的时候，double-free 的问题 (#3489) (@Yurunsoft)</li>
+<li>修复<code>Coroutine\Http\Client-&gt;getHeaderOut</code>方法导致的 coredump 问题 (#3534) (@matyhtf)</li>
+<li>修复在<code>HTTP header/cookie</code>中使用<code>CRLF</code>后导致的<code>header</code>注入问题 (#3539) (#3541) (#3545) (@chromium1337) (@huanghantao)</li>
+<li>修复协程 WebSocket 服务器 frame-&gt;fd 为空的问题 (#3549) (@huanghantao)</li>
+<li>修复 hook phpredis 产生的<code>read error on connection</code>问题 (#3579) (@twose)</li>
+<li>修复 MQTT 协议解析问题 (#3573) (#3517) (9ad2b455) (@GXhua) (@sy-records)
+<a name="v4.4.19"></a>
+<h2>v4.4.19</h2>
+<p><a href="https://github.com/swoole/swoole-src/releases/tag/v4.4.19">v4.4.19</a>，这是一个 BUG 修复版本, 没有任何向下不兼容改动
+!&gt; 注意: v4.4.x 不再是主要的维护版本，仅在必要时修复 BUG
+<a name="修复"></a></p>
+<h3>修复</h3></li>
+<li>从 v4.5.2 合并了所有 bug 修复补丁
+<a name="v4.4.18"></a>
+<h2>v4.4.18</h2>
+<p><a href="https://github.com/swoole/swoole-src/releases/tag/v4.4.18">v4.4.18</a>，这是一个 BUG 修复版本, 没有任何向下不兼容改动
+<a name="增强"></a></p>
+<h3>增强</h3></li>
+<li>UDP 客户端现在可以自动解析传入的域名 (#3236) (#3239) (@huanghantao)</li>
+<li>CLI 模式下不再关闭 stdout 和 stderr (显示在 shutdown 之后产生的错误日志) (#3249) (@twose)</li>
+<li>Coroutine\Http\Server 增加支持了一些常用的选项 (#3257) (@twose)</li>
+<li>支持在 WebSocket 握手时设置 cookie (#3270) (#3272) (@twose)</li>
+<li>支持 CURLOPT_FAILONERROR (swoole/library#20) (@sy-records)</li>
+<li>支持 CURLOPT_SSLCERTTYPE, CURLOPT_SSLCERT, CURLOPT_SSLKEYTYPE, CURLOPT_SSLKEY (swoole/library#22) (@sy-records)</li>
+<li>支持 CURLOPT_HTTPGET (swoole/library@d730bd08) (@shiguangqi)</li>
+<li>尽可能地兼容了所有 PHP-Redis 扩展的版本 (不同版本的构造函数传参不同) (swoole/library#24) (@twose)</li>
+<li>禁止克隆连接对象 (swoole/library#23) (@deminy)
+<a name="修复"></a>
+<h3>修复</h3></li>
+<li>修复 SSL 握手失败的问题 (dc5ac29a) (@twose)</li>
+<li>修复生成错误信息时产生的内存错误 (#3229) (@twose)</li>
+<li>修复空白的 proxy 验证信息 (#3243) (@twose)</li>
+<li>修复 Channel 的内存泄漏问题 (并非真正的内存泄漏) (#3260) (@twose)</li>
+<li>修复 Co\Http\Server 在循环引用时产生的一次性内存泄露 (#3271) (@twose)</li>
+<li>修复<code>ConnectionPool-&gt;fill</code>中的书写错误 (swoole/library#18) (@NHZEX)</li>
+<li>修复 curl 客户端遭遇重定向时没有更新连接的问题 (swoole/library#21) (@doubaokun)</li>
+<li>修复产生 ioException 时空指针的问题 (swoole/library@4d15a4c3) (@twose)</li>
+<li>修复 ConnectionPool@put 传入 null 时没有归还新连接导致的死锁问题 (swoole/library#25) (@Sinute)</li>
+<li>修复 mysqli 代理实现导致的 write_property 错误 (swoole/library#26) (@twose)
+<a name="v4.4.17"></a>
+<h2>v4.4.17</h2>
+<p><a href="https://github.com/swoole/swoole-src/releases/tag/v4.4.17">v4.4.17</a>，这是一个 BUG 修复版本, 没有任何向下不兼容改动
+<a name="增强"></a></p>
+<h3>增强</h3></li>
+<li>提升 SSL 服务器的性能 (#3077) (85a9a595) (@matyhtf)</li>
+<li>移除 HTTP 头大小限制 (#3187) limitation (@twose)</li>
+<li>支持 MIPS (#3196) (@ekongyun)</li>
+<li>支持 CURLOPT_HTTPAUTH (swoole/library@570318be) (@twose)
+<a name="修复"></a>
+<h3>修复</h3></li>
+<li>修复 package_length_func 的行为和可能的一次性内存泄漏 (#3111) (@twose)</li>
+<li>修复 HTTP 状态码 304 下的错误行为 (#3118) (#3120) (@twose)</li>
+<li>修复 Trace 日志错误的宏展开导致的内存错误 (#3142) (@twose)</li>
+<li>修复 OpenSSL 函数签名 (#3154) (#3155) (@twose)</li>
+<li>修复 SSL 错误信息 (#3172) (@matyhtf) (@twose)</li>
+<li>修复 PHP-7.4 下的兼容性 (@twose) (@matyhtf)</li>
+<li>修复 HTTP-chunk 的长度解析错误问题 (19a1c712) (@twose)</li>
+<li>修复 chunked 模式下 multipart 请求的解析器行为 (3692d9de) (@twose)</li>
+<li>修复 PHP-Debug 模式下 ZEND_ASSUME 断言失败 (fc0982be) (@twose)</li>
+<li>修复 Socket 错误的地址 (d72c5e3a) (@twose)</li>
+<li>修复 Socket getname (#3177) (#3179) (@matyhtf)</li>
+<li>修复静态文件处理器对于空文件的错误处理 (#3182) (@twose)</li>
+<li>修复 Coroutine\Http\Server 上传文件问题 (#3189) (#3191) (@twose)</li>
+<li>修复 shutdown 期间可能的内存错误 (44aef60a) (@matyhtf)</li>
+<li>修复 Server-&gt;heartbeat (#3203) (@matyhtf)</li>
+<li>修复 CPU 调度器可能无法调度死循环的情况 (#3207) (@twose)</li>
+<li>修复在不可变数组上的无效写入操作 (#3212) (@twose)</li>
+<li>修复 WaitGroup 多次 wait 问题 (swoole/library@537a82e1) (@twose)</li>
+<li>修复空 header 的处理 (和 cURL 保持一致) (swoole/library@7c92ed5a) (@twose)</li>
+<li>修复非 IO 方法返回 false 时抛出异常的问题 (swoole/library@f6997394) (@twose)</li>
+<li>修复 cURL-hook 下使用 proxy 端口号被多次添加到标头的问题 (swoole/library@5e94e5da) (@twose)
+<a name="v4.4.16"></a>
+<h2>v4.4.16</h2>
+<p><a href="https://github.com/swoole/swoole-src/releases/tag/v4.4.16">v4.4.16</a>，这是一个 BUG 修复版本, 没有任何向下不兼容改动
+<a name="增强"></a></p>
+<h3>增强</h3></li>
+<li>现在你可以获取 <a href="https://github.com/swoole/swoole-src/blob/master/SUPPORTED.md">Swoole 版本支持信息</a></li>
+<li>更友好的错误提示 (0412f442) (09a48835) (@twose)</li>
+<li>防止在某些特殊系统上陷入系统调用死循环 (069a0092) (@matyhtf)</li>
+<li>在 PDOConfig 中增加驱动选项 (swoole/library#8) (@jcheron)
+<a name="修复"></a>
+<h3>修复</h3></li>
+<li>修复 http2_session.default_ctx 内存错误 (bddbb9b1) (@twose)</li>
+<li>修复未初始化的 http_context (ce77c641) (@twose)</li>
+<li>修复 Table 模块中的书写错误 (可能会造成内存错误) (db4eec17) (@twose)</li>
+<li>修复 Server 中 task-reload 的潜在问题 (e4378278) (@GXhua)</li>
+<li>修复不完整协程 HTTP 服务器请求原文 (#3079) (#3085) (@hantaohuang)</li>
+<li>修复 static handler (当文件为空时, 不应返回 404 响应) (#3084) (@Yurunsoft)</li>
+<li>修复 http_compression_level 配置无法正常工作 (16f9274e) (@twose)</li>
+<li>修复 Coroutine HTTP2 Server 由于没有注册 handle 而产生空指针错误 (ed680989) (@twose)</li>
+<li>修复配置 socket_dontwait 不工作的问题 (27589376) (@matyhtf)</li>
+<li>修复 zend::eval 可能会被执行多次的问题 (#3099) (@GXhua)</li>
+<li>修复 HTTP2 服务器由于在连接关闭后响应而产生的空指针错误 (#3110) (@twose)</li>
+<li>修复 PDOStatementProxy::setFetchMode 适配不当的问题 (swoole/library#13) (@jcheron)</li>
+</ul>
+</body>
+</html>

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>安装Swoole</h1>
+<p><code>Swoole</code>扩展是按照<code>PHP</code>标准扩展构建的。使用<code>phpize</code>来生成编译检测脚本，<code>./configure</code>来做编译配置检测，<code>make</code>进行编译，<code>make install</code>进行安装。</p>
+<ul>
+<li>如无特殊需求, 请务必编译安装<code>Swoole</code>的最新 <a href="https://github.com/swoole/swoole-src/releases/">Swoole</a> 版本。</li>
+<li>如果当前用户不是<code>root</code>，可能没有<code>PHP</code>安装目录的写权限，安装时需要<code>sudo</code>或者<code>su</code>。</li>
+<li>如果是在<code>git</code>分支上直接<code>git pull</code>更新代码，重新编译前务必要执行<code>make clean</code>。</li>
+<li>仅支持 <code>Linux</code>(2.3.32 以上内核)、<code>FreeBSD</code>、<code>MacOS</code> 三种操作系统。</li>
+<li>低版本Linux系统（如<code>CentOS 6</code>）可以使用<code>RedHat</code>提供的<code>devtools</code>编译，<a href="https://blog.csdn.net/ppdouble/article/details/52894271">参考文档</a>  。</li>
+<li>在<code>Windows</code>平台，可使用<code>WSL(Windows Subsystem for Linux)</code>或<code>CygWin</code>。</li>
+<li>部分扩展与<code>Swoole</code>扩展不兼容，参考<a href="/getting_started/extension">扩展冲突</a>。
+<a name="安装准备"></a>
+<h2>安装准备</h2>
+<p>安装前必须保证系统已经安装了下列软件</p></li>
+<li><code>4.8</code>版本需要 <code>PHP-7.2</code> 或更高版本</li>
+<li><code>5.0</code>版本需要 <code>PHP-8.0</code> 或更高版本</li>
+<li><code>6.0</code>版本需要 <code>PHP-8.1</code> 或更高版本</li>
+<li><code>gcc-4.8</code> 或更高版本</li>
+<li><code>make</code></li>
+<li><code>autoconf</code>
+<a name="快速安装"></a>
+<h2>快速安装</h2>
+<blockquote>
+<p>1.下载swoole源码</p>
+</blockquote></li>
+<li><a href="https://github.com/swoole/swoole-src/releases">https://github.com/swoole/swoole-src/releases</a></li>
+<li><a href="https://pecl.php.net/package/swoole">https://pecl.php.net/package/swoole</a></li>
+<li><a href="https://gitee.com/swoole/swoole/tags">https://gitee.com/swoole/swoole/tags</a>
+<blockquote>
+<p>2.从源码编译安装
+下载源代码包后，在终端进入源码目录，执行下面的命令进行编译和安装
+!&gt; ubuntu 没有安装phpize可执行命令：<code>sudo apt-get install php-dev</code>来安装phpize</p>
+<pre><code class="language-shell">cd swoole-src &amp;&amp; \
+phpize &amp;&amp; \
+./configure &amp;&amp; \
+sudo make &amp;&amp; sudo make install</code></pre>
+<p>3.启用扩展
+编译安装到系统成功后, 需要在<code>php.ini</code>中加入一行<code>extension=swoole.so</code>来启用Swoole扩展
+<a name="进阶完整编译示例"></a></p>
+<h2>进阶完整编译示例</h2>
+<p>!&gt; 初次接触Swoole的开发者请先尝试上方的简单编译，如果有进一步的需要，可以根据具体的需求和版本，调整以下示例中的编译参数。<a href="/environment?id=编译选项">编译参数参考</a>
+以下脚本会下载并编译<code>master</code>分支的源码, 需保证你已安装所有依赖, 否则会遇到各种依赖错误。</p>
+<pre><code class="language-shell">mkdir -p ~/build &amp;&amp; \
+cd ~/build &amp;&amp; \
+rm -rf ./swoole-src &amp;&amp; \
+curl -o ./tmp/swoole.tar.gz https://github.com/swoole/swoole-src/archive/master.tar.gz -L &amp;&amp; \
+tar zxvf ./tmp/swoole.tar.gz &amp;&amp; \
+mv swoole-src* swoole-src &amp;&amp; \
+cd swoole-src &amp;&amp; \
+phpize &amp;&amp; \
+./configure \
+--enable-openssl --enable-sockets --enable-mysqlnd --enable-swoole-curl --enable-cares --enable-swoole-pgsql &amp;&amp; \
+sudo make &amp;&amp; sudo make install</code></pre>
+<p><a name="PECL"></a></p>
+<h2>PECL</h2>
+<p>注意: PECL发布时间晚于GitHub发布时间
+Swoole 项目已收录到 PHP 官方扩展库，除了手动下载编译外，还可以通过 PHP 官方提供的<code>pecl</code>命令，一键下载安装</p>
+<pre><code class="language-shell">pecl install swoole</code></pre>
+<p>通过 PECL 安装 Swoole 时，在安装过程中它会询问是否要启用某些功能，这也可以在运行安装之前提供，例如：</p>
+<pre><code class="language-shell">pecl install -D 'enable-sockets="no" enable-openssl="yes" enable-http2="yes" enable-mysqlnd="yes" enable-swoole-json="no" enable-swoole-curl="yes" enable-cares="yes"' swoole
+#或者
+pecl install --configureoptions 'enable-sockets="no" enable-openssl="yes" enable-http2="yes" enable-mysqlnd="yes" enable-swoole-json="no" enable-swoole-curl="yes" enable-cares="yes"' swoole</code></pre>
+<p><a name="添加Swoole到php.ini"></a></p>
+<h2>添加Swoole到php.ini</h2>
+<p>最后，编译安装成功后，修改<code>php.ini</code>加入</p>
+<pre><code class="language-ini">extension=swoole.so</code></pre>
+<p>通过<code>php -m</code>来查看是否成功加载了<code>swoole.so</code>，如果没有可能是<code>php.ini</code>的路径不对。<br />
+可以使用<code>php --ini</code>来定位到<code>php.ini</code>的绝对路径，<code>Loaded Configuration File</code>一项显示的是加载的php.ini文件，如果值为<code>none</code>证明根本没加载任何<code>php.ini</code>文件，需要自己创建。
+!&gt; 对<code>PHP</code>版本支持和<code>PHP</code>官方维护版本保持一致，参考<a href="http://php.net/supported-versions.php">PHP版本支持时间表</a>
+<a name="其他平台编译"></a></p>
+<h2>其他平台编译</h2>
+<p>ARM平台（树莓派Raspberry PI）</p>
+</blockquote></li>
+<li>使用 <code>GCC</code> 交叉编译</li>
+<li>在编译 <code>Swoole</code> 时，需要手动修改 <code>Makefile</code> 去掉 <code>-O2</code> 编译参数
+MIPS平台（OpenWrt路由器）</li>
+<li>使用 GCC 交叉编译
+Windows WSL
+<code>Windows 10</code> 系统增加了 <code>Linux</code> 子系统支持，<code>BashOnWindows</code> 环境下也可以使用 <code>Swoole</code>。安装命令
+<pre><code class="language-shell">apt-get install php7.0 php7.0-curl php7.0-gd php7.0-gmp php7.0-json php7.0-mysql php7.0-opcache php7.0-readline php7.0-sqlite3 php7.0-tidy php7.0-xml  php7.0-bcmath php7.0-bz2 php7.0-intl php7.0-mbstring  php7.0-mcrypt php7.0-soap php7.0-xsl  php7.0-zip
+pecl install swoole
+echo 'extension=swoole.so' &gt;&gt; /etc/php/7.0/mods-available/swoole.ini
+cd /etc/php/7.0/cli/conf.d/ &amp;&amp; ln -s ../../mods-available/swoole.ini 20-swoole.ini
+cd /etc/php/7.0/fpm/conf.d/ &amp;&amp; ln -s ../../mods-available/swoole.ini 20-swoole.ini</code></pre>
+<p>!&gt; <code>WSL</code> 环境下必须关闭 <code>daemonize</code> 选项<br />
+低于<code>17101</code>的<code>WSL</code>，源码安装<code>configure</code>后需要修改 <code>config.h</code> 关闭 <code>HAVE_SIGNALFD</code>
+<a name="Docker官方镜像"></a></p>
+<h2>Docker官方镜像</h2></li>
+<li>GitHub: <a href="https://github.com/swoole/docker-swoole">https://github.com/swoole/docker-swoole</a>  </li>
+<li>dockerhub: <a href="https://hub.docker.com/r/phpswoole/swoole">https://hub.docker.com/r/phpswoole/swoole</a>
+<a name="编译选项"></a>
+<h2>编译选项</h2>
+<p>这里是<code>./configure</code>编译配置的额外参数，用于开启某些特性
+<a name="通用参数"></a></p>
+<h3>通用参数</h3>
+<p><a name="--enable-openssl"></a></p>
+<h4>--enable-openssl</h4>
+<p>启用<code>SSL</code>支持</p>
+<blockquote>
+<p>使用操作系统提供的<code>libssl.so</code>动态连接库
+<a name="--with-openssl-dir"></a></p>
+<h4>--with-openssl-dir</h4>
+<p>启用<code>SSL</code>支持并指定<code>openssl</code>库的路径, 需跟上路径参数，如: <code>--with-openssl-dir=/opt/openssl/</code>
+<a name="--enable-http2"></a></p>
+<h4>--enable-http2</h4>
+<p>开启对<code>HTTP2</code>的支持
+依赖<code>nghttp2</code>库。在<code>V4.3.0</code>版本后不再需要安装依赖, 改为内置, 但仍需要增加该编译参数来开启<code>http2</code>支持，<code>Swoole5</code>默认启用该参数。
+<a name="--enable-swoole-json"></a></p>
+<h4>--enable-swoole-json</h4>
+<p>启用对<a href="/functions?id=swoole_substr_json_decode">swoole_substr_json_decode</a>的支持，<code>Swoole5</code>开始默认启用该参数
+依赖<code>json</code>扩展，<code>v4.5.7</code>版本可用
+<a name="--enable-swoole-curl"></a></p>
+<h4>--enable-swoole-curl</h4>
+<p>启用对<a href="/runtime?id=swoole_hook_native_curl">SWOOLE_HOOK_NATIVE_CURL</a>的支持，开启这个需要确保<code>php</code>和<code>Swoole</code>使用相同的<code>libcurl</code>的共享库和头文件，否则会出现一些无法预知的问题。
+<code>v4.6.0</code>版本可用。如果编译报错<code>curl/curl.h: No such file or directory</code>，请查看<a href="/question/install?id=libcurl">安装问题</a>
+<a name="--enable-cares"></a></p>
+<h4>--enable-cares</h4>
+<p>启用对 <code>c-ares</code> 的支持
+依赖<code>c-ares</code>库，<code>v4.7.0</code>版本可用。如果编译报错<code>ares.h: No such file or directory</code>，请查看<a href="/question/install?id=libcares">安装问题</a>
+<a name="--with-jemalloc-dir"></a></p>
+<h4>--with-jemalloc-dir</h4>
+<p>启用对 <code>jemalloc</code> 的支持
+<a name="--enable-brotli"></a></p>
+<h4>--enable-brotli</h4>
+<p>启用对 <code>libbrotli</code> 压缩支持
+<a name="--with-brotli-dir"></a></p>
+<h4>--with-brotli-dir</h4>
+<p>启用<code>libbrotli</code>压缩支持并指定<code>libbrotli</code>库的路径, 需跟上路径参数，如: <code>--with-brotli-dir=/opt/brotli/</code>
+<a name="--enable-swoole-pgsql"></a></p>
+<h4>--enable-swoole-pgsql</h4>
+<p>启用<code>PostgreSQL</code>数据库协程化。
+<code>Swoole5.0</code>之前是使用协程客户端进行对<code>PostgreSQL</code>进行协程化，<code>Swoole5.1</code>之后，除了使用协程客户端进行协程化，也能够使用原生的<code>pdo_pgsql</code>协程化<code>PostgreSQL</code>了。
+<a name="--with-swoole-odbc"></a></p>
+<h4>--with-swoole-odbc</h4>
+<p>启动对<code>pdo_odbc</code>协程化，该参数启用之后，所有支持<code>odbc</code>接口的数据库都能够协程化了。
+<code>v5.1.0</code>版本后可用,需依赖unixodbc-dev
+示例配置</p>
+<pre><code>with-swoole-odbc="unixODBC,/usr"</code></pre>
+<p><a name="--with-swoole-oracle"></a></p>
+<h4>--with-swoole-oracle</h4>
+<p>启用对<code>pdo_oci</code>的协程化，该参数启用之后，<code>oracle</code>数据库的增删改查都会触发协程操作。
+<code>v5.1.0</code>版本后可用
+<a name="--enable-swoole-sqlite"></a></p>
+<h4>--enable-swoole-sqlite</h4>
+<p>启用对<code>pdo_sqlite</code>的协程化，该参数启用之后，<code>sqlite</code>数据库的增删改查都会触发协程操作。
+<code>v5.1.0</code>版本后可用
+<a name="--enable-swoole-thread"></a></p>
+<h4>--enable-swoole-thread</h4>
+<p>开启<code>swoole</code>多线程模式，添加这个编译选项后，<code>Swoole</code>将会由多进程单线程模型变成单进程多线程模型。
+<code>v6.0</code>版本后可用，且<code>PHP</code>必须是<code>ZTS</code>模式
+<a name="--enable-iouring"></a></p>
+<h4>--enable-iouring</h4>
+<p>添加这个编译选项后，<code>swoole</code>的文件异步处理将会由异步线程变成<code>iouring</code>模式。
+<code>v6.0</code>版本后可用，而且需要安装<code>liburing</code>依赖来支持此特性，如果磁盘性能够好的情况下两种模式性能相差不大，只有<code>I/O</code>压力较大的情况下，<code>iouring</code>模式性能会优于异步线程模式。
+<a name="特殊参数"></a></p>
+<h3>特殊参数</h3>
+<p>!&gt; <strong>如无历史原因不建议启用</strong>
+<a name="--enable-mysqlnd"></a></p>
+<h4>--enable-mysqlnd</h4>
+<p>启用<code>mysqlnd</code>支持，启用<code>Coroutine\MySQL::escapse</code>方法。启用此参数后，<code>PHP</code>必须有<code>mysqlnd</code>模块，否则会导致<code>Swoole</code>无法运行。
+依赖<code>mysqlnd</code>扩展
+<a name="--enable-sockets"></a></p>
+<h4>--enable-sockets</h4>
+<p>增加对PHP的<code>sockets</code>资源的支持。开启此参数，<a href="/event?id=add">Swoole\Event::add</a>就可以添加<code>sockets</code>扩展创建的连接到<code>Swoole</code>的<a href="/learn?id=什么是eventloop">事件循环</a>中。<br />
+<code>Server</code>和<code>Client</code>的 <a href="/server/methods?id=getsocket">getSocket()</a>方法也需要依赖此编译参数。
+依赖<code>sockets</code>扩展, <code>v4.3.2</code>版本后该参数的作用被削弱了, 因为Swoole内置的<a href="/coroutine_client/socket">Coroutine\Socket</a>可以完成大部分事情
+<a name="Debug参数"></a></p>
+<h3>Debug参数</h3>
+<p>!&gt; <strong>生产环境不可以启用</strong>
+<a name="--enable-debug"></a></p>
+<h4>--enable-debug</h4>
+<p>打开调试模式。使用<code>gdb</code>跟踪需要在编译<code>Swoole</code>时增加此参数。
+<a name="--enable-debug-log"></a></p>
+<h4>--enable-debug-log</h4>
+<p>打开内核DEBUG日志。<strong>（Swoole版本 &gt;= 4.2.0）</strong>
+<a name="--enable-trace-log"></a></p>
+<h4>--enable-trace-log</h4>
+<p>打开追踪日志，开启此选项后swoole将打印各类细节的调试日志，仅内核开发时使用
+<a name="--enable-swoole-coro-time"></a></p>
+<h4>--enable-swoole-coro-time</h4>
+<p>启用对协程运行时间计算，此选项开启后，可以使用Swoole\Coroutine::getExecuteTime()计算协程执行时间，不包括I\O等待时间。
+<a name="PHP编译参数"></a></p>
+<h3>PHP编译参数</h3>
+<p><a name="--enable-swoole"></a></p>
+<h4>--enable-swoole</h4>
+<p>静态编译 Swoole 扩展到 PHP 中，根据下面的操作，就能出现<code>--enable-swoole</code>这个选项。</p>
+<pre><code class="language-shell">cp -r /home/swoole-src /home/php-src/ext
+cd /home/php-src
+./buildconf --force
+./configure --help | grep swoole</code></pre>
+<p>!&gt; 此选项是在编译 PHP 而不是 Swoole 时使用的
+<a name="常见问题"></a></p>
+<h2>常见问题</h2>
+</blockquote></li>
+<li><a href="/question/install">Swoole安装常见问题</a></li>
+</ul>
+</body>
+</html>

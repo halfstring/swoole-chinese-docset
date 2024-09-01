@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>Coroutine\Channel</h1>
+<blockquote>
+<p>建议先查看<a href="/coroutine">概览</a>，了解一些协程基本概念后再看此节。
+通道，用于协程间通讯，支持多生产者协程和多消费者协程。底层自动实现了协程的切换和调度。
+<a name="实现原理"></a></p>
+<h2>实现原理</h2>
+<ul>
+<li>通道与<code>PHP</code>的<code>Array</code>类似，仅占用内存，没有其他额外的资源申请，所有操作均为内存操作，无<code>IO</code>消耗</li>
+<li>底层使用<code>PHP</code>引用计数实现，无内存拷贝。即使是传递巨大字符串或数组也不会产生额外性能消耗</li>
+<li><code>channel</code>基于引用计数实现，是零拷贝的
+<a name="使用示例"></a>
+<h2>使用示例</h2>
+<pre><code class="language-php">use Swoole\Coroutine;
+use Swoole\Coroutine\Channel;
+use function Swoole\Coroutine\run;
+run(function(){
+$channel = new Channel(1);
+Coroutine::create(function () use ($channel) {
+for($i = 0; $i &lt; 10; $i++) {
+Coroutine::sleep(1.0);
+$channel-&gt;push(['rand' =&gt; rand(1000, 9999), 'index' =&gt; $i]);
+echo "{$i}\n";
+}
+});
+Coroutine::create(function () use ($channel) {
+while(1) {
+$data = $channel-&gt;pop(2.0);
+if ($data) {
+var_dump($data);
+} else {
+assert($channel-&gt;errCode === SWOOLE_CHANNEL_TIMEOUT);
+break;
+}
+}
+});
+});</code></pre>
+<p><a name="方法"></a></p>
+<h2>方法</h2>
+<p><a name="__construct"></a></p>
+<h3>__construct()</h3>
+<p>通道构造方法。</p>
+<pre><code class="language-php">Swoole\Coroutine\Channel::__construct(int $capacity = 1)</code></pre></li>
+<li><strong>参数</strong> </li>
+<li><strong><code>int $capacity</code></strong></li>
+<li><strong>功能</strong>：设置容量 【必须为大于或等于<code>1</code>的整数】</li>
+<li><strong>默认值</strong>：<code>1</code></li>
+<li><strong>其它值</strong>：无
+!&gt; 底层使用PHP引用计数来保存变量，缓存区只需要占用 <code>$capacity * sizeof(zval)</code> 字节的内存，<code>PHP7</code>版本下<code>zval</code>为<code>16</code>字节，如<code>$capacity = 1024</code>时，<code>Channel</code>最大将占用<code>16K</code>内存
+!&gt; 在<code>Server</code>中使用时必须在<a href="/server/events?id=onworkerstart">onWorkerStart</a>之后创建
+<a name="push"></a>
+<h3>push()</h3>
+<p>向通道中写入数据。</p>
+<pre><code class="language-php">Swoole\Coroutine\Channel-&gt;push(mixed $data, float $timeout = -1): bool</code></pre></li>
+<li><strong>参数</strong> </li>
+<li><strong><code>mixed $data</code></strong></li>
+<li><strong>功能</strong>：push 数据 【可以是任意类型的PHP变量，包括匿名函数和资源】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无
+!&gt; 为避免产生歧义，请勿向通道中写入空数据，如<code>0</code>、<code>false</code>、<code>空字符串</code>、<code>null</code></li>
+<li><strong><code>float $timeout</code></strong></li>
+<li><strong>功能</strong>：设置超时时间</li>
+<li><strong>值单位</strong>：秒【支持浮点型，如<code>1.5</code>表示<code>1s</code>+<code>500ms</code>】</li>
+<li><strong>默认值</strong>：<code>-1</code></li>
+<li><strong>其它值</strong>：无</li>
+<li><strong>版本影响</strong>：Swoole版本 &gt;= v4.2.12
+!&gt; 在通道已满的情况下，<code>push</code>会挂起当前协程，在约定的时间内，如果没有任何消费者消费数据，将发生超时，底层会恢复当前协程，<code>push</code>调用立即返回<code>false</code>，写入失败</li>
+<li><strong>返回值</strong></li>
+<li>执行成功返回<code>true</code></li>
+<li>通道被关闭时，执行失败返回<code>false</code>，可使用<code>$channel-&gt;errCode</code>得到错误码</li>
+<li><strong>扩展</strong></li>
+<li><strong>通道已满</strong></li>
+<li>自动<code>yield</code>当前协程，其他消费者协程<code>pop</code>消费数据后，通道可写，将重新<code>resume</code>当前协程</li>
+<li>多个生产者协程同时<code>push</code>时，底层自动进行排队，底层会按照顺序逐个<code>resume</code>这些生产者协程</li>
+<li><strong>通道为空</strong></li>
+<li>自动唤醒其中一个消费者协程</li>
+<li>多个消费者协程同时<code>pop</code>时，底层自动进行排队，按照顺序逐个<code>resume</code>这些消费者协程
+!&gt; <code>Coroutine\Channel</code>使用本地内存，不同的进程之间内存是隔离的。只能在同一进程的不同协程内进行<code>push</code>和<code>pop</code>操作
+<a name="pop"></a>
+<h3>pop()</h3>
+<p>从通道中读取数据。</p>
+<pre><code class="language-php">Swoole\Coroutine\Channel-&gt;pop(float $timeout = -1): mixed</code></pre></li>
+<li><strong>参数</strong> </li>
+<li><strong><code>float $timeout</code></strong></li>
+<li><strong>功能</strong>：设置超时时间</li>
+<li><strong>值单位</strong>：秒【支持浮点型，如<code>1.5</code>表示<code>1s</code>+<code>500ms</code>】</li>
+<li><strong>默认值</strong>：<code>-1</code>【表示永不超时】</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong>版本影响</strong>：Swoole版本 &gt;= v4.0.3</li>
+<li><strong>返回值</strong></li>
+<li>返回值可以是任意类型的PHP变量，包括匿名函数和资源</li>
+<li>通道被关闭时，执行失败返回<code>false</code></li>
+<li><strong>扩展</strong></li>
+<li><strong>通道已满</strong></li>
+<li><code>pop</code>消费数据后，将自动唤醒其中一个生产者协程，让其写入新数据</li>
+<li>多个生产者协程同时<code>push</code>时，底层自动进行排队，按照顺序逐个<code>resume</code>这些生产者协程</li>
+<li><strong>通道为空</strong></li>
+<li>自动<code>yield</code>当前协程，其他生产者协程<code>push</code>生产数据后，通道可读，将重新<code>resume</code>当前协程</li>
+<li>多个消费者协程同时<code>pop</code>时，底层自动进行排队，底层会按照顺序逐个<code>resume</code>这些消费者协程
+<a name="stats"></a>
+<h3>stats()</h3>
+<p>获取通道的状态。</p>
+<pre><code class="language-php">Swoole\Coroutine\Channel-&gt;stats(): array</code></pre></li>
+<li><strong>返回值</strong>
+返回一个数组，缓冲通道将包括<code>4</code>项信息，无缓冲通道返回<code>2</code>项信息</li>
+</ul>
+</blockquote>
+<pre><code>- `consumer_num` 消费者数量，表示当前通道为空，有`N`个协程正在等待其他协程调用`push`方法生产数据
+- `producer_num` 生产者数量，表示当前通道已满，有`N`个协程正在等待其他协程调用`pop`方法消费数据
+- `queue_num` 通道中的元素数量</code></pre>
+<pre><code class="language-php">array(
+  "consumer_num" =&gt; 0,
+  "producer_num" =&gt; 1,
+  "queue_num" =&gt; 10
+);</code></pre>
+<p><a name="close"></a></p>
+<h3>close()</h3>
+<p>关闭通道。并唤醒所有等待读写的协程。</p>
+<pre><code class="language-php">Swoole\Coroutine\Channel-&gt;close(): bool</code></pre>
+<p>!&gt; 唤醒所有生产者协程，<code>push</code>方法返回<code>false</code>；唤醒所有消费者协程，<code>pop</code>方法返回<code>false</code>
+<a name="length"></a></p>
+<h3>length()</h3>
+<p>获取通道中的元素数量。</p>
+<pre><code class="language-php">Swoole\Coroutine\Channel-&gt;length(): int</code></pre>
+<p><a name="isEmpty"></a></p>
+<h3>isEmpty()</h3>
+<p>判断当前通道是否为空。</p>
+<pre><code class="language-php">Swoole\Coroutine\Channel-&gt;isEmpty(): bool</code></pre>
+<p><a name="isFull"></a></p>
+<h3>isFull()</h3>
+<p>判断当前通道是否已满。</p>
+<pre><code class="language-php">Swoole\Coroutine\Channel-&gt;isFull(): bool</code></pre>
+<p><a name="属性"></a></p>
+<h2>属性</h2>
+<p><a name="capacity"></a></p>
+<h3>capacity</h3>
+<p>通道缓冲区容量。
+<a href="/coroutine/channel?id=__construct">构造函数</a>中设定的容量会保存在此，不过<strong>如果设定的容量小于1</strong>则此变量会等于1</p>
+<pre><code class="language-php">Swoole\Coroutine\Channel-&gt;capacity: int</code></pre>
+<p><a name="errCode"></a></p>
+<h3>errCode</h3>
+<p>获取错误码。</p>
+<pre><code class="language-php">Swoole\Coroutine\Channel-&gt;errCode: int</code></pre>
+<ul>
+<li>
+<table>
+<thead>
+<tr>
+<th><strong>返回值</strong>
+值</th>
+<th>对应常量</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>SWOOLE_CHANNEL_OK</td>
+<td>默认 成功</td>
+</tr>
+<tr>
+<td>-1</td>
+<td>SWOOLE_CHANNEL_TIMEOUT</td>
+<td>超时 pop失败时(超时)</td>
+</tr>
+<tr>
+<td>-2</td>
+<td>SWOOLE_CHANNEL_CLOSED</td>
+<td>channel已关闭，继续操作channel</td>
+</tr>
+</tbody>
+</table>
+</li>
+</ul>
+</body>
+</html>

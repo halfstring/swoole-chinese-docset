@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>其他知识</h1>
+<p><a name="设置DNS解析超时和重试"></a></p>
+<h2>设置DNS解析超时和重试</h2>
+<p>网络编程中经常使用<code>gethostbyname</code>和<code>getaddrinfo</code>来实现域名解析，这两个<code>C</code>函数并未提供超时参数。实际上可以修改<code>/etc/resolv.conf</code>来设置超时和重试逻辑。
+!&gt; 可参考<code>man resolv.conf</code>文档
+<a name="多个 NameServer <!-- {docsify-ignore} -->"></a></p>
+<h3>多个 NameServer <!-- {docsify-ignore} --></h3>
+<pre><code>nameserver 192.168.1.3
+nameserver 192.168.1.5
+option rotate</code></pre>
+<p>可配置多个<code>nameserver</code>，底层会自动轮询，在第一个<code>nameserver</code>查询失败时会自动切换为第二个<code>nameserver</code>进行重试。
+<code>option rotate</code>配置的作用是，进行<code>nameserver</code>负载均衡，使用轮询模式。
+<a name="超时控制 <!-- {docsify-ignore} -->"></a></p>
+<h3>超时控制 <!-- {docsify-ignore} --></h3>
+<pre><code>option timeout:1 attempts:2</code></pre>
+<ul>
+<li><code>timeout</code>：控制<code>UDP</code>接收的超时时间，单位为秒，默认为<code>5</code>秒</li>
+<li><code>attempts</code>：控制尝试的次数，配置为<code>2</code>时表示，最多尝试<code>2</code>次，默认为<code>5</code>次
+假设有<code>2</code>个<code>nameserver</code>，<code>attempts</code>为<code>2</code>，超时为<code>1</code>，那么如果所有<code>DNS</code>服务器无响应的情况下，最长等待时间为<code>4</code>秒（<code>2x2x1</code>）。
+<a name="调用跟踪 <!-- {docsify-ignore} -->"></a>
+<h3>调用跟踪 <!-- {docsify-ignore} --></h3>
+<p>可使用<a href="/other/tools?id=strace">strace</a>跟踪确认。
+将<code>nameserver</code>设置为两个不存在的<code>IP</code>，<code>PHP</code>代码使用<code>var_dump(gethostbyname('www.baidu.com'));</code>解析域名。</p>
+<pre><code>socket(AF_INET, SOCK_DGRAM|SOCK_CLOEXEC|SOCK_NONBLOCK, IPPROTO_IP) = 3
+connect(3, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("10.20.128.16")}, 16) = 0
+poll([{fd=3, events=POLLOUT}], 1, 0)    = 1 ([{fd=3, revents=POLLOUT}])
+sendto(3, "\346\5\1\0\0\1\0\0\0\0\0\0\3www\5baidu\3com\0\0\1\0\1", 31, MSG_NOSIGNAL, NULL, 0) = 31
+poll([{fd=3, events=POLLIN}], 1, 1000
+)  = 0 (Timeout)
+socket(AF_INET, SOCK_DGRAM|SOCK_CLOEXEC|SOCK_NONBLOCK, IPPROTO_IP) = 4
+connect(4, {sa_family=AF_INET, sin_port=htons(53), sin_addr=inet_addr("10.20.128.18")}, 16) = 0
+poll([{fd=4, events=POLLOUT}], 1, 0)    = 1 ([{fd=4, revents=POLLOUT}])
+sendto(4, "\346\5\1\0\0\1\0\0\0\0\0\0\3www\5baidu\3com\0\0\1\0\1", 31, MSG_NOSIGNAL, NULL, 0) = 31
+poll([{fd=4, events=POLLIN}], 1, 1000
+)  = 0 (Timeout)
+poll([{fd=3, events=POLLOUT}], 1, 0)    = 1 ([{fd=3, revents=POLLOUT}])
+sendto(3, "\346\5\1\0\0\1\0\0\0\0\0\0\3www\5baidu\3com\0\0\1\0\1", 31, MSG_NOSIGNAL, NULL, 0) = 31
+poll([{fd=3, events=POLLIN}], 1, 1000
+)  = 0 (Timeout)
+poll([{fd=4, events=POLLOUT}], 1, 0)    = 1 ([{fd=4, revents=POLLOUT}])
+sendto(4, "\346\5\1\0\0\1\0\0\0\0\0\0\3www\5baidu\3com\0\0\1\0\1", 31, MSG_NOSIGNAL, NULL, 0) = 31
+poll([{fd=4, events=POLLIN}], 1, 1000
+)  = 0 (Timeout)
+close(3)                                = 0
+close(4)                                = 0</code></pre>
+<p>可以看到这里一共重试了<code>4</code>次，<code>poll</code>调用超时设置为<code>1000ms</code>（<code>1秒</code>）。</p></li>
+</ul>
+</body>
+</html>

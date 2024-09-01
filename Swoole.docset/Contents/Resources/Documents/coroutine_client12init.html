@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>协程客户端 <!-- {docsify-ignore-all} --></h1>
+<p>下列协程客户端是Swoole内置的类，其中标有 ⚠️ 标志的不推荐再继续使用，可以使用PHP原生的函数+<a href="/runtime">一键协程化</a>。</p>
+<ul>
+<li><a href="coroutine_client/client.md">TCP/UDP/UnixSocket客户端</a></li>
+<li><a href="coroutine_client/socket.md">Socket客户端</a></li>
+<li><a href="coroutine_client/http_client.md">HTTP/WebSocket客户端</a></li>
+<li><a href="coroutine_client/http2_client.md">HTTP2客户端</a></li>
+<li><a href="coroutine_client/postgresql.md">PostgreSQL客户端</a></li>
+<li><a href="coroutine_client/fastcgi.md">FastCGI客户端</a></li>
+<li>⚠️ <a href="coroutine_client/redis.md">Redis客户端</a></li>
+<li>⚠️ <a href="coroutine_client/mysql.md">MySQL客户端</a></li>
+<li><a href="/coroutine/system">System</a>系统API
+<a name="超时规则"></a>
+<h2>超时规则</h2>
+<p>所有的网络请求(建立连接，发送数据，接收数据)都有可能超时，<code>Swoole</code>协程客户端设置超时的方式有三种：</p>
+<ol>
+<li>通过方法的参数传入超时时间，例如<a href="/coroutine_client/client?id=connect">Co\Client-&gt;connect()</a>、<a href="/coroutine_client/http_client?id=recv">Co\Http\Client-&gt;recv()</a>、<a href="/coroutine_client/mysql?id=query">Co\MySQL-&gt;query()</a>等
+!&gt; 这种方式的影响范围最小(只针对当前这次函数调用生效)，优先级最高(当前这次函数调用将无视下面的<code>2</code>、<code>3</code>设置)。</li>
+<li>通过<code>Swoole</code>协程客户端类的<code>set()</code>或<code>setOption()</code>方法设置超时，例如：
+<pre><code class="language-php">$client = new Co\Client(SWOOLE_SOCK_TCP);
+//或
+$client = new Co\Http\Client("127.0.0.1", 80);
+//或
+$client = new Co\Http2\Client("127.0.0.1", 443, true);
+$client-&gt;set(array(
+'timeout' =&gt; 0.5,//总超时，包括连接、发送、接收所有超时
+'connect_timeout' =&gt; 1.0,//连接超时，会覆盖第一个总的 timeout
+'write_timeout' =&gt; 10.0,//发送超时，会覆盖第一个总的 timeout
+'read_timeout' =&gt; 0.5,//接收超时，会覆盖第一个总的 timeout
+));
+//Co\Redis() 没有 write_timeout 和 read_timeout 配置
+$client = new Co\Redis();
+$client-&gt;setOption(array(
+'timeout' =&gt; 1.0,//总超时，包括连接、发送、接收所有超时
+'connect_timeout' =&gt; 0.5,//连接超时，会覆盖第一个总的 timeout 
+));
+//Co\MySQL() 没有 set 配置的功能
+$client = new Co\MySQL();
+//Co\Socket 通过 setOption 配置
+$socket = new Co\Socket(AF_INET, SOCK_STREAM, SOL_TCP);
+$timeout = array('sec'=&gt;1, 'usec'=&gt;500000);
+$socket-&gt;setOption(SOL_SOCKET, SO_RCVTIMEO, $timeout);//接受数据超时时间
+$socket-&gt;setOption(SOL_SOCKET, SO_SNDTIMEO, $timeout);//连接超时和发送数据超时的配置</code></pre>
+<p>!&gt; 这种方式的影响只针对当前类生效，会被第<code>1</code>种方式覆盖，无视下面的第<code>3</code>种方式配置。</p></li>
+<li>可以看到上面<code>2</code>种方式超时设置规则很麻烦且不统一，为了避免开发者需要处处谨慎设置，从<code>v4.2.10</code>版本开始所有协程客户端提供了全局统一超时规则设置，这种影响最大，优先级最低，如下：
+<pre><code class="language-php">Co::set([
+'socket_timeout' =&gt; 5,
+'socket_connect_timeout' =&gt; 1,
+'socket_read_timeout' =&gt; 1,
+'socket_write_timeout' =&gt; 1,
+]);</code></pre></li>
+</ol></li>
+<li><code>-1</code>：表示永不超时</li>
+<li><code>0</code>：表示不更改超时时间</li>
+<li><code>其它大于0的值</code>：表示设置相应秒数的超时定时器，最大精度为<code>1毫秒</code>，是浮点型，<code>0.5</code>代表<code>500毫秒</code></li>
+<li><code>socket_connect_timeout</code>：表示建立TCP连接超时时间，<strong>默认为<code>1秒</code></strong> ，从<code>v4.5.x</code>版本开始<strong>默认为<code>2秒</code></strong></li>
+<li><code>socket_timeout</code>：表示TCP读/写操作超时时间，<strong>默认为<code>-1</code></strong> ，从<code>v4.5.x</code>版本开始<strong>默认为<code>60秒</code></strong> 。如果想把读和写分开设置，参考下面的配置</li>
+<li><code>socket_read_timeout</code>：<code>v4.3</code>版本加入，表示TCP<strong>读</strong>操作超时时间，<strong>默认为<code>-1</code></strong> ，从<code>v4.5.x</code>版本开始<strong>默认为<code>60秒</code></strong></li>
+<li><code>socket_write_timeout</code>：<code>v4.3</code>版本加入，表示TCP<strong>写</strong>操作超时时间，<strong>默认为<code>-1</code></strong> ，从<code>v4.5.x</code>版本开始<strong>默认为<code>60秒</code></strong>
+!&gt; <strong>即：</strong> <code>v4.5.x</code>之前的版本所有<code>Swoole</code>提供的协程客户端，如果没用前面的第<code>1</code>、<code>2</code>种方式设置超时，默认连接超时时间为<code>1s</code>，读/写操作则永不超时；<br />
+从<code>v4.5.x</code>版本开始默认连接超时时间为<code>60秒</code>，读/写操作超时时间为<code>60秒</code>；<br />
+如果中途修改了全局超时，对于已创建的socket是不生效的。
+<a name="PHP官方网络库超时"></a>
+<h3>PHP官方网络库超时</h3>
+<p>除了上述<code>Swoole</code>提供的协程客户端，在<a href="/runtime">一键协程化</a>里面使用的是原生PHP提供的方法，它们的超时时间受 <a href="http://php.net/manual/zh/filesystem.configuration.php">default_socket_timeout</a> 配置影响，开发者可以通过<code>ini_set('default_socket_timeout', 60)</code>这样来单独设置它，它的默认值是60。</p></li>
+</ul>
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>协程进程管理</h1>
+<p>由于在协程空间内<code>fork</code>进程会带着其他协程上下文，因此底层禁止了在<code>Coroutine</code>中使用<code>Process</code>模块。可以使用</p>
+<ul>
+<li><code>System::exec()</code>或<code>Runtime Hook</code>+<code>shell_exec</code>实现外面程序运行</li>
+<li><code>Runtime Hook</code>+<code>proc_open</code>实现父子进程交互通信
+<a name="使用示例"></a>
+<h2>使用示例</h2>
+<p><a name="main.php"></a></p>
+<h3>main.php</h3>
+<pre><code class="language-php">use Swoole\Runtime;
+use function Swoole\Coroutine\run;
+Runtime::enableCoroutine(SWOOLE_HOOK_ALL);
+run(function () {
+$descriptorspec = array(
+    0 =&gt; array("pipe", "r"),
+    1 =&gt; array("pipe", "w"),
+    2 =&gt; array("file", "/tmp/error-output.txt", "a")
+);
+$process = proc_open('php ' . __DIR__ . '/read_stdin.php', $descriptorspec, $pipes);
+$n = 10;
+while ($n--) {
+    fwrite($pipes[0], "hello #$n \n");
+    echo fread($pipes[1], 8192);
+}
+fclose($pipes[0]);
+proc_close($process);
+});</code></pre>
+<p><a name="read_stdin.php"></a></p>
+<h3>read_stdin.php</h3>
+<pre><code class="language-php">while(true) {
+$line = fgets(STDIN);
+if ($line) {
+    echo $line;
+} else {
+    break;
+}
+}</code></pre></li>
+</ul>
+</body>
+</html>

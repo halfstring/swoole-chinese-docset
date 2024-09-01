@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>简单示例</h1>
+<p><code>Swoole</code>的绝大部分功能只能用于<code>cli</code>命令行环境，请首先准备好<code>Linux Shell</code>环境。可使用<code>Vim</code>、<code>Emacs</code>、<code>PhpStorm</code>或其他编辑器编写代码，并在命令行中通过如下指令执行程序。</p>
+<pre><code class="language-shell">php /path/to/your_file.php</code></pre>
+<p>成功执行<code>Swoole</code>服务器程序后，如果你的代码中没有任何<code>echo</code>语句，屏幕不会有任何输出，但实际上底层已经在监听网络端口，等待客户端发起连接。可使用相应的客户端工具和程序连接到服务器，进行测试。
+<a name="进程管理"></a></p>
+<h4>进程管理</h4>
+<p>默认情况下，启动<code>Swoole</code>的服务后，通过启动的窗口<code>CTRL+C</code>就可以结束服务，但此时如果窗口退出会有问题，需要后台启动，详情参考<a href="/server/setting?id=daemonize">守护进程化</a>。
+!&gt; 简单示例中的示例大部分都是异步风格的编程模式，用协程风格同样可以做到示例中的功能，参见<a href="coroutine/server.md">服务端 (协程风格)</a>。
+!&gt; <code>Swoole</code>提供的绝大的部分模块只能用于<code>cli</code>命令行终端。目前只有<a href="/client">同步阻塞客户端</a>可以用于<code>PHP-FPM</code>环境下。</p>
+</body>
+</html>

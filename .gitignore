@@ -3,7 +3,6 @@ src/docset.sql
 src/html/
 src/md/
 src/result.log
-Swoole.docset
 
 
 /vendor/

@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>高性能共享内存 Table</h1>
+<p>由于<code>PHP</code>语言不支持多线程，因此<code>Swoole</code>使用多进程模式，在多进程模式下存在进程内存隔离，在工作进程内修改<code>global</code>全局变量和超全局变量时，在其他进程是无效的。</p>
+<blockquote>
+<p>设置<code>worker_num=1</code>时，不存在进程隔离，可以使用全局变量保存数据</p>
+<pre><code class="language-php">$fds = array();
+$server-&gt;on('connect', function ($server, $fd){
+echo "connection open: {$fd}\n";
+global $fds;
+$fds[] = $fd;
+var_dump($fds);
+});</code></pre>
+<p><code>$fds</code> 虽然是全局变量，但只在当前的进程内有效。<code>Swoole</code>服务器底层会创建多个<code>Worker</code>进程，在<code>var_dump($fds)</code>打印出来的值，只有部分连接的<code>fd</code>。
+对应的解决方案就是使用外部存储服务：</p>
+<ul>
+<li>数据库，如：<code>MySQL</code>、<code>MongoDB</code></li>
+<li>缓存服务器，如：<code>Redis</code>、<code>Memcache</code></li>
+<li>磁盘文件，多进程并发读写时需要加锁
+普通的数据库和磁盘文件操作，存在较多<code>IO</code>等待时间。因此推荐使用：</li>
+<li><code>Redis</code> 内存数据库，读写速度非常快，但是有TCP连接等问题，性能也不是最高的。</li>
+<li><code>/dev/shm</code> 内存文件系统，读写操作全部在内存中完成，无<code>IO</code>消耗，性能极高，但是数据不是格式化的，还有数据同步的问题。
+?&gt; 除了上述使用存储之外，推荐使用共享内存来保存数据，<code>Swoole\Table</code>是一个基于共享内存和锁实现的超高性能，并发数据结构。用于解决多进程/多线程数据共享和同步加锁问题。<code>Table</code>的内存容量不受<code>PHP</code>的<code>memory_limit</code>控制
+!&gt; 不要使用数组方式读写<code>Table</code>，一定要使用文档中提供的API来进行操作；<br />
+数组方式取出的<code>Table\Row</code>对象为一次性对象，请勿依赖其进行过多操作。
+从 <code>v4.7.0</code> 版本开始，不再支持以数组的方式读写<code>Table</code>，并移除了<code>Table\Row</code>对象。</li>
+<li><strong>优势</strong></li>
+<li>性能强悍，单线程每秒可读写<code>200</code>万次；</li>
+<li>应用代码无需加锁，<code>Table</code>内置行锁自旋锁，所有操作均是多线程/多进程安全。用户层完全不需要考虑数据同步问题；</li>
+<li>支持多进程，<code>Table</code>可以用于多进程之间共享数据；</li>
+<li>使用行锁，而不是全局锁，仅当2个进程在同一<code>CPU</code>时间，并发读取同一条数据才会进行发生抢锁。</li>
+<li><strong>遍历</strong>
+!&gt; 请勿在遍历期间进行删除操作（可将所有<code>key</code>取出后进行删除）
+<code>Table</code>类实现了迭代器和<code>Countable</code>接口，可以使用<code>foreach</code>进行遍历，使用<code>count</code>计算当前行数。
+<pre><code class="language-php">foreach($table as $row)
+{
+var_dump($row);
+}
+echo count($table);</code></pre>
+<p><a name="属性"></a></p>
+<h2>属性</h2>
+<p><a name="size"></a></p>
+<h3>size</h3>
+<p>获取表格的最大行数。</p>
+<pre><code class="language-php">Swoole\Table-&gt;size;</code></pre>
+<p><a name="memorySize"></a></p>
+<h3>memorySize</h3>
+<p>获取实际占用内存的尺寸，单位为字节。</p>
+<pre><code class="language-php">Swoole\Table-&gt;memorySize;</code></pre>
+<p><a name="方法"></a></p>
+<h2>方法</h2>
+<p><a name="__construct"></a></p>
+<h3>__construct()</h3>
+<p>创建内存表。</p>
+<pre><code class="language-php">Swoole\Table::__construct(int $size, float $conflict_proportion = 0.2);</code></pre></li>
+<li><strong>参数</strong> </li>
+<li><strong><code>int $size</code></strong></li>
+<li><strong>功能</strong>：指定表格的最大行数</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无
+!&gt; 由于<code>Table</code>底层是建立在共享内存之上，所以无法动态扩容。所以<code>$size</code>必须在创建前自己计算设置好，<code>Table</code>能存储的最大行数与<code>$size</code>正相关，但不完全一致，如<code>$size</code>为<code>1024</code>实际可存储的行数<strong>小于</strong><code>1024</code>，如果<code>$size</code>过大，机器内存不足<code>Table</code>会创建失败。  </li>
+<li><strong><code>float $conflict_proportion</code></strong></li>
+<li><strong>功能</strong>：哈希冲突的最大比例</li>
+<li><strong>默认值</strong>：<code>0.2</code> (即<code>20%</code>)</li>
+<li><strong>其它值</strong>：最小为<code>0.2</code>，最大为<code>1</code></li>
+<li><strong>容量计算</strong></li>
+<li>如果<code>$size</code>不是为<code>2</code>的<code>N</code>次方，如<code>1024</code>、<code>8192</code>、<code>65536</code>等，底层会自动调整为接近的一个数字，如果小于<code>1024</code>则默认成<code>1024</code>，即<code>1024</code>是最小值。从<code>v4.4.6</code>版本开始最小值为<code>64</code>。</li>
+<li><code>Table</code>占用的内存总数为 (<code>HashTable结构体长度</code> + <code>KEY长度64字节</code> + <code>$size值</code>) <em> (<code>1 + $conflict_proportion值作为hash冲突</code>) </em> (<code>列尺寸</code>)。</li>
+<li>如果你的数据<code>Key</code>和Hash冲突率超过<code>20%</code>，预留的冲突内存块容量不足，<code>set</code>新的数据就会报<code>Unable to allocate memory</code>错误，并返回<code>false</code>，存储失败，此时需要调大<code>$size</code>值并重启服务。</li>
+<li>在内存足够的情况下尽量将此值设置的大一些。
+<a name="column"></a>
+<h3>column()</h3>
+<p>内存表增加一列。</p>
+<pre><code class="language-php">Swoole\Table-&gt;column(string $name, int $type, int $size = 0);</code></pre></li>
+<li><strong>参数</strong> </li>
+<li><strong><code>string $name</code></strong></li>
+<li><strong>功能</strong>：指定字段的名称</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong><code>int $type</code></strong></li>
+<li><strong>功能</strong>：指定字段类型</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：<code>Table::TYPE_INT</code>, <code>Table::TYPE_FLOAT</code>, <code>Table::TYPE_STRING</code></li>
+<li><strong><code>int $size</code></strong></li>
+<li><strong>功能</strong>：指定字符串字段的最大长度【字符串类型的字段必须指定<code>$size</code>】</li>
+<li><strong>值单位</strong>：字节</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li>
+<table>
+<thead>
+<tr>
+<th><strong><code>$type</code> 类型说明</strong>
+类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Table::TYPE_INT</td>
+<td>默认为8个字节</td>
+</tr>
+<tr>
+<td>Table::TYPE_STRING</td>
+<td>设置后，设置的字符串不能超过<code>$size</code>指定的最大长度</td>
+</tr>
+<tr>
+<td>Table::TYPE_FLOAT</td>
+<td>会占用8个字节的内存</td>
+</tr>
+</tbody>
+</table>
+<p><a name="create"></a></p>
+<h3>create()</h3>
+<p>创建内存表。定义好表的结构后，执行<code>create</code>向操作系统申请内存，创建表。</p>
+<pre><code class="language-php">Swoole\Table-&gt;create(): bool</code></pre>
+<p>使用<code>create</code>方法创建表后，可以读取<a href="/memory/table?id=memorysize">memorySize</a>属性获取实际占用内存的尺寸</p>
+</li>
+<li><strong>提示</strong> </li>
+<li>调用<code>create</code>之前不能使用<code>set</code>、<code>get</code>等数据读写操作方法</li>
+<li>调用<code>create</code>之后不能使用<code>column</code>方法添加新字段</li>
+<li>系统内存不足，申请失败，<code>create</code>返回<code>false</code></li>
+<li>申请内存成功，<code>create</code>返回<code>true</code>
+!&gt; <code>Table</code>使用共享内存来保存数据，在创建子进程前，务必要执行<code>Table-&gt;create()</code> ；<br />
+<code>Server</code>中使用<code>Table</code>，<code>Table-&gt;create()</code> 必须在<code>Server-&gt;start()</code>前执行。</li>
+<li><strong>使用示例</strong>
+<pre><code class="language-php">$table = new Swoole\Table(1024);
+$table-&gt;column('id', Swoole\Table::TYPE_INT);
+$table-&gt;column('name', Swoole\Table::TYPE_STRING, 64);
+$table-&gt;column('num', Swoole\Table::TYPE_FLOAT);
+$table-&gt;create();
+$worker = new Swoole\Process(function () {}, false, false);
+$worker-&gt;start();
+//$serv = new Swoole\Server('127.0.0.1', 9501);
+//$serv-&gt;start();</code></pre>
+<p><a name="set"></a></p>
+<h3>set()</h3>
+<p>设置行的数据。<code>Table</code>使用<code>key-value</code>的方式来访问数据。</p>
+<pre><code class="language-php">Swoole\Table-&gt;set(string $key, array $value): bool</code></pre></li>
+<li><strong>参数</strong> </li>
+<li><strong><code>string $key</code></strong></li>
+<li><strong>功能</strong>：数据的<code>key</code></li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无
+!&gt; 相同的<code>$key</code>对应同一行数据，如果<code>set</code>同一个<code>key</code>，会覆盖上一次的数据，<code>key</code>最大长度不得超过63字节</li>
+<li><strong><code>array $value</code></strong></li>
+<li><strong>功能</strong>：数据的<code>value</code></li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无
+!&gt; 必须是一个数组，必须与字段定义的<code>$name</code>完全相同</li>
+<li><strong>返回值</strong></li>
+<li>设置成功返回<code>true</code></li>
+<li>失败返回<code>false</code>，可能是由于Hash冲突过多导致动态空间无法分配内存，可以调大构造方法第二个参数
+!&gt; -<code>Table-&gt;set()</code> 可以设置全部字段的值，也可以只修改部分字段；<br />
+-<code>Table-&gt;set()</code> 未设置前，该行数据的所有字段均为空；<br />
+-<code>set</code>/<code>get</code>/<code>del</code> 是自带行锁，所以不需要调用<code>lock</code>加锁；<br />
+-<strong>Key 非二进制安全，必须为字符串类型，不得传入二进制数据。</strong></li>
+</ul>
+</blockquote>
+<ul>
+<li>
+<p><strong>使用示例</strong></p>
+<pre><code class="language-php">$table-&gt;set('1', ['id' =&gt; 1, 'name' =&gt; 'test1', 'age' =&gt; 20]);
+$table-&gt;set('2', ['id' =&gt; 2, 'name' =&gt; 'test2', 'age' =&gt; 21]);
+$table-&gt;set('3', ['id' =&gt; 3, 'name' =&gt; 'test3', 'age' =&gt; 19]);</code></pre>
+</li>
+<li>
+<p><strong>设置超过最大长度字符串</strong></p>
+<p>如果传入字符串长度超过了列定义时设定的最大尺寸，底层会自动截断。</p>
+<pre><code class="language-php">$table-&gt;column('str_value', Swoole\Table::TYPE_STRING, 5);
+$table-&gt;set('hello', array('str_value' =&gt; 'world 123456789'));
+var_dump($table-&gt;get('hello'));</code></pre>
+<ul>
+<li><code>str_value</code>列最大尺寸为5字节，但<code>set</code>设置了超过<code>5</code>字节的字符串</li>
+<li>底层会自动截取5字节的数据，最终<code>str_value</code>的值为<code>world</code>
+!&gt; 从<code>v4.3</code>版本开始，底层对内存长度做了对齐处理。字符串长度必须为8的整数倍，如长度为5会自动对齐到8字节，所以<code>str_value</code>的值为<code>world 12</code>
+<a name="incr"></a>
+<h3>incr()</h3>
+<p>原子自增操作。</p>
+<pre><code class="language-php">Swoole\Table-&gt;incr(string $key, string $column, mixed $incrby = 1): int</code></pre></li>
+</ul>
+</li>
+<li>
+<p><strong>参数</strong> </p>
+<ul>
+<li><strong><code>string $key</code></strong>
+<ul>
+<li><strong>功能</strong>：数据的<code>key</code>【如果<code>$key</code>对应的行不存在，默认列的值为<code>0</code>】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>string $column</code></strong>
+<ul>
+<li><strong>功能</strong>：指定列名【仅支持浮点型和整型字段】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>string $incrby</code></strong>
+<ul>
+<li><strong>功能</strong>：增量 【如果列为<code>int</code>，<code>$incrby</code>必须为<code>int</code>型，如果列为<code>float</code>型，<code>$incrby</code>必须为<code>float</code>类型】</li>
+<li><strong>默认值</strong>：<code>1</code></li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+</ul>
+</li>
+<li>
+<p><strong>返回值</strong>
+返回最终的结果数值
+<a name="decr"></a></p>
+<h3>decr()</h3>
+<p>原子自减操作。</p>
+<pre><code class="language-php">Swoole\Table-&gt;decr(string $key, string $column, mixed $decrby = 1): int</code></pre>
+</li>
+<li>
+<p><strong>参数</strong> </p>
+<ul>
+<li><strong><code>string $key</code></strong>
+<ul>
+<li><strong>功能</strong>：数据的<code>key</code>【如果<code>$key</code>对应的行不存在，默认列的值为<code>0</code>】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>string $column</code></strong>
+<ul>
+<li><strong>功能</strong>：指定列名【仅支持浮点型和整型字段】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>string $decrby</code></strong>
+<ul>
+<li><strong>功能</strong>：增量 【如果列为<code>int</code>，<code>$decrby</code>必须为<code>int</code>型，如果列为<code>float</code>型，<code>$decrby</code>必须为<code>float</code>类型】</li>
+<li><strong>默认值</strong>：<code>1</code></li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+</ul>
+</li>
+<li>
+<p><strong>返回值</strong>
+返回最终的结果数值
+!&gt; 数值为<code>0</code>时递减会变成负数
+<a name="get"></a></p>
+<h3>get()</h3>
+<p>获取一行数据。</p>
+<pre><code class="language-php">Swoole\Table-&gt;get(string $key, string $field = null): array|false</code></pre>
+</li>
+<li>
+<p><strong>参数</strong> </p>
+<ul>
+<li><strong><code>string $key</code></strong>
+<ul>
+<li><strong>功能</strong>：数据的<code>key</code>【必须为字符串类型】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>string $field</code></strong>
+<ul>
+<li><strong>功能</strong>：当指定了<code>$field</code>时仅返回该字段的值，而不是整个记录</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+</ul>
+</li>
+<li>
+<p><strong>返回值</strong></p>
+<ul>
+<li><code>$key</code>不存在，将返回<code>false</code></li>
+<li>成功返回结果数组</li>
+<li>当指定了<code>$field</code>时仅返回该字段的值，而不是整个记录
+<a name="exist"></a>
+<h3>exist()</h3>
+<p>检查table中是否存在某一个key。</p>
+<pre><code class="language-php">Swoole\Table-&gt;exist(string $key): bool</code></pre></li>
+</ul>
+</li>
+<li>
+<p><strong>参数</strong> </p>
+<ul>
+<li><strong><code>string $key</code></strong>
+<ul>
+<li><strong>功能</strong>：数据的<code>key</code>【必须为字符串类型】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无
+<a name="count"></a>
+<h3>count()</h3>
+<p>返回table中存在的条目数。</p>
+<pre><code class="language-php">Swoole\Table-&gt;count(): int</code></pre>
+<p><a name="del"></a></p>
+<h3>del()</h3>
+<p>删除数据。
+!&gt; <code>Key</code>非二进制安全，必须为字符串类型，不得传入二进制数据；<strong>请勿在遍历时删除</strong>。</p>
+<pre><code class="language-php">Swoole\Table-&gt;del(string $key): bool</code></pre></li>
+</ul></li>
+</ul>
+</li>
+<li>
+<p><strong>返回值</strong></p>
+<ul>
+<li><code>$key</code>对应的数据不存在，将返回<code>false</code></li>
+<li>成功删除返回<code>true</code>
+<a name="stats"></a>
+<h3>stats()</h3>
+<p>获取 <code>Swoole\Table</code> 状态。</p>
+<pre><code class="language-php">Swoole\Table-&gt;stats(): array</code></pre>
+<p>!&gt; Swoole版本 &gt;= <code>v4.8.0</code> 可用
+<a name="助手函数 :id=swoole_table"></a></p>
+<h2>助手函数 :id=swoole_table</h2>
+<p>方便用户快速创建一个<code>Swoole\Table</code>。</p>
+<pre><code class="language-php">function swoole_table(int $size, string $fields): Swoole\Table</code></pre>
+<table>
+<thead>
+<tr>
+<th>!&gt; Swoole版本 &gt;= <code>v4.6.0</code> 可用。<code>$fields</code>格式为<code>foo:i/foo:s:num/foo:f</code></th>
+<th>短名</th>
+<th>长名</th>
+<th>类型</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>i</td>
+<td>int</td>
+<td>Table::TYPE_INT</td>
+</tr>
+<tr>
+<td>s</td>
+<td>string</td>
+<td>Table::TYPE_STRING</td>
+</tr>
+<tr>
+<td>f</td>
+<td>float</td>
+<td>Table::TYPE_FLOAT</td>
+</tr>
+</tbody>
+</table>
+<p>示例：</p>
+<pre><code class="language-php">$table = swoole_table(1024, 'fd:int, reactor_id:i, data:s:64');
+var_dump($table);
+$table = new Swoole\Table(1024, 0.25);
+$table-&gt;column('fd', Swoole\Table::TYPE_INT);
+$table-&gt;column('reactor_id', Swoole\Table::TYPE_INT);
+$table-&gt;column('data', Swoole\Table::TYPE_STRING, 64);
+$table-&gt;create();
+var_dump($table);</code></pre>
+<p><a name="完整示例"></a></p>
+<h2>完整示例</h2>
+<pre><code class="language-php">&lt;?php
+$table = new Swoole\Table(1024);
+$table-&gt;column('fd', Swoole\Table::TYPE_INT);
+$table-&gt;column('reactor_id', Swoole\Table::TYPE_INT);
+$table-&gt;column('data', Swoole\Table::TYPE_STRING, 64);
+$table-&gt;create();
+$serv = new Swoole\Server('127.0.0.1', 9501);
+$serv-&gt;set(['dispatch_mode' =&gt; 1]);
+$serv-&gt;table = $table;
+$serv-&gt;on('receive', function ($serv, $fd, $reactor_id, $data) {
+$cmd = explode(" ", trim($data));
+//get
+if ($cmd[0] == 'get')
+{
+//get self
+if (count($cmd) &lt; 2)
+{
+    $cmd[1] = $fd;
+}
+$get_fd = intval($cmd[1]);
+$info = $serv-&gt;table-&gt;get($get_fd);
+$serv-&gt;send($fd, var_export($info, true)."\n");
+}
+//set
+elseif ($cmd[0] == 'set')
+{
+$ret = $serv-&gt;table-&gt;set($fd, array('reactor_id' =&gt; $data, 'fd' =&gt; $fd, 'data' =&gt; $cmd[1]));
+if ($ret === false)
+{
+    $serv-&gt;send($fd, "ERROR\n");
+}
+else
+{
+    $serv-&gt;send($fd, "OK\n");
+}
+}
+else
+{
+$serv-&gt;send($fd, "command error.\n");
+}
+});
+$serv-&gt;start();</code></pre></li>
+</ul>
+</li>
+</ul>
+</body>
+</html>

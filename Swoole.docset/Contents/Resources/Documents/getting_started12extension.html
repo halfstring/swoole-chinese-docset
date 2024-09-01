@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>扩展冲突</h1>
+<p>由于某些跟踪调试的<code>PHP</code>扩展大量使用了全局变量，可能会导致<code>Swoole</code>协程发生崩溃。请关闭以下相关扩展：</p>
+<ul>
+<li>phptrace</li>
+<li>aop</li>
+<li>molten</li>
+<li>xhprof</li>
+<li>phalcon（<code>Swoole</code>协程无法运行在 <code>phalcon</code> 框架中）
+<a name="Xdebug 支持"></a>
+<h2>Xdebug 支持</h2>
+<p>从 <code>5.1</code> 版本开始可直接使用 <code>xdebug</code> 扩展来调试 <code>Swoole</code> 程序，通过命令行参数或者修改 <code>php.ini</code> 启用。</p>
+<pre><code class="language-ini">swoole.enable_fiber_mock=On</code></pre>
+<p>或者 </p>
+<pre><code class="language-shell">php -d swoole.enable_fiber_mock=On your_file.php</code></pre></li>
+</ul>
+</body>
+</html>

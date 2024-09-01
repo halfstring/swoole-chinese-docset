@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>属性</h1>
+<p><a name="$setting"></a></p>
+<h3>$setting</h3>
+<p><a href="/server/methods?id=set">Server-&gt;set()</a>函数所设置的参数会保存到<code>Server-&gt;$setting</code>属性上。在回调函数中可以访问运行参数的值。该属性是一个<code>array</code>类型的数组。</p>
+<pre><code class="language-php">Swoole\Server-&gt;setting</code></pre>
+<ul>
+<li><strong>示例</strong>
+<pre><code class="language-php">$server = new Swoole\Server('127.0.0.1', 9501);
+$server-&gt;set(array('worker_num' =&gt; 4));
+echo $server-&gt;setting['worker_num'];</code></pre>
+<p><a name="$connections"></a></p>
+<h3>$connections</h3>
+<p><code>TCP</code>连接迭代器，可以使用<code>foreach</code>遍历服务器当前所有的连接，此属性的功能与<a href="/server/methods?id=getclientlist">Server-&gt;getClientList</a>是一致的，但是更加友好。
+遍历的元素为单个连接的<code>fd</code>。</p>
+<pre><code class="language-php">Swoole\Server-&gt;connections</code></pre>
+<p>!&gt; <code>$connections</code>属性是一个迭代器对象，不是PHP数组，所以不能用<code>var_dump</code>或者数组下标来访问，只能通过<code>foreach</code>进行遍历操作</p></li>
+<li><strong>Base 模式</strong>
+<ul>
+<li><a href="/learn?id=swoole_base">SWOOLE_BASE</a> 模式下不支持跨进程操作<code>TCP</code>连接，因此在<code>BASE</code>模式中，只能在当前进程内使用<code>$connections</code>迭代器</li>
+</ul></li>
+<li><strong>示例</strong>
+<pre><code class="language-php">foreach ($server-&gt;connections as $fd) {
+var_dump($fd);
+}
+echo "当前服务器共有 " . count($server-&gt;connections) . " 个连接\n";</code></pre>
+<p><a name="$host"></a></p>
+<h3>$host</h3>
+<p>返回当前服务器监听的主机地址的<code>host</code>，该属性是一个<code>string</code>类型的字符串。</p>
+<pre><code class="language-php">Swoole\Server-&gt;host</code></pre>
+<p><a name="$port"></a></p>
+<h3>$port</h3>
+<p>返回当前服务器监听的端口的<code>port</code>，该属性是一个<code>int</code>类型的整数。</p>
+<pre><code class="language-php">Swoole\Server-&gt;port</code></pre>
+<p><a name="$type"></a></p>
+<h3>$type</h3>
+<p>返回当前Server 的类型<code>type</code>，该属性是一个<code>int</code>类型的整数。</p>
+<pre><code class="language-php">Swoole\Server-&gt;type</code></pre>
+<p>!&gt; 该属性返回会返回下列的值的其中一个</p>
+<ul>
+<li><code>SWOOLE_SOCK_TCP</code> tcp ipv4 socket</li>
+<li><code>SWOOLE_SOCK_TCP6</code> tcp ipv6 socket</li>
+<li><code>SWOOLE_SOCK_UDP</code> udp ipv4 socket</li>
+<li><code>SWOOLE_SOCK_UDP6</code> udp ipv6 socket</li>
+<li><code>SWOOLE_SOCK_UNIX_DGRAM</code> unix socket dgram</li>
+<li><code>SWOOLE_SOCK_UNIX_STREAM</code> unix socket stream
+<a name="$ssl"></a>
+<h3>$ssl</h3>
+<p>返回当前服务器是否启动<code>ssl</code>，该属性是一个<code>bool</code>类型。</p>
+<pre><code class="language-php">Swoole\Server-&gt;ssl</code></pre>
+<p><a name="$mode"></a></p>
+<h3>$mode</h3>
+<p>返回当前服务器的进程模式<code>mode</code>，该属性是一个<code>int</code>类型的整数。</p>
+<pre><code class="language-php">Swoole\Server-&gt;mode</code></pre>
+<p>!&gt; 该属性返回会返回下列的值的其中一个</p></li>
+<li><code>SWOOLE_BASE</code> 单进程模式</li>
+<li><code>SWOOLE_PROCESS</code> 多进程模式
+<a name="$ports"></a>
+<h3>$ports</h3>
+<p>监听端口数组，如果服务器监听了多个端口可以遍历<code>Server::$ports</code>得到所有<code>Swoole\Server\Port</code>对象。
+其中<code>swoole_server::$ports[0]</code>为构造方法所设置的主服务器端口。</p></li>
+</ul></li>
+<li><strong>示例</strong>
+<pre><code class="language-php">$ports = $server-&gt;ports;
+$ports[0]-&gt;set($settings);
+$ports[1]-&gt;on('Receive', function () {
+//callback
+});</code></pre>
+<p><a name="$master_pid"></a></p>
+<h3>$master_pid</h3>
+<p>返回当前服务器主进程的<code>PID</code>。</p>
+<pre><code class="language-php">Swoole\Server-&gt;master_pid</code></pre>
+<p>!&gt; 只能在<code>onStart/onWorkerStart</code>之后获取到</p></li>
+<li><strong>示例</strong>
+<pre><code class="language-php">$server = new Swoole\Server("127.0.0.1", 9501);
+$server-&gt;on('start', function ($server){
+echo $server-&gt;master_pid;
+});
+$server-&gt;on('receive', function ($server, $fd, $reactor_id, $data) {
+$server-&gt;send($fd, 'Swoole: '.$data);
+$server-&gt;close($fd);
+});
+$server-&gt;start();</code></pre>
+<p><a name="$manager_pid"></a></p>
+<h3>$manager_pid</h3>
+<p>返回当前服务器管理进程的<code>PID</code>，该属性是一个<code>int</code>类型的整数。</p>
+<pre><code class="language-php">Swoole\Server-&gt;manager_pid</code></pre>
+<p>!&gt; 只能在<code>onStart/onWorkerStart</code>之后获取到</p></li>
+<li><strong>示例</strong>
+<pre><code class="language-php">$server = new Swoole\Server("127.0.0.1", 9501);
+$server-&gt;on('start', function ($server){
+echo $server-&gt;manager_pid;
+});
+$server-&gt;on('receive', function ($server, $fd, $reactor_id, $data) {
+$server-&gt;send($fd, 'Swoole: '.$data);
+$server-&gt;close($fd);
+});
+$server-&gt;start();</code></pre></li>
+</ul>
+<p><a name="$worker_id"></a></p>
+<h3>$worker_id</h3>
+<p>得到当前<code>Worker</code>进程的编号，包括 <a href="/learn?id=taskworker进程">Task进程</a>，该属性是一个<code>int</code>类型的整数。</p>
+<pre><code class="language-php">Swoole\Server-&gt;worker_id</code></pre>
+<ul>
+<li><strong>示例</strong>
+<pre><code class="language-php">$server = new Swoole\Server('127.0.0.1', 9501);
+$server-&gt;set([
+'worker_num' =&gt; 8,
+'task_worker_num' =&gt; 4,
+]);
+$server-&gt;on('WorkerStart', function ($server, int $workerId) {
+if ($server-&gt;taskworker) {
+    echo "task workerId：{$workerId}\n";
+    echo "task worker_id：{$server-&gt;worker_id}\n";
+} else {
+    echo "workerId：{$workerId}\n";
+    echo "worker_id：{$server-&gt;worker_id}\n";
+}
+});
+$server-&gt;on('Receive', function ($server, $fd, $reactor_id, $data) {
+});
+$server-&gt;on('Task', function ($serv, $task_id, $reactor_id, $data) {
+});
+$server-&gt;start();</code></pre></li>
+<li><strong>提示</strong>
+<ul>
+<li>这个属性与<a href="/server/events?id=onworkerstart">onWorkerStart</a>时的<code>$workerId</code>是相同的。</li>
+<li><code>Worker</code>进程编号范围是<code>[0, $server-&gt;setting['worker_num'] - 1]</code></li>
+<li><a href="/learn?id=taskworker进程">Task进程</a>编号范围是 <code>[$server-&gt;setting['worker_num'], $server-&gt;setting['worker_num'] + $server-&gt;setting['task_worker_num'] - 1]</code>
+!&gt; 工作进程重启后<code>worker_id</code>的值是不变的
+<a name="$taskworker"></a>
+<h3>$taskworker</h3>
+<p>当前进程是否是 <code>Task</code> 进程，该属性是一个<code>bool</code>类型。</p>
+<pre><code class="language-php">Swoole\Server-&gt;taskworker</code></pre></li>
+</ul></li>
+<li><strong>返回值</strong>
+<ul>
+<li><code>true</code>表示当前的进程是<code>Task</code>工作进程</li>
+<li><code>false</code>表示当前的进程是<code>Worker</code>进程
+<a name="$worker_pid"></a>
+<h3>$worker_pid</h3>
+<p>得到当前<code>Worker</code>进程的操作系统进程<code>ID</code>。与<code>posix_getpid()</code>的返回值相同，该属性是一个<code>int</code>类型的整数。</p>
+<pre><code class="language-php">Swoole\Server-&gt;worker_pid</code></pre></li>
+</ul></li>
+</ul>
+</body>
+</html>

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>HTTP服务器</h1>
+<p>?&gt; 完全协程化的HTTP服务器实现，<code>Co\Http\Server</code>由于HTTP解析性能原因使用C++编写，因此并非由PHP编写的<a href="/coroutine/server">Co\Server</a>的子类。
+与 <a href="/http_server">Http\Server</a> 的不同之处：</p>
+<ul>
+<li>可以在运行时动态地创建、销毁</li>
+<li>
+<p>对连接的处理是在单独的子协程中完成，客户端连接的<code>Connect</code>、<code>Request</code>、<code>Response</code>、<code>Close</code>是完全串行的
+!&gt; 需要<code>v4.4.0</code>或更高版本
+!&gt; 若编译时<a href="/environment?id=编译选项">开启HTTP2</a>，则默认会启用HTTP2协议支持，无需像<code>Swoole\Http\Server</code>一样配置<a href="/http_server?id=open_http2_protocol">open_http2_protocol</a> (注：<strong>v4.4.16以下版本HTTP2支持存在已知BUG, 请升级后使用</strong>)
+<a name="短命名"></a></p>
+<h2>短命名</h2>
+<p>可使用<code>Co\Http\Server</code>短名。
+<a name="方法"></a></p>
+<h2>方法</h2>
+<p><a name="__construct"></a></p>
+<h3>__construct()</h3>
+<pre><code class="language-php">Swoole\Coroutine\Http\Server::__construct(string $host, int $port = 0, bool $ssl = false, bool $reuse_port = false);</code></pre>
+<ul>
+<li>
+<p><strong>参数</strong> </p>
+</li>
+<li>
+<p><strong><code>string $host</code></strong></p>
+<ul>
+<li><strong>功能</strong>：监听的IP地址【若是本地UNIXSocket则应以形如<code>unix://tmp/your_file.sock</code>的格式填写 】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul>
+</li>
+<li>
+<p><strong><code>int $port</code></strong></p>
+<ul>
+<li><strong>功能</strong>：监听端口 </li>
+<li><strong>默认值</strong>：0 (随机监听一个空闲端口)</li>
+<li><strong>其它值</strong>：0~65535</li>
+</ul>
+</li>
+<li>
+<p><strong><code>bool $ssl</code></strong></p>
+<ul>
+<li><strong>功能</strong>：是否启用<code>SSL/TLS</code>隧道加密</li>
+<li><strong>默认值</strong>：false</li>
+<li><strong>其它值</strong>：true</li>
+</ul>
+</li>
+<li>
+<p><strong><code>bool $reuse_port</code></strong></p>
+<ul>
+<li><strong>功能</strong>：是否启用端口复用特性，开启后多个服务可以共用一个端口</li>
+<li><strong>默认值</strong>：false</li>
+<li><strong>其它值</strong>：true
+<a name="handle"></a>
+<h3>handle()</h3>
+<p>注册回调函数以处理参数<code>$pattern</code>所指示路径下的HTTP请求。</p>
+<pre><code class="language-php">Swoole\Coroutine\Http\Server-&gt;handle(string $pattern, callable $fn): void</code></pre>
+<p>!&gt; 必须在 <a href="/coroutine/server?id=start">Server::start</a> 之前设置处理函数</p></li>
+</ul>
+</li>
+<li>
+<p><strong>参数</strong> </p>
+</li>
+<li>
+<p><strong><code>string $pattern</code></strong></p>
+<ul>
+<li><strong>功能</strong>：设置<code>URL</code>路径【如<code>/index.html</code>，注意这里不能传入<code>http://domain</code>】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul>
+</li>
+<li>
+<p><strong><code>callable $fn</code></strong></p>
+<ul>
+<li><strong>功能</strong>：处理函数，用法参考<code>Swoole\Http\Server</code>中的<a href="/http_server?id=on">OnRequest</a>回调，在此不再赘述</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无<br />
+示例：
+<pre><code class="language-php">function callback(Swoole\Http\Request $req, Swoole\Http\Response $resp) {
+$resp-&gt;end("hello world");
+}</code></pre></li>
+</ul>
+</li>
+<li>
+<p><strong>提示</strong></p>
+</li>
+<li>
+<p>服务器在<code>Accept</code>（建立连接）成功后，会自动创建协程并接受<code>HTTP</code>请求</p>
+</li>
+<li>
+<p><code>$fn</code>是在新的子协程空间内执行，因此在函数内无需再次创建协程</p>
+</li>
+<li>
+<p>客户端支持<a href="/coroutine_client/http_client?id=keep_alive">KeepAlive</a>，子协程会循环继续接受新的请求，而不退出</p>
+</li>
+<li>
+<p>客户端不支持<code>KeepAlive</code>，子协程会停止接受请求，并退出关闭连接</p>
+</li>
+<li>
+<p><strong>注意</strong>
+!&gt; -<code>$pattern</code>设置相同路径时，新的设置会覆盖旧的设置；<br />
+-未设置/根路径处理函数并且请求的路径没有找到任何匹配的<code>$pattern</code>，Swoole将返回<code>404</code>错误；<br />
+-<code>$pattern</code>使用字符串匹配的方法，不支持通配符和正则，不区分大小写，匹配算法是前缀匹配，例如：url是<code>/test111</code>会匹配到<code>/test</code>这个规则，匹配到即跳出匹配忽略后面的配置；<br />
+-推荐设置/根路径处理函数，并在回调函数中使用<code>$request-&gt;server['request_uri']</code>进行请求路由。
+<a name="start"></a></p>
+<h3>start()</h3>
+<p>?&gt; <strong>启动服务器。</strong> </p>
+<pre><code class="language-php">Swoole\Coroutine\Http\Server-&gt;start();</code></pre>
+<p><a name="shutdown"></a></p>
+<h3>shutdown()</h3>
+<p>?&gt; <strong>终止服务器。</strong> </p>
+<pre><code class="language-php">Swoole\Coroutine\Http\Server-&gt;shutdown();</code></pre>
+<p><a name="完整示例"></a></p>
+<h2>完整示例</h2>
+<pre><code class="language-php">use Swoole\Coroutine\Http\Server;
+use function Swoole\Coroutine\run;
+run(function () {
+$server = new Server('127.0.0.1', 9502, false);
+$server-&gt;handle('/', function ($request, $response) {
+$response-&gt;end("&lt;h1&gt;Index&lt;/h1&gt;");
+});
+$server-&gt;handle('/test', function ($request, $response) {
+$response-&gt;end("&lt;h1&gt;Test&lt;/h1&gt;");
+});
+$server-&gt;handle('/stop', function ($request, $response) use ($server) {
+$response-&gt;end("&lt;h1&gt;Stop&lt;/h1&gt;");
+$server-&gt;shutdown();
+});
+$server-&gt;start();
+});</code></pre>
+</li>
+</ul>
+</li>
+</ul>
+</body>
+</html>

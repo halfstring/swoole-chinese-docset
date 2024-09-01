@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>支持计划</h1>
+<table>
+<thead>
+<tr>
+<th>分支</th>
+<th>PHP 版本</th>
+<th>开始时间</th>
+<th>积极支持截止时间</th>
+<th>安全维护截止时间</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://github.com/swoole/swoole-src/tree/4.8.x">v4.8.x</a></td>
+<td>7.2 - 8.2</td>
+<td>2021-10-14</td>
+<td>2023-10-14</td>
+<td>2024-06-30</td>
+</tr>
+<tr>
+<td><a href="https://github.com/swoole/swoole-src/tree/5.0.x">v5.0.x</a></td>
+<td>8.0 - 8.2</td>
+<td>2022-01-20</td>
+<td>2023-01-20</td>
+<td>2023-07-20</td>
+</tr>
+<tr>
+<td><a href="https://github.com/swoole/swoole-src/tree/master">v5.1.x</a></td>
+<td>8.0 - 8.2</td>
+<td>2023-09-30</td>
+<td>2025-09-30</td>
+<td>2026-09-30</td>
+</tr>
+<tr>
+<td><a href="https://github.com/swoole/swoole-src/tree/master">v6.0.x</a></td>
+<td>8.1 - 8.3</td>
+<td>2024-06-23</td>
+<td>2026-06-23</td>
+<td>2027-06-23</td>
+</tr>
+<tr>
+<td>积极支持</td>
+<td>受到官方开发组的积极支持，已报告的错误和安全问题将会立即被修复，并按照常规流程发布正式的版本。</td>
+</tr>
+<tr>
+<td>--------</td>
+<td>----------------------------------------------------------------------------------------------</td>
+</tr>
+<tr>
+<td>安全维护</td>
+<td>仅支持关键安全问题的修复，且仅在必要时发布正式的版本</td>
+</tr>
+</tbody>
+</table>
+<p><a name="不再支持的分支"></a></p>
+<h2>不再支持的分支</h2>
+<p>!&gt; 这些版本不再为官方所支持，仍在使用以下版本的用户应尽快升级，因为他们可能会遇到未修补的安全漏洞。</p>
+<ul>
+<li><code>v1.x</code> (2012-7-1 ~ 2018-05-14)</li>
+<li><code>v2.x</code> (2016-12-30 ~ 2018-05-23)</li>
+<li><code>v3.x</code> （废弃）</li>
+<li><code>v4.0.x</code>, <code>v4.1.x</code>, <code>v4.2.x</code>, <code>v4.3.x</code> (2018-06-14 ~ 2019-12-31)</li>
+<li><code>v4.4.x</code>（2019-04-15 ~ 2020-04-30）</li>
+<li><code>v4.5.x</code> (2019-12-20 ~ 2021-01-06)</li>
+<li><code>v4.6.x</code>, <code>v4.7.x</code>（2021-01-06 ~ 2021-12-31）
+<a name="版本特点"></a>
+<h2>版本特点</h2></li>
+<li><code>v1.x</code>：异步回调模式。</li>
+<li><code>v2.x</code>：基于<code>setjmp/longjmp</code>实现的单栈协程，底层仍然是异步回调实现，在回调事件触发后切换<code>PHP</code>调用栈。</li>
+<li><code>v4.0-v4.3</code>：基于<code>boost context asm</code>实现的双栈协程，内核实现了全面的协程化，实现了基于<code>EventLoop</code>的协程调度器。</li>
+<li><code>v4.4-v4.8</code>：实现了<code>runtime coroutine hook</code>，自动将<code>PHP</code>内置的同步阻塞函数替换为协程的异步非阻塞模式，使得<code>Swoole</code>协程可以兼容绝大部分<code>PHP</code>库。</li>
+<li><code>v5.0</code>：全面协程化，移除非协程模块；强类型化，移除了大量历史包袱；提供全新的<code>swoole-cli</code>运行模式。</li>
+<li><code>v5.1</code>：支持<code>pdo_pgsql</code>，<code>pdo_oci</code>，<code>pdo_odbc</code>，<code>pdo_sqlite</code>的协程化，增强<code>Http\Server</code>的性能。</li>
+<li><code>v6.0</code>：支持多线程模式。</li>
+</ul>
+</body>
+</html>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>执行异步任务(Task)</h1>
+<p>在Server程序中如果需要执行很耗时的操作，比如一个聊天服务器发送广播，Web服务器中发送邮件。如果直接去执行这些函数就会阻塞当前进程，导致服务器响应变慢。
+Swoole提供了异步任务处理的功能，可以投递一个异步任务到TaskWorker进程池中执行，不影响当前请求的处理速度。
+<a name="程序代码"></a></p>
+<h2>程序代码</h2>
+<p>基于第一个TCP服务器，只需要增加<a href="/server/events?id=ontask">onTask</a>和<a href="/server/events?id=onfinish">onFinish</a> 2个事件回调函数即可。另外需要设置task进程数量，可以根据任务的耗时和任务量配置适量的task进程。
+请将以下代码写入task.php。</p>
+<pre><code class="language-php">$serv = new Swoole\Server('127.0.0.1', 9501);
+//设置异步任务的工作进程数量。
+$serv-&gt;set([
+    'task_worker_num' =&gt; 4
+]);
+//此回调函数在worker进程中执行。
+$serv-&gt;on('Receive', function($serv, $fd, $reactor_id, $data) {
+    //投递异步任务
+    $task_id = $serv-&gt;task($data);
+    echo "Dispatch AsyncTask: id={$task_id}\n";
+});
+//处理异步任务(此回调函数在task进程中执行)。
+$serv-&gt;on('Task', function ($serv, $task_id, $reactor_id, $data) {
+    echo "New AsyncTask[id={$task_id}]".PHP_EOL;
+    //返回任务执行的结果
+    $serv-&gt;finish("{$data} -&gt; OK");
+});
+//处理异步任务的结果(此回调函数在worker进程中执行)。
+$serv-&gt;on('Finish', function ($serv, $task_id, $data) {
+    echo "AsyncTask[{$task_id}] Finish: {$data}".PHP_EOL;
+});
+$serv-&gt;start();</code></pre>
+<p>调用<code>$serv-&gt;task()</code>后，程序立即返回，继续向下执行代码。onTask回调函数Task进程池内被异步执行。执行完成后调用<code>$serv-&gt;finish()</code>返回结果。
+!&gt; finish操作是可选的，也可以不返回任何结果，如果在<code>onTask</code>事件中通过<code>return</code>返回结果时，相当于调用<code>Swoole\Server::finish()</code>操作。</p>
+</body>
+</html>

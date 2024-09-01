@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>Redis\Server</h1>
+<p>一个兼容<code>Redis</code>服务器端协议的<code>Server</code>类，可基于此类实现<code>Redis</code>协议的服务器程序。
+?&gt; <code>Swoole\Redis\Server</code>继承自<a href="/server/tcp_init">Server</a>，所以<code>Server</code>提供的所有<code>API</code>和配置项都可以使用，进程模型也是一致的。请参考<a href="/server/init">Server</a>章节。</p>
+<ul>
+<li><strong>可用的客户端</strong>
+<ul>
+<li>任意编程语言的<code>redis</code>客户端，包括PHP的<code>redis</code>扩展和<code>phpredis</code>库</li>
+<li><a href="/coroutine_client/redis">Swoole\Coroutine\Redis</a> 协程客户端</li>
+<li><code>Redis</code>提供的命令行工具，包括<code>redis-cli</code>、<code>redis-benchmark</code>
+<a name="方法"></a>
+<h2>方法</h2>
+<p><code>Swoole\Redis\Server</code>继承自<code>Swoole\Server</code>，可以使用父类提供的所有方法。
+<a name="setHandler"></a></p>
+<h3>setHandler</h3>
+<p>?&gt; <strong>设置<code>Redis</code>命令字的处理器。</strong>
+!&gt; <code>Redis\Server</code>不需要设置<a href="/server/events?id=onreceive">onReceive</a>回调。只需使用<code>setHandler</code>方法设置对应命令的处理函数，收到未支持的命令后会自动向客户端发送<code>ERROR</code>响应，消息为<code>ERR unknown command '$command'</code>。</p>
+<pre><code class="language-php">Swoole\Redis\Server-&gt;setHandler(string $command, callable $callback);</code></pre></li>
+</ul></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>string $command</code></strong></li>
+<li><strong>功能</strong>：命令的名称</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong><code>callable $callback</code></strong></li>
+<li><strong>功能</strong>：命令的处理函数【回调函数返回字符串类型时会自动发送给客户端】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无
+!&gt; 返回的数据必须为<code>Redis</code>格式，可使用<code>format</code>静态方法进行打包
+<a name="format"></a>
+<h3>format</h3>
+<p>?&gt; <strong>格式化命令响应数据。</strong></p>
+<pre><code class="language-php">Swoole\Redis\Server::format(int $type, mixed $value = null);</code></pre></li>
+</ul></li>
+<li>
+<p><strong>参数</strong> </p>
+<ul>
+<li><strong><code>int $type</code></strong></li>
+<li><strong>功能</strong>：数据类型，对应常量参考下文 <a href="/redis_server?id=格式参数常量">格式参数常量</a>。</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul>
+<p>!&gt; 当<code>$type</code>为<code>NIL</code>类型时，不需要传入<code>$value</code>；<code>ERROR</code>和<code>STATUS</code>类型<code>$value</code>可选；<code>INT</code>、<code>STRING</code>、<code>SET</code>、<code>MAP</code>必填。</p>
+<ul>
+<li><strong><code>mixed $value</code></strong></li>
+<li><strong>功能</strong>：值</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无
+<a name="send"></a>
+<h3>send</h3>
+<p>?&gt; <strong>使用<a href="/server/methods?id=send">Swoole\Server</a>中的<code>send()</code>方法将数据发送给客户端。</strong></p>
+<pre><code class="language-php">Swoole\Server-&gt;send(int $fd, string $data): bool</code></pre>
+<p><a name="常量"></a></p>
+<h2>常量</h2>
+<p><a name="格式参数常量"></a></p>
+<h3>格式参数常量</h3>
+<table>
+<thead>
+<tr>
+<th>主要用于<code>format</code>函数打包<code>Redis</code>响应数据
+常量</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Server::NIL</td>
+<td>返回nil数据</td>
+</tr>
+<tr>
+<td>Server::ERROR</td>
+<td>返回错误码</td>
+</tr>
+<tr>
+<td>Server::STATUS</td>
+<td>返回状态</td>
+</tr>
+<tr>
+<td>Server::INT</td>
+<td>返回整数，format必须传入参数值，类型必须为整数</td>
+</tr>
+<tr>
+<td>Server::STRING</td>
+<td>返回字符串，format必须传入参数值，类型必须为字符串</td>
+</tr>
+<tr>
+<td>Server::SET</td>
+<td>返回列表，format必须传入参数值，类型必须为数组</td>
+</tr>
+<tr>
+<td>Server::MAP</td>
+<td>返回Map，format必须传入参数值，类型必须为关联索引数组</td>
+</tr>
+</tbody>
+</table>
+<p><a name="使用示例"></a></p>
+<h2>使用示例</h2>
+<p><a name="服务端"></a></p>
+<h3>服务端</h3>
+<pre><code class="language-php">use Swoole\Redis\Server;
+define('DB_FILE', __DIR__ . '/db');
+$server = new Server("127.0.0.1", 9501, SWOOLE_BASE);
+if (is_file(DB_FILE)) {
+$server-&gt;data = unserialize(file_get_contents(DB_FILE));
+} else {
+$server-&gt;data = array();
+}
+$server-&gt;setHandler('GET', function ($fd, $data) use ($server) {
+if (count($data) == 0) {
+return $server-&gt;send($fd, Server::format(Server::ERROR, "ERR wrong number of arguments for 'GET' command"));
+}
+$key = $data[0];
+if (empty($server-&gt;data[$key])) {
+return $server-&gt;send($fd, Server::format(Server::NIL));
+} else {
+return $server-&gt;send($fd, Server::format(Server::STRING, $server-&gt;data[$key]));
+}
+});
+$server-&gt;setHandler('SET', function ($fd, $data) use ($server) {
+if (count($data) &lt; 2) {
+return $server-&gt;send($fd, Server::format(Server::ERROR, "ERR wrong number of arguments for 'SET' command"));
+}
+$key = $data[0];
+$server-&gt;data[$key] = $data[1];
+return $server-&gt;send($fd, Server::format(Server::STATUS, "OK"));
+});
+$server-&gt;setHandler('sAdd', function ($fd, $data) use ($server) {
+if (count($data) &lt; 2) {
+return $server-&gt;send($fd, Server::format(Server::ERROR, "ERR wrong number of arguments for 'sAdd' command"));
+}
+$key = $data[0];
+if (!isset($server-&gt;data[$key])) {
+$array[$key] = array();
+}
+$count = 0;
+for ($i = 1; $i &lt; count($data); $i++) {
+$value = $data[$i];
+if (!isset($server-&gt;data[$key][$value])) {
+    $server-&gt;data[$key][$value] = 1;
+    $count++;
+}
+}
+return $server-&gt;send($fd, Server::format(Server::INT, $count));
+});
+$server-&gt;setHandler('sMembers', function ($fd, $data) use ($server) {
+if (count($data) &lt; 1) {
+return $server-&gt;send($fd, Server::format(Server::ERROR, "ERR wrong number of arguments for 'sMembers' command"));
+}
+$key = $data[0];
+if (!isset($server-&gt;data[$key])) {
+return $server-&gt;send($fd, Server::format(Server::NIL));
+}
+return $server-&gt;send($fd, Server::format(Server::SET, array_keys($server-&gt;data[$key])));
+});
+$server-&gt;setHandler('hSet', function ($fd, $data) use ($server) {
+if (count($data) &lt; 3) {
+return $server-&gt;send($fd, Server::format(Server::ERROR, "ERR wrong number of arguments for 'hSet' command"));
+}
+$key = $data[0];
+if (!isset($server-&gt;data[$key])) {
+$array[$key] = array();
+}
+$field = $data[1];
+$value = $data[2];
+$count = !isset($server-&gt;data[$key][$field]) ? 1 : 0;
+$server-&gt;data[$key][$field] = $value;
+return $server-&gt;send($fd, Server::format(Server::INT, $count));
+});
+$server-&gt;setHandler('hGetAll', function ($fd, $data) use ($server) {
+if (count($data) &lt; 1) {
+return $server-&gt;send($fd, Server::format(Server::ERROR, "ERR wrong number of arguments for 'hGetAll' command"));
+}
+$key = $data[0];
+if (!isset($server-&gt;data[$key])) {
+return $server-&gt;send($fd, Server::format(Server::NIL));
+}
+return $server-&gt;send($fd, Server::format(Server::MAP, $server-&gt;data[$key]));
+});
+$server-&gt;on('WorkerStart', function ($server) {
+$server-&gt;tick(10000, function () use ($server) {
+file_put_contents(DB_FILE, serialize($server-&gt;data));
+});
+});
+$server-&gt;start();</code></pre>
+<p><a name="客户端"></a></p>
+<h3>客户端</h3>
+<pre><code class="language-shell">$ redis-cli -h 127.0.0.1 -p 9501
+127.0.0.1:9501&gt; set name swoole
+OK
+127.0.0.1:9501&gt; get name
+"swoole"
+127.0.0.1:9501&gt; sadd swooler rango
+(integer) 1
+127.0.0.1:9501&gt; sadd swooler twosee guoxinhua
+(integer) 2
+127.0.0.1:9501&gt; smembers swooler
+1) "rango"
+2) "twosee"
+3) "guoxinhua"
+127.0.0.1:9501&gt; hset website swoole "www.swoole.com"
+(integer) 1
+127.0.0.1:9501&gt; hset website swoole "swoole.com"
+(integer) 0
+127.0.0.1:9501&gt; hgetall website
+1) "swoole"
+2) "swoole.com"
+127.0.0.1:9501&gt; test
+(error) ERR unknown command 'test'
+127.0.0.1:9501&gt;</code></pre></li>
+</ul>
+</li>
+</ul>
+</body>
+</html>

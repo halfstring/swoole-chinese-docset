@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>Process\Manager</h1>
+<p>进程管理器，基于<a href="/process/process_pool">Process\Pool</a>实现。可以管理多个进程。相比与<code>Process\Pool</code>，可以非常方便的创建多个执行不同任务的进程，并且可以控制每一个进程是否要处于协程环境。
+<a name="版本支持情况"></a></p>
+<h2>版本支持情况</h2>
+<table>
+<thead>
+<tr>
+<th>版本号</th>
+<th>类名</th>
+<th>更新说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>v4.5.3</td>
+<td>Swoole\Process\ProcessManager</td>
+<td>-</td>
+</tr>
+<tr>
+<td>v4.5.5</td>
+<td>Swoole\Process\Manager</td>
+<td>重命名，ProcessManager 为 Manager 的别名</td>
+</tr>
+</tbody>
+</table>
+<p>!&gt; 在<code>v4.5.3</code>以上的版本可用。
+<a name="使用示例"></a></p>
+<h2>使用示例</h2>
+<pre><code class="language-php">use Swoole\Process\Manager;
+use Swoole\Process\Pool;
+$pm = new Manager();
+for ($i = 0; $i &lt; 2; $i++) {
+    $pm-&gt;add(function (Pool $pool, int $workerId) {
+    });
+}
+$pm-&gt;start();</code></pre>
+<p><a name="方法"></a></p>
+<h2>方法</h2>
+<p><a name="__construct"></a></p>
+<h3>__construct()</h3>
+<p>构造方法。</p>
+<pre><code class="language-php">Swoole\Process\Manager::__construct(int $ipcType = SWOOLE_IPC_NONE, int $msgQueueKey = 0);</code></pre>
+<ul>
+<li><strong>参数</strong>
+<ul>
+<li><strong><code>int $ipcType</code></strong></li>
+<li><strong>功能</strong>：进程间通信的模式，和<code>Process\Pool</code>的<code>$ipc_type</code>一致【默认为<code>0</code>表示不使用任何进程间通信特性】</li>
+<li><strong>默认值</strong>：<code>0</code></li>
+<li><strong>其它值</strong>：无</li>
+<li><strong><code>int $msgQueueKey</code></strong></li>
+<li><strong>功能</strong>：消息队列的 <code>key</code>，和<code>Process\Pool</code>的<code>$msgqueue_key</code>一致</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无
+<a name="setIPCType"></a>
+<h3>setIPCType()</h3>
+<p>设置工作进程之间的通信方式。</p>
+<pre><code class="language-php">Swoole\Process\Manager-&gt;setIPCType(int $ipcType): self;</code></pre></li>
+</ul></li>
+<li><strong>参数</strong>
+<ul>
+<li><strong><code>int $ipcType</code></strong></li>
+<li><strong>功能</strong>：进程间通信的模式</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无
+<a name="getIPCType"></a>
+<h3>getIPCType()</h3>
+<p>获取工作进程之间的通信方式。</p>
+<pre><code class="language-php">Swoole\Process\Manager-&gt;getIPCType(): int;</code></pre>
+<p><a name="setMsgQueueKey"></a></p>
+<h3>setMsgQueueKey()</h3>
+<p>设置消息队列的<code>key</code>。</p>
+<pre><code class="language-php">Swoole\Process\Manager-&gt;setMsgQueueKey(int $msgQueueKey): self;</code></pre></li>
+</ul></li>
+<li><strong>参数</strong>
+<ul>
+<li><strong><code>int $msgQueueKey</code></strong></li>
+<li><strong>功能</strong>：消息队列的 <code>key</code></li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无
+<a name="getMsgQueueKey"></a>
+<h3>getMsgQueueKey()</h3>
+<p>获取消息队列的<code>key</code>。</p>
+<pre><code class="language-php">Swoole\Process\Manager-&gt;getMsgQueueKey(): int;</code></pre>
+<p><a name="add"></a></p>
+<h3>add()</h3>
+<p>增加一个工作进程。</p>
+<pre><code class="language-php">Swoole\Process\Manager-&gt;add(callable $func, bool $enableCoroutine = false): self;</code></pre></li>
+</ul></li>
+<li><strong>参数</strong>
+<ul>
+<li><strong><code>callable $func</code></strong></li>
+<li><strong>功能</strong>：当前进程执行的回调函数</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong><code>bool $enableCoroutine</code></strong></li>
+<li><strong>功能</strong>：是否为这个进程创建协程来执行回调函数</li>
+<li><strong>默认值</strong>：false</li>
+<li><strong>其它值</strong>：无
+<a name="addBatch"></a>
+<h3>addBatch()</h3>
+<p>批量增加工作进程。</p>
+<pre><code class="language-php">Swoole\Process\Manager-&gt;addBatch(int $workerNum, callable $func, bool $enableCoroutine = false): self</code></pre></li>
+</ul></li>
+<li><strong>参数</strong>
+<ul>
+<li><strong><code>int $workerNum</code></strong></li>
+<li><strong>功能</strong>：批量增加进程的个数</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong><code>callable $func</code></strong></li>
+<li><strong>功能</strong>：这些进程执行的回调函数</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong><code>bool $enableCoroutine</code></strong></li>
+<li><strong>功能</strong>：是否为这些进程创建协程来执行回调函数</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无
+<a name="start"></a>
+<h3>start()</h3>
+<p>启动工作进程。</p>
+<pre><code class="language-php">Swoole\Process\Manager-&gt;start(): void</code></pre></li>
+</ul></li>
+</ul>
+</body>
+</html>

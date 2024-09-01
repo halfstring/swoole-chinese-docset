@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>定时器 Timer</h1>
+<p>毫秒精度的定时器。底层基于<code>epoll_wait</code>和<code>setitimer</code>实现，数据结构使用<code>最小堆</code>，可支持添加大量定时器。</p>
+<ul>
+<li>在同步IO进程中使用<code>setitimer</code>和信号实现，如<code>Manager</code>和<code>TaskWorker</code>进程</li>
+<li>
+<p>在异步IO进程中使用<code>epoll_wait</code>/<code>kevent</code>/<code>poll</code>/<code>select</code>超时时间实现
+<a name="性能"></a></p>
+<h2>性能</h2>
+<p>底层使用最小堆数据结构实现定时器，定时器的添加和删除，全部为内存操作，因此性能是非常高的。</p>
+<blockquote>
+<p>官方的基准测试脚本 <a href="https://github.com/swoole/benchmark/blob/master/timer.php">timer.php</a> 中，添加或删除<code>10</code>万个随机时间的定时器耗时为<code>0.08s</code>左右。</p>
+<pre><code class="language-shell">~/workspace/swoole/benchmark$ php timer.php
+add 100000 timer :0.091133117675781s
+del 100000 timer :0.084658145904541s</code></pre>
+<p>!&gt; 定时器是内存操作，无<code>IO</code>消耗
+<a name="差异"></a></p>
+<h2>差异</h2>
+<p><code>Timer</code>与<code>PHP</code>本身的<code>pcntl_alarm</code>是不同的。<code>pcntl_alarm</code>是基于<code>时钟信号 + tick</code>函数实现存在一些缺陷：</p>
+<ul>
+<li>最大仅支持到秒，而<code>Timer</code>可以到毫秒级别</li>
+<li>不支持同时设定多个定时器程序</li>
+<li><code>pcntl_alarm</code>依赖<code>declare(ticks = 1)</code>，性能很差
+<a name="零毫秒定时器"></a>
+<h2>零毫秒定时器</h2>
+<p>底层不支持时间参数为<code>0</code>的定时器。这与<code>Node.js</code>等编程语言不同。在<code>Swoole</code>里可以使用<a href="/event?id=defer">Swoole\Event::defer</a>实现类似的功能。</p>
+<pre><code class="language-php">Swoole\Event::defer(function () {
+echo "hello\n";
+});</code></pre>
+<p>!&gt; 上述代码与<code>JS</code>中的<code>setTimeout(func, 0)</code>效果是完全一致的。
+<a name="别名"></a></p>
+<h2>别名</h2>
+<table>
+<thead>
+<tr>
+<th><code>tick()</code>、<code>after()</code>、<code>clear()</code>都拥有一个函数风格的别名
+类静态方法</th>
+<th>函数风格别名</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Swoole\Timer::tick()</code></td>
+<td><code>swoole_timer_tick()</code></td>
+</tr>
+<tr>
+<td><code>Swoole\Timer::after()</code></td>
+<td><code>swoole_timer_after()</code></td>
+</tr>
+<tr>
+<td><code>Swoole\Timer::clear()</code></td>
+<td><code>swoole_timer_clear()</code></td>
+</tr>
+</tbody>
+</table>
+<p><a name="方法"></a></p>
+<h2>方法</h2>
+<p><a name="tick"></a></p>
+<h3>tick()</h3>
+<p>设置一个间隔时钟定时器。
+与<code>after</code>定时器不同的是<code>tick</code>定时器会持续触发，直到调用 <a href="/timer?id=clear">Timer::clear</a> 清除。</p>
+<pre><code class="language-php">Swoole\Timer::tick(int $msec, callable $callback_function, ...$params): int</code></pre>
+<p>!&gt; 1. 定时器仅在当前进程空间内有效  </p>
+<ol start="2">
+<li>定时器是纯异步实现的，不能与<a href="/learn?id=同步io异步io">同步IO</a>的函数一起使用，否则定时器的执行时间会发生错乱  </li>
+<li>定时器在执行的过程中可能存在一定误差</li>
+</ol></li>
+<li><strong>参数</strong> </li>
+<li><strong><code>int $msec</code></strong></li>
+<li><strong>功能</strong>：指定时间</li>
+<li><strong>值单位</strong>：毫秒【如<code>1000</code>表示<code>1</code>秒，<code>v4.2.10</code>以下版本最大不得超过 <code>86400000</code>】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong><code>callable $callback_function</code></strong></li>
+<li><strong>功能</strong>：时间到期后所执行的函数，必须是可以调用的</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong><code>...$params</code></strong></li>
+<li><strong>功能</strong>：给执行函数传递数据【此参数也为可选参数】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul>
+</blockquote>
+<p>!&gt; 可以使用匿名函数的<code>use</code>语法传递参数到回调函数中</p>
+<ul>
+<li>
+<p><strong>$callback_function 回调函数</strong> </p>
+<pre><code class="language-php">callbackFunction(int $timer_id, ...$params);</code></pre>
+<ul>
+<li><strong><code>int $timer_id</code></strong></li>
+<li><strong>功能</strong>：定时器的<code>ID</code>【可用于<a href="/timer?id=clear">Timer::clear</a>清除此定时器】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong><code>...$params</code></strong></li>
+<li><strong>功能</strong>：由<code>Timer::tick</code>传入的第三个参数<code>$param</code></li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul>
+</li>
+<li>
+<p><strong>扩展</strong></p>
+</li>
+<li>
+<p><strong>定时器校正</strong>
+定时器回调函数的执行时间不影响下一次定时器执行的时间。实例：在<code>0.002s</code>设置了<code>10ms</code>的<code>tick</code>定时器，第一次会在<code>0.012s</code>执行回调函数，如果回调函数执行了<code>5ms</code>，下一次定时器仍然会在<code>0.022s</code>时触发，而不是<code>0.027s</code>。</p>
+<p>但如果定时器回调函数的执行时间过长，甚至覆盖了下一次定时器执行的时间。底层会进行时间校正，丢弃已过期的行为，在下一时间回调。如上面例子中<code>0.012s</code>时的回调函数执行了<code>15ms</code>，本该在<code>0.022s</code>产生一次定时回调。实际上本次定时器在<code>0.027s</code>才返回，这时定时早已过期。底层会在<code>0.032s</code>时再次触发定时器回调。</p>
+</li>
+<li>
+<p><strong>协程模式</strong>
+在协程环境下<code>Timer::tick</code>回调中会自动创建一个协程，可以直接使用协程相关<code>API</code>，无需调用<code>go</code>创建协程。</p>
+<p>!&gt; 可设置 <a href="/timer?id=close-timer-co">enable_coroutine</a> 关闭自动创建协程</p>
+</li>
+<li>
+<p><strong>使用示例</strong></p>
+<pre><code class="language-php">Swoole\Timer::tick(1000, function(){
+echo "timeout\n";
+});</code></pre>
+</li>
+<li>
+<p><strong>正确示例</strong></p>
+<pre><code class="language-php">Swoole\Timer::tick(3000, function (int $timer_id, $param1, $param2) {
+echo "timer_id #$timer_id, after 3000ms.\n";
+echo "param1 is $param1, param2 is $param2.\n";
+Swoole\Timer::tick(14000, function ($timer_id) {
+    echo "timer_id #$timer_id, after 14000ms.\n";
+});
+}, "A", "B");</code></pre>
+</li>
+<li>
+<p><strong>错误示例</strong></p>
+<pre><code class="language-php">Swoole\Timer::tick(3000, function () {
+echo "after 3000ms.\n";
+sleep(14);
+echo "after 14000ms.\n";
+});</code></pre>
+<p><a name="after"></a></p>
+<h3>after()</h3>
+<p>在指定的时间后执行函数。<code>Swoole\Timer::after</code>函数是一个一次性定时器，执行完成后就会销毁。
+此函数与<code>PHP</code>标准库提供的<code>sleep</code>函数不同，<code>after</code>是非阻塞的。而<code>sleep</code>调用后会导致当前的进程进入阻塞，将无法处理新的请求。</p>
+<pre><code class="language-php">Swoole\Timer::after(int $msec, callable $callback_function, ...$params): int</code></pre>
+</li>
+<li>
+<p><strong>参数</strong> </p>
+</li>
+<li>
+<p><strong><code>int $msec</code></strong></p>
+<ul>
+<li><strong>功能</strong>：指定时间</li>
+<li><strong>值单位</strong>：毫秒【如<code>1000</code>表示<code>1</code>秒，<code>v4.2.10</code>以下版本最大不得超过 <code>86400000</code>】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul>
+</li>
+<li>
+<p><strong><code>callable $callback_function</code></strong></p>
+<ul>
+<li><strong>功能</strong>：时间到期后所执行的函数，必须是可以调用的。</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul>
+</li>
+<li>
+<p><strong><code>...$params</code></strong></p>
+<ul>
+<li><strong>功能</strong>：给执行函数传递数据【此参数也为可选参数】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul>
+<p>!&gt; 可以使用匿名函数的use语法传递参数到回调函数中</p>
+</li>
+<li>
+<p><strong>返回值</strong></p>
+</li>
+<li>
+<p>执行成功返回定时器<code>ID</code>，若取消定时器，可调用 <a href="/timer?id=clear">Swoole\Timer::clear</a></p>
+</li>
+<li>
+<p><strong>扩展</strong></p>
+</li>
+<li>
+<p><strong>协程模式</strong>
+在协程环境下<a href="/timer?id=after">Swoole\Timer::after</a>回调中会自动创建一个协程，可以直接使用协程相关<code>API</code>，无需调用<code>go</code>创建协程。</p>
+<p>!&gt; 可设置 <a href="/timer?id=close-timer-co">enable_coroutine</a> 关闭自动创建协程</p>
+</li>
+<li>
+<p><strong>使用示例</strong></p>
+<pre><code class="language-php">$str = "Swoole";
+Swoole\Timer::after(1000, function() use ($str) {
+echo "Hello, $str\n";
+});</code></pre>
+<p><a name="clear"></a></p>
+<h3>clear()</h3>
+<p>使用定时器<code>ID</code>来删除定时器。</p>
+<pre><code class="language-php">Swoole\Timer::clear(int $timer_id): bool</code></pre>
+</li>
+<li>
+<p><strong>参数</strong> </p>
+</li>
+<li>
+<p><strong><code>int $timer_id</code></strong></p>
+<ul>
+<li><strong>功能</strong>：定时器<code>ID</code>【调用<a href="/timer?id=tick">Timer::tick</a>、<a href="/timer?id=after">Timer::after</a>后会返回一个整数的ID】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无
+!&gt; <code>Swoole\Timer::clear</code>不能用于清除其他进程的定时器，只作用于当前进程</li>
+</ul>
+</li>
+<li>
+<p><strong>使用示例</strong></p>
+<pre><code class="language-php">$timer = Swoole\Timer::after(1000, function () {
+echo "timeout\n";
+});
+var_dump(Swoole\Timer::clear($timer));
+var_dump($timer);
+// 输出：bool(true) int(1)
+// 不输出：timeout</code></pre>
+<p><a name="clearAll"></a></p>
+<h3>clearAll()</h3>
+<p>清除当前 Worker 进程内的所有定时器。
+!&gt; Swoole版本 &gt;= <code>v4.4.0</code> 可用</p>
+<pre><code class="language-php">Swoole\Timer::clearAll(): bool</code></pre>
+<p><a name="info"></a></p>
+<h3>info()</h3>
+<p>返回<code>timer</code>的信息。
+!&gt; Swoole版本 &gt;= <code>v4.4.0</code> 可用</p>
+<pre><code class="language-php">Swoole\Timer::info(int $timer_id): array</code></pre>
+</li>
+<li>
+<p><strong>返回值</strong></p>
+<pre><code class="language-php">array(5) {
+["exec_msec"]=&gt;
+int(6000)
+["exec_count"]=&gt; // v4.8.0 添加
+int(5)
+["interval"]=&gt;
+int(1000)
+["round"]=&gt;
+int(0)
+["removed"]=&gt;
+bool(false)
+}</code></pre>
+<p><a name="list"></a></p>
+<h3>list()</h3>
+<p>返回定时器迭代器, 可使用<code>foreach</code>遍历当前 Worker 进程内所有<code>timer</code>的 id
+!&gt; Swoole版本 &gt;= <code>v4.4.0</code> 可用</p>
+<pre><code class="language-php">Swoole\Timer::list(): Swoole\Timer\Iterator</code></pre>
+</li>
+<li>
+<p><strong>使用示例</strong></p>
+<pre><code class="language-php">foreach (Swoole\Timer::list() as $timer_id) {
+var_dump(Swoole\Timer::info($timer_id));
+}</code></pre>
+<p><a name="stats"></a></p>
+<h3>stats()</h3>
+<p>查看定时器状态。
+!&gt; Swoole版本 &gt;= <code>v4.4.0</code> 可用</p>
+<pre><code class="language-php">Swoole\Timer::stats(): array</code></pre>
+</li>
+<li>
+<p><strong>返回值</strong></p>
+<pre><code class="language-php">array(3) {
+["initialized"]=&gt;
+bool(true)
+["num"]=&gt;
+int(1000)
+["round"]=&gt;
+int(1)
+}</code></pre>
+<p><a name="set"></a></p>
+<h3>set()</h3>
+<p>设置定时器相关参数。</p>
+<pre><code class="language-php">Swoole\Timer::set(array $array): void</code></pre>
+<p>!&gt; 此方法从 <code>v4.6.0</code> 版本标记为废弃。
+<a name="关闭协程 :id=close-timer-co"></a></p>
+<h2>关闭协程 :id=close-timer-co</h2>
+<p>默认定时器在执行回调函数时会自动创建协程，可单独设置定时器关闭协程。</p>
+<pre><code class="language-php">swoole_async_set([
+'enable_coroutine' =&gt; false,
+]);</code></pre>
+</li>
+</ul>
+</li>
+</ul>
+</body>
+</html>

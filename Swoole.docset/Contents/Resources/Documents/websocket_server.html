@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>Swoole\WebSocket\Server</h1>
+<p>?&gt; 通过内置的<code>WebSocket</code>服务器支持，通过几行<code>PHP</code>代码就可以写出一个<a href="/learn?id=同步io异步io">异步IO</a>的多进程的<code>WebSocket</code>服务器。</p>
+<pre><code class="language-php">$server = new Swoole\WebSocket\Server("0.0.0.0", 9501);
+$server-&gt;on('open', function (Swoole\WebSocket\Server $server, $request) {
+    echo "server: handshake success with fd{$request-&gt;fd}\n";
+});
+$server-&gt;on('message', function (Swoole\WebSocket\Server $server, $frame) {
+    echo "receive from {$frame-&gt;fd}:{$frame-&gt;data},opcode:{$frame-&gt;opcode},fin:{$frame-&gt;finish}\n";
+    $server-&gt;push($frame-&gt;fd, "this is server");
+});
+$server-&gt;on('close', function ($server, $fd) {
+    echo "client {$fd} closed\n";
+});
+$server-&gt;start();</code></pre>
+<ul>
+<li><strong>客户端</strong>
+<ul>
+<li><code>Chrome/Firefox/</code>高版本<code>IE/Safari</code>等浏览器内置了<code>JS</code>语言的<code>WebSocket</code>客户端</li>
+<li>微信小程序开发框架内置的<code>WebSocket</code>客户端</li>
+<li><a href="/learn?id=同步io异步io">异步IO</a> 的<code>PHP</code>程序中可以使用 <a href="/coroutine_client/http_client">Swoole\Coroutine\Http</a> 作为<code>WebSocket</code>客户端</li>
+<li><code>Apache/PHP-FPM</code>或其他同步阻塞的<code>PHP</code>程序中可以使用<code>swoole/framework</code>提供的<a href="https://github.com/matyhtf/framework/blob/master/libs/Swoole/Client/WebSocket.php">同步WebSocket客户端</a></li>
+<li>非<code>WebSocket</code>客户端不能与<code>WebSocket</code>服务器通信</li>
+</ul></li>
+<li><strong>如何判断连接是否为WebSocket客户端</strong>
+?&gt; 通过使用 <a href="/server/methods?id=getclientinfo">下面的示例</a> 获取连接信息，返回的数组中有一项为 <a href="/websocket_server?id=连接状态">websocket_status</a>，根据此状态可以判断是否为<code>WebSocket</code>客户端。
+<pre><code class="language-php">$server = new Swoole\WebSocket\Server("0.0.0.0", 9501);
+$server-&gt;on('message', function (Swoole\WebSocket\Server $server, $frame) {
+$client = $server-&gt;getClientInfo($frame-&gt;fd);
+// 或者 $client = $server-&gt;connection_info($frame-&gt;fd);
+if (isset($client['websocket_status'])) {
+    echo "是websocket 连接";
+} else {
+    echo "不是websocket 连接";
+}
+});</code></pre>
+<p><a name="事件"></a></p>
+<h2>事件</h2>
+<p>?&gt; <code>WebSocket</code>服务器除了接收 <a href="/server/methods">Swoole\Server</a> 和<a href="/http_server">Swoole\Http\Server</a>基类的回调函数外，额外增加了<code>4</code>个回调函数设置。其中：</p></li>
+<li><code>onMessage</code>回调函数为必选</li>
+<li><code>onOpen</code>，<code>onHandShake</code>和<code>onBeforeHandShakeResponse</code>（Swoole5提供该事件）回调函数为可选
+<a name="onBeforeHandshakeResponse"></a>
+<h3>onBeforeHandshakeResponse</h3>
+<p>!&gt; Swoole 版本 &gt;= <code>v5.0.0</code> 可用
+?&gt; <strong><code>WebSocket</code>建立连接前发生。如果你不需要自定义握手处理过程，但是又想设置一些<code>http header</code>信息到响应头，那么就可以调用这个事件。</strong></p>
+<pre><code class="language-php">onBeforeHandshakeResponse(Swoole\Http\Request $request, Swoole\Http\Response $response);</code></pre>
+<p><a name="onHandShake"></a></p>
+<h3>onHandShake</h3>
+<p>?&gt; <strong><code>WebSocket</code>建立连接后进行握手。<code>WebSocket</code>服务器会自动进行<code>handshake</code>握手的过程，如果用户希望自己进行握手处理，可以设置<code>onHandShake</code>事件回调函数。</strong></p>
+<pre><code class="language-php">onHandShake(Swoole\Http\Request $request, Swoole\Http\Response $response);</code></pre></li>
+<li><strong>提示</strong>
+<ul>
+<li><code>onHandShake</code>事件回调是可选的</li>
+<li>设置<code>onHandShake</code>回调函数后不会再触发<code>onOpen</code>事件，需要应用代码自行处理，可以使用<code>$server-&gt;defer</code>调用<code>onOpen</code>逻辑</li>
+<li><code>onHandShake</code>中必须调用 <a href="/http_server?id=status">response-&gt;status()</a> 设置状态码为<code>101</code>并调用<a href="/http_server?id=end">response-&gt;end()</a>响应, 否则会握手失败.</li>
+<li>内置的握手协议为<code>Sec-WebSocket-Version: 13</code>，低版本浏览器需要自行实现握手</li>
+</ul></li>
+<li><strong>注意</strong>
+!&gt;  如果需要自行处理<code>handshake</code>的时候，再设置这个回调函数。如果不需要“自定义”握手过程，那么不要设置该回调，使用<code>Swoole</code>默认的握手即可。下面是“自定义”<code>handshake</code>事件回调函数中必须要具备的：
+<pre><code class="language-php">$server-&gt;on('handshake', function (\Swoole\Http\Request $request, \Swoole\Http\Response $response) {
+// print_r( $request-&gt;header );
+// if (如果不满足我某些自定义的需求条件，那么返回end输出，返回false，握手失败) {
+//    $response-&gt;end();
+//     return false;
+// }
+// websocket握手连接算法验证
+$secWebSocketKey = $request-&gt;header['sec-websocket-key'];
+$patten = '#^[+/0-9A-Za-z]{21}[AQgw]==$#';
+if (0 === preg_match($patten, $secWebSocketKey) || 16 !== strlen(base64_decode($secWebSocketKey))) {
+    $response-&gt;end();
+    return false;
+}
+echo $request-&gt;header['sec-websocket-key'];
+$key = base64_encode(
+    sha1(
+        $request-&gt;header['sec-websocket-key'] . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11',
+        true
+    )
+);
+$headers = [
+    'Upgrade' =&gt; 'websocket',
+    'Connection' =&gt; 'Upgrade',
+    'Sec-WebSocket-Accept' =&gt; $key,
+    'Sec-WebSocket-Version' =&gt; '13',
+];
+// WebSocket connection to 'ws://127.0.0.1:9502/'
+// failed: Error during WebSocket handshake:
+// Response must not include 'Sec-WebSocket-Protocol' header if not present in request: websocket
+if (isset($request-&gt;header['sec-websocket-protocol'])) {
+    $headers['Sec-WebSocket-Protocol'] = $request-&gt;header['sec-websocket-protocol'];
+}
+foreach ($headers as $key =&gt; $val) {
+    $response-&gt;header($key, $val);
+}
+$response-&gt;status(101);
+$response-&gt;end();
+});</code></pre>
+<p>!&gt; 设置<code>onHandShake</code>回调函数后不会再触发<code>onOpen</code>事件，需要应用代码自行处理，可以使用<code>$server-&gt;defer</code>调用<code>onOpen</code>逻辑</p>
+<pre><code class="language-php">$server-&gt;on('handshake', function (\Swoole\Http\Request $request, \Swoole\Http\Response $response) {
+// 省略了握手内容
+$response-&gt;status(101);
+$response-&gt;end();
+global $server;
+$fd = $request-&gt;fd;
+$server-&gt;defer(function () use ($fd, $server)
+{
+  echo "Client connected\n";
+  $server-&gt;push($fd, "hello, welcome\n");
+});
+});</code></pre>
+<p><a name="onOpen"></a></p>
+<h3>onOpen</h3>
+<p>?&gt; <strong>当<code>WebSocket</code>客户端与服务器建立连接并完成握手后会回调此函数。</strong></p>
+<pre><code class="language-php">onOpen(Swoole\WebSocket\Server $server, Swoole\Http\Request $request);</code></pre></li>
+<li><strong>提示</strong>
+<ul>
+<li><code>$request</code> 是一个<a href="/http_server?id=httprequest">HTTP</a>请求对象，包含了客户端发来的握手请求信息</li>
+<li><code>onOpen</code>事件函数中可以调用 <a href="/websocket_server?id=push">push</a> 向客户端发送数据或者调用 <a href="/server/methods?id=close">close</a> 关闭连接</li>
+<li><code>onOpen</code>事件回调是可选的
+<a name="onMessage"></a>
+<h3>onMessage</h3>
+<p>?&gt; <strong>当服务器收到来自客户端的数据帧时会回调此函数。</strong></p>
+<pre><code class="language-php">onMessage(Swoole\WebSocket\Server $server, Swoole\WebSocket\Frame $frame)</code></pre></li>
+</ul></li>
+<li><strong>提示</strong>
+<ul>
+<li><code>$frame</code> 是<a href="/websocket_server?id=swoolewebsocketframe">Swoole\WebSocket\Frame</a>对象，包含了客户端发来的数据帧信息</li>
+<li><code>onMessage</code>回调必须被设置，未设置服务器将无法启动</li>
+<li>客户端发送的<code>ping</code>帧不会触发<code>onMessage</code>，底层会自动回复<code>pong</code>包，也可设置<a href="/websocket_server?id=open_websocket_ping_frame">open_websocket_ping_frame
+</a>参数手动处理
+!&gt; <code>$frame-&gt;data</code> 如果是文本类型，编码格式必然是<code>UTF-8</code>，这是<code>WebSocket</code>协议规定的
+<a name="onRequest"></a>
+<h3>onRequest</h3>
+<p>?&gt; <code>Swoole\WebSocket\Server</code>继承自<a href="/http_server">Swoole\Http\Server</a>，所以<code>Http\Server</code>提供的所有<code>API</code>和配置项都可以使用。请参考<a href="/http_server">Swoole\Http\Server</a>章节。</p></li>
+</ul></li>
+<li>设置了<a href="/http_server?id=on">onRequest</a>回调，<code>WebSocket\Server</code>也可以同时作为<code>HTTP</code>服务器</li>
+<li>未设置<a href="/http_server?id=on">onRequest</a>回调，<code>WebSocket\Server</code>收到<code>HTTP</code>请求后会返回<code>HTTP 400</code>错误页面</li>
+<li>如果想通过接收<code>HTTP</code>触发所有<code>WebSocket</code>的推送，需要注意作用域的问题，面向过程请使用<code>global</code>对<code>Swoole\WebSocket\Server</code>进行引用，面向对象可以把<code>Swoole\WebSocket\Server</code>设置成一个成员属性
+<a name="面向过程风格代码"></a>
+<h4>面向过程风格代码</h4>
+<pre><code class="language-php">$server = new Swoole\WebSocket\Server("0.0.0.0", 9501);
+$server-&gt;on('open', function (Swoole\WebSocket\Server $server, $request) {
+echo "server: handshake success with fd{$request-&gt;fd}\n";
+});
+$server-&gt;on('message', function (Swoole\WebSocket\Server $server, $frame) {
+echo "receive from {$frame-&gt;fd}:{$frame-&gt;data},opcode:{$frame-&gt;opcode},fin:{$frame-&gt;finish}\n";
+$server-&gt;push($frame-&gt;fd, "this is server");
+});
+$server-&gt;on('close', function ($server, $fd) {
+echo "client {$fd} closed\n";
+});
+$server-&gt;on('request', function (Swoole\Http\Request $request, Swoole\Http\Response $response) {
+global $server;//调用外部的server
+// $server-&gt;connections 遍历所有websocket连接用户的fd，给所有用户推送
+foreach ($server-&gt;connections as $fd) {
+    // 需要先判断是否是正确的websocket连接，否则有可能会push失败
+    if ($server-&gt;isEstablished($fd)) {
+        $server-&gt;push($fd, $request-&gt;get['message']);
+    }
+}
+});
+$server-&gt;start();</code></pre>
+<p><a name="面向对象风格代码"></a></p>
+<h4>面向对象风格代码</h4>
+<pre><code class="language-php">class WebSocketServer
+{
+public $server;
+public function __construct()
+{
+    $this-&gt;server = new Swoole\WebSocket\Server("0.0.0.0", 9501);
+    $this-&gt;server-&gt;on('open', function (Swoole\WebSocket\Server $server, $request) {
+        echo "server: handshake success with fd{$request-&gt;fd}\n";
+    });
+    $this-&gt;server-&gt;on('message', function (Swoole\WebSocket\Server $server, $frame) {
+        echo "receive from {$frame-&gt;fd}:{$frame-&gt;data},opcode:{$frame-&gt;opcode},fin:{$frame-&gt;finish}\n";
+        $server-&gt;push($frame-&gt;fd, "this is server");
+    });
+    $this-&gt;server-&gt;on('close', function ($ser, $fd) {
+        echo "client {$fd} closed\n";
+    });
+    $this-&gt;server-&gt;on('request', function ($request, $response) {
+        // 接收http请求从get获取message参数的值，给用户推送
+        // $this-&gt;server-&gt;connections 遍历所有websocket连接用户的fd，给所有用户推送
+        foreach ($this-&gt;server-&gt;connections as $fd) {
+            // 需要先判断是否是正确的websocket连接，否则有可能会push失败
+            if ($this-&gt;server-&gt;isEstablished($fd)) {
+                $this-&gt;server-&gt;push($fd, $request-&gt;get['message']);
+            }
+        }
+    });
+    $this-&gt;server-&gt;start();
+}
+}
+new WebSocketServer();</code></pre>
+<p><a name="onDisconnect"></a></p>
+<h3>onDisconnect</h3>
+<p>?&gt; <strong>只有非 WebSocket 连接关闭时才会触发该事件。</strong>
+!&gt; Swoole 版本 &gt;= <code>v4.7.0</code> 可用</p>
+<pre><code class="language-php">onDisconnect(Swoole\WebSocket\Server $server, int $fd)</code></pre>
+<p>!&gt; 设置了 <code>onDisconnect</code> 事件回调，非 WebSocket 请求或者在 <a href="/websocket_server?id=onrequest">onRequest</a> 调用 <code>$response-&gt;close()</code> 方法，<code>都会触发回调onDisconnect</code>。而在 <a href="/websocket_server?id=onrequest">onRequest</a> 事件中正常结束则不会调用 <code>onClose</code> 或 <code>onDisconnect</code> 事件。<br />
+<a name="方法"></a></p>
+<h2>方法</h2>
+<p><code>Swoole\WebSocket\Server</code>是 <a href="/server/methods">Swoole\Server</a> 的子类，因此可以调用<code>Server</code>的全部方法。
+需要注意<code>WebSocket</code>服务器向客户端发送数据应当使用<code>Swoole\WebSocket\Server::push</code>方法，此方法会进行<code>WebSocket</code>协议打包。而 <a href="/server/methods?id=send">Swoole\Server-&gt;send()</a> 方法是原始的<code>TCP</code>发送接口。
+<a href="/websocket_server?id=disconnect">Swoole\WebSocket\Server-&gt;disconnect()</a>方法可以从服务端主动关闭一个<code>WebSocket</code>连接，可以指定<a href="/websocket_server?id=websocket关闭帧状态码">关闭状态码</a>(根据<code>WebSocket</code>协议，可使用的状态码为十进制的一个整数，取值可以是<code>1000</code>或<code>4000-4999</code>)和关闭原因(采用<code>utf-8</code>编码、字节长度不超过<code>125</code>的字符串)。在未指定情况下状态码为<code>1000</code>，关闭原因为空。
+<a name="push"></a></p>
+<h3>push</h3>
+<p>?&gt; <strong>向<code>WebSocket</code>客户端连接推送数据，长度最大不得超过<code>2M</code>。</strong></p>
+<pre><code class="language-php">Swoole\WebSocket\Server-&gt;push(int $fd, \Swoole\WebSocket\Frame|string $data, int $opcode = WEBSOCKET_OPCODE_TEXT, bool $finish = true): bool
+// v4.4.12版本改为了flags参数
+Swoole\WebSocket\Server-&gt;push(int $fd, \Swoole\WebSocket\Frame|string $data, int $opcode = WEBSOCKET_OPCODE_TEXT, int $flags = SWOOLE_WEBSOCKET_FLAG_FIN): bool</code></pre></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>int $fd</code></strong></li>
+<li><strong>功能</strong>：客户端连接的<code>ID</code> 【如果指定的<code>$fd</code>对应的<code>TCP</code>连接并非<code>WebSocket</code>客户端，将会发送失败】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong><code>Swoole\WebSocket\Frame|string $data</code></strong></li>
+<li><strong>功能</strong>：要发送的数据内容</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无
+!&gt; Swoole版本 &gt;= v4.2.0 传入的<code>$data</code>，如果是 <a href="/websocket_server?id=swoolewebsocketframe">Swoole\WebSocket\Frame</a> 对象则其后续参数会被忽略</li>
+<li><strong><code>int $opcode</code></strong></li>
+<li><strong>功能</strong>：指定发送数据内容的格式 【默认为文本。发送二进制内容<code>$opcode</code>参数需要设置为<code>WEBSOCKET_OPCODE_BINARY</code>】</li>
+<li><strong>默认值</strong>：<code>WEBSOCKET_OPCODE_TEXT</code></li>
+<li><strong>其它值</strong>：<code>WEBSOCKET_OPCODE_BINARY</code></li>
+<li><strong><code>bool $finish</code></strong></li>
+<li><strong>功能</strong>：是否发送完成</li>
+<li><strong>默认值</strong>：<code>true</code></li>
+<li><strong>其它值</strong>：<code>false</code></li>
+</ul></li>
+<li><strong>返回值</strong>
+<ul>
+<li>操作成功返回<code>true</code>，操作失败返回<code>false</code>
+!&gt; 自<code>v4.4.12</code>版本起，<code>finish</code>参数（<code>bool</code>型）改为<code>flags</code>参数（<code>int</code>型）以支持<code>WebSocket</code>压缩，<code>finish</code>对应<code>SWOOLE_WEBSOCKET_FLAG_FIN</code>值为<code>1</code>，原有<code>bool</code>型值会隐式转换为<code>int</code>型，此改动向下兼容无影响。 此外压缩<code>flag</code>为<code>SWOOLE_WEBSOCKET_FLAG_COMPRESS</code>。
+!&gt; <a href="/learn?id=base模式的限制：">BASE 模式</a> 不支持跨进程 <code>push</code> 发送数据。
+<a name="exist"></a>
+<h3>exist</h3>
+<p>?&gt; <strong>判断<code>WebSocket</code>客户端是否存在，并且状态为<code>Active</code>状态。</strong>
+!&gt; <code>v4.3.0</code>以后, 此<code>API</code>仅用于判断连接是否存在, 请使用<code>isEstablished</code>判断是否为<code>WebSocket</code>连接</p>
+<pre><code class="language-php">Swoole\WebSocket\Server-&gt;exist(int $fd): bool</code></pre></li>
+</ul></li>
+<li><strong>返回值</strong>
+<ul>
+<li>连接存在，并且已完成<code>WebSocket</code>握手，返回<code>true</code></li>
+<li>连接不存在或尚未完成握手，返回<code>false</code>
+<a name="pack"></a>
+<h3>pack</h3>
+<p>?&gt; <strong>打包WebSocket消息。</strong></p>
+<pre><code class="language-php">Swoole\WebSocket\Server::pack(\Swoole\WebSocket\Frame|string $data $data, int $opcode = WEBSOCKET_OPCODE_TEXT, bool $finish = true, bool $mask = false): string
+// v4.4.12版本改为了flags参数
+Swoole\WebSocket\Server::pack(\Swoole\WebSocket\Frame|string $data $data, int $opcode = WEBSOCKET_OPCODE_TEXT, int $flags = SWOOLE_WEBSOCKET_FLAG_FIN): string
+Swoole\WebSocket\Frame::pack(\Swoole\WebSocket\Frame|string $data $data, int $opcode = WEBSOCKET_OPCODE_TEXT, int $flags = SWOOLE_WEBSOCKET_FLAG_FIN): string</code></pre></li>
+</ul></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>Swoole\WebSocket\Frame|string $data $data</code></strong></li>
+<li><strong>功能</strong>：消息内容</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong><code>int $opcode</code></strong></li>
+<li><strong>功能</strong>：指定发送数据内容的格式 【默认为文本。发送二进制内容<code>$opcode</code>参数需要设置为<code>WEBSOCKET_OPCODE_BINARY</code>】</li>
+<li><strong>默认值</strong>：<code>WEBSOCKET_OPCODE_TEXT</code></li>
+<li><strong>其它值</strong>：<code>WEBSOCKET_OPCODE_BINARY</code></li>
+<li><strong><code>bool $finish</code></strong></li>
+<li><strong>功能</strong>：帧是否完成</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无
+!&gt; 自<code>v4.4.12</code>版本起，<code>finish</code>参数（<code>bool</code>型）改为<code>flags</code>参数（<code>int</code>型）以支持<code>WebSocket</code>压缩，<code>finish</code>对应<code>SWOOLE_WEBSOCKET_FLAG_FIN</code>值为<code>1</code>，原有<code>bool</code>型值会隐式转换为<code>int</code>型，此改动向下兼容无影响。</li>
+<li><strong><code>bool $mask</code></strong></li>
+<li><strong>功能</strong>：是否设置掩码【<code>v4.4.12</code>已移除此参数】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong>返回值</strong>
+<ul>
+<li>返回打包好的<code>WebSocket</code>数据包，可通过<code>Swoole\Server</code>基类的 <a href="/server/methods?id=send">send()</a> 发送给对端</li>
+</ul></li>
+<li><strong>示例</strong>
+<pre><code class="language-php">$ws = new Swoole\Server('127.0.0.1', 9501 , SWOOLE_BASE);
+$ws-&gt;set(array(
+'log_file' =&gt; '/dev/null'
+));
+$ws-&gt;on('WorkerStart', function (\Swoole\Server $serv) {
+});
+$ws-&gt;on('receive', function ($serv, $fd, $threadId, $data) {
+$sendData = "HTTP/1.1 101 Switching Protocols\r\n";
+$sendData .= "Upgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: IFpdKwYy9wdo4gTldFLHFh3xQE0=\r\n";
+$sendData .= "Sec-WebSocket-Version: 13\r\nServer: swoole-http-server\r\n\r\n";
+$sendData .= Swoole\WebSocket\Server::pack("hello world\n");
+$serv-&gt;send($fd, $sendData);
+});
+$ws-&gt;start();</code></pre>
+<p><a name="unpack"></a></p>
+<h3>unpack</h3>
+<p>?&gt; <strong>解析<code>WebSocket</code>数据帧。</strong></p>
+<pre><code class="language-php">Swoole\WebSocket\Server::unpack(string $data): Swoole\WebSocket\Frame|false;</code></pre></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>string $data</code></strong></li>
+<li><strong>功能</strong>：消息内容</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong>返回值</strong>
+<ul>
+<li>解析失败返回<code>false</code>，解析成功返回<a href="/websocket_server?id=swoolewebsocketframe">Swoole\WebSocket\Frame</a>对象
+<a name="disconnect"></a>
+<h3>disconnect</h3>
+<p>?&gt; <strong>主动向<code>WebSocket</code>客户端发送关闭帧并关闭该连接。</strong>
+!&gt; Swoole版本 &gt;= <code>v4.0.3</code> 可用</p>
+<pre><code class="language-php">Swoole\WebSocket\Server-&gt;disconnect(int $fd, int $code = SWOOLE_WEBSOCKET_CLOSE_NORMAL, string $reason = ''): bool</code></pre></li>
+</ul></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>int $fd</code></strong></li>
+<li><strong>功能</strong>：客户端连接的<code>ID</code>【如果指定的<code>$fd</code>对应的<code>TCP</code>连接并非<code>WebSocket</code>客户端，将会发送失败】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong><code>int $code</code></strong></li>
+<li><strong>功能</strong>：关闭连接的状态码【根据<code>RFC6455</code>，对于应用程序关闭连接状态码，取值范围为<code>1000</code>或<code>4000-4999</code>之间】</li>
+<li><strong>默认值</strong>：<code>SWOOLE_WEBSOCKET_CLOSE_NORMAL</code></li>
+<li><strong>其它值</strong>：无</li>
+<li><strong><code>string $reason</code></strong></li>
+<li><strong>功能</strong>：关闭连接的原因【<code>utf-8</code>格式字符串，字节长度不超过<code>125</code>】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong>返回值</strong>
+<ul>
+<li>发送成功返回<code>true</code>，发送失败或状态码非法时返回<code>false</code>
+<a name="isEstablished"></a>
+<h3>isEstablished</h3>
+<p>?&gt; <strong>检查连接是否为有效的<code>WebSocket</code>客户端连接。</strong>
+?&gt; 此函数与<code>exist</code>方法不同，<code>exist</code>方法仅判断是否为<code>TCP</code>连接，无法判断是否为已完成握手的<code>WebSocket</code>客户端。</p>
+<pre><code class="language-php">Swoole\WebSocket\Server-&gt;isEstablished(int $fd): bool</code></pre></li>
+</ul></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>int $fd</code></strong></li>
+<li><strong>功能</strong>：客户端连接的<code>ID</code>【如果指定的<code>$fd</code>对应的<code>TCP</code>连接并非<code>WebSocket</code>客户端，将会发送失败】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong>返回值</strong>
+<ul>
+<li>如果是有效的连接返回<code>true</code>，否则返回<code>false</code>
+<a name="Websocket数据帧帧类"></a>
+<h2>Websocket数据帧帧类</h2>
+<p><a name="Swoole\WebSocket\Frame"></a></p>
+<h3>Swoole\WebSocket\Frame</h3>
+<table>
+<thead>
+<tr>
+<th>?&gt; 在<code>v4.2.0</code>版本中, 新增了服务端和客户端发送<a href="/websocket_server?id=swoolewebsocketframe">Swoole\WebSocket\Frame</a>对象的支持<br />
+在<code>v4.4.12</code>版本中，新增了<code>flags</code>属性以支持<code>WebSocket</code>压缩帧，同时增加了一个新的子类<a href="/websocket_server?id=swoolewebsocketcloseframe">Swoole\WebSocket\CloseFrame</a>
+一个普通的<code>frame</code>对象具有以下属性
+常量</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>fd</td>
+<td>客户端的<code>socket id</code>，使用<code>$server-&gt;push</code>推送数据时需要用到</td>
+</tr>
+<tr>
+<td>data</td>
+<td>数据内容，可以是文本内容也可以是二进制数据，可以通过<code>opcode</code>的值来判断</td>
+</tr>
+<tr>
+<td>opcode</td>
+<td><code>WebSocket</code>的<a href="/websocket_server?id=数据帧类型">数据帧类型</a>，可以参考<code>WebSocket</code>协议标准文档</td>
+</tr>
+<tr>
+<td>finish</td>
+<td>表示数据帧是否完整，一个<code>WebSocket</code>请求可能会分成多个数据帧进行发送（底层已经实现了自动合并数据帧，现在不用担心接收到的数据帧不完整）</td>
+</tr>
+</tbody>
+</table>
+<p>这个类自带<a href="/websocket_server?id=pack">Swoole\WebSocket\Frame::pack()</a>和<a href="/websocket_server?id=unpack">Swoole\WebSocket\Frame::unpack()</a>，用于打包和解压<code>websocket</code>消息，参数说明和<code>Swoole\WebSocket\Server::pack()</code>以及<code>Swoole\WebSocket\Server::unpack()</code>一致
+<a name="Swoole\WebSocket\CloseFrame"></a></p>
+<h3>Swoole\WebSocket\CloseFrame</h3>
+<table>
+<thead>
+<tr>
+<th>一个普通的<code>关闭帧 close frame</code>对象具有以下属性
+常量</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>opcode</td>
+<td><code>WebSocket</code>的<a href="/websocket_server?id=数据帧类型">数据帧类型</a>，可以参考<code>WebSocket</code>协议标准文档</td>
+</tr>
+<tr>
+<td>code</td>
+<td><code>WebSocket</code>的<a href="/websocket_server?id=WebSocket断开状态码">关闭帧状态码</a>，可以参考<a href="https://developer.mozilla.org/zh-CN/docs/Web/API/CloseEvent">websocket协议中定义的错误码</a></td>
+</tr>
+<tr>
+<td>reason</td>
+<td>关闭原因，如果没有明确给出，则为空</td>
+</tr>
+</tbody>
+</table>
+<p>如果服务端需要接收<code>close frame</code>, 需要通过<code>$server-&gt;set</code>开启<a href="/websocket_server?id=open_websocket_close_frame">open_websocket_close_frame</a>参数
+<a name="常量"></a></p>
+<h2>常量</h2>
+<p><a name="数据帧类型"></a></p>
+<h3>数据帧类型</h3>
+<table>
+<thead>
+<tr>
+<th>常量</th>
+<th>对应值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>WEBSOCKET_OPCODE_TEXT</td>
+<td>0x1</td>
+<td>UTF-8文本字符数据</td>
+</tr>
+<tr>
+<td>WEBSOCKET_OPCODE_BINARY</td>
+<td>0x2</td>
+<td>二进制数据</td>
+</tr>
+<tr>
+<td>WEBSOCKET_OPCODE_CLOSE</td>
+<td>0x8</td>
+<td>关闭帧类型数据</td>
+</tr>
+<tr>
+<td>WEBSOCKET_OPCODE_PING</td>
+<td>0x9</td>
+<td>ping类型数据</td>
+</tr>
+<tr>
+<td>WEBSOCKET_OPCODE_PONG</td>
+<td>0xa</td>
+<td>pong类型数据</td>
+</tr>
+</tbody>
+</table>
+<p><a name="连接状态"></a></p>
+<h3>连接状态</h3>
+<table>
+<thead>
+<tr>
+<th>常量</th>
+<th>对应值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>WEBSOCKET_STATUS_CONNECTION</td>
+<td>1</td>
+<td>连接进入等待握手</td>
+</tr>
+<tr>
+<td>WEBSOCKET_STATUS_HANDSHAKE</td>
+<td>2</td>
+<td>正在握手</td>
+</tr>
+<tr>
+<td>WEBSOCKET_STATUS_ACTIVE</td>
+<td>3</td>
+<td>已握手成功等待浏览器发送数据帧</td>
+</tr>
+<tr>
+<td>WEBSOCKET_STATUS_CLOSING</td>
+<td>4</td>
+<td>连接正在进行关闭握手，即将关闭</td>
+</tr>
+</tbody>
+</table>
+<p><a name="WebSocket关闭帧状态码"></a></p>
+<h3>WebSocket关闭帧状态码</h3>
+<table>
+<thead>
+<tr>
+<th>常量</th>
+<th>对应值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>WEBSOCKET_CLOSE_NORMAL</td>
+<td>1000</td>
+<td>正常关闭，该链接已经完成任务</td>
+</tr>
+<tr>
+<td>WEBSOCKET_CLOSE_GOING_AWAY</td>
+<td>1001</td>
+<td>服务端断开</td>
+</tr>
+<tr>
+<td>WEBSOCKET_CLOSE_PROTOCOL_ERROR</td>
+<td>1002</td>
+<td>协议错误，中断连接</td>
+</tr>
+<tr>
+<td>WEBSOCKET_CLOSE_DATA_ERROR</td>
+<td>1003</td>
+<td>数据错误，例如需要文本数据的，但是收到了二进制数据</td>
+</tr>
+<tr>
+<td>WEBSOCKET_CLOSE_STATUS_ERROR</td>
+<td>1005</td>
+<td>表示没有收到预期的状态码</td>
+</tr>
+<tr>
+<td>WEBSOCKET_CLOSE_ABNORMAL</td>
+<td>1006</td>
+<td>没有发送关闭帧</td>
+</tr>
+<tr>
+<td>WEBSOCKET_CLOSE_MESSAGE_ERROR</td>
+<td>1007</td>
+<td>由于收到了格式不符的数据而断开连接 (如文本消息中包含了非 UTF-8 数据)。</td>
+</tr>
+<tr>
+<td>WEBSOCKET_CLOSE_POLICY_ERROR</td>
+<td>1008</td>
+<td>由于收到不符合约定的数据而断开连接。 这是一个通用状态码, 用于不适合使用 1003 和 1009 状态码的场景</td>
+</tr>
+<tr>
+<td>WEBSOCKET_CLOSE_MESSAGE_TOO_BIG</td>
+<td>1009</td>
+<td>由于收到过大的数据帧而断开连接</td>
+</tr>
+<tr>
+<td>WEBSOCKET_CLOSE_EXTENSION_MISSING</td>
+<td>1010</td>
+<td>客户端期望服务器商定一个或多个拓展, 但服务器没有处理, 因此客户端断开连接</td>
+</tr>
+<tr>
+<td>WEBSOCKET_CLOSE_SERVER_ERROR</td>
+<td>1011</td>
+<td>客户端由于遇到没有预料的情况阻止其完成请求, 因此服务端断开连接。</td>
+</tr>
+<tr>
+<td>WEBSOCKET_CLOSE_TLS</td>
+<td>1015</td>
+<td>保留。 表示连接由于无法完成 TLS 握手而关闭 (例如无法验证服务器证书)。</td>
+</tr>
+</tbody>
+</table>
+<p><a name="选项"></a></p>
+<h2>选项</h2>
+<p>?&gt; <code>Swoole\WebSocket\Server</code>是<code>Server</code>的子类，可以使用<a href="/server/methods?id=set">Swoole\WebSocker\Server::set()</a>方法传入配置选项，设置某些参数。
+<a name="websocket_subprotocol"></a></p>
+<h3>websocket_subprotocol</h3>
+<p>?&gt; <strong>设置<code>WebSocket</code>子协议。</strong>
+?&gt; 设置后握手响应的<code>HTTP</code>头会增加<code>Sec-WebSocket-Protocol: {$websocket_subprotocol}</code>。具体使用方法请参考<code>WebSocket</code>协议相关<code>RFC</code>文档。</p>
+<pre><code class="language-php">$server-&gt;set([
+'websocket_subprotocol' =&gt; 'chat',
+]);</code></pre>
+<p><a name="open_websocket_close_frame"></a></p>
+<h3>open_websocket_close_frame</h3>
+<p>?&gt; <strong>启用<code>WebSocket</code>协议中关闭帧（<code>opcode</code>为<code>0x08</code>的帧）在<code>onMessage</code>回调中接收，默认为<code>false</code>。</strong>
+?&gt; 开启后，可在<code>Swoole\WebSocket\Server</code>中的<code>onMessage</code>回调中接收到客户端或服务端发送的关闭帧，开发者可自行对其进行处理。</p>
+<pre><code class="language-php">$server = new Swoole\WebSocket\Server("0.0.0.0", 9501);
+$server-&gt;set(array("open_websocket_close_frame" =&gt; true));
+$server-&gt;on('open', function (Swoole\WebSocket\Server $server, $request) {
+});
+$server-&gt;on('message', function (Swoole\WebSocket\Server $server, $frame) {
+if ($frame-&gt;opcode == 0x08) {
+echo "Close frame received: Code {$frame-&gt;code} Reason {$frame-&gt;reason}\n";
+} else {
+echo "Message received: {$frame-&gt;data}\n";
+}
+});
+$server-&gt;on('close', function ($server, $fd) {
+});
+$server-&gt;start();</code></pre>
+<p><a name="open_websocket_ping_frame"></a></p>
+<h3>open_websocket_ping_frame</h3>
+<p>?&gt; <strong>启用<code>WebSocket</code>协议中<code>Ping</code>帧（<code>opcode</code>为<code>0x09</code>的帧）在<code>onMessage</code>回调中接收，默认为<code>false</code>。</strong>
+?&gt; 开启后，可在<code>Swoole\WebSocket\Server</code>中的<code>onMessage</code>回调中接收到客户端或服务端发送的<code>Ping</code>帧，开发者可自行对其进行处理。
+!&gt; Swoole版本 &gt;= <code>v4.5.4</code> 可用</p>
+<pre><code class="language-php">$server-&gt;set([
+'open_websocket_ping_frame' =&gt; true,
+]);</code></pre>
+<p>!&gt; 值为<code>false</code>时底层会自动回复<code>Pong</code>帧，但如果设为<code>true</code>后则需要开发者自行回复<code>Pong</code>帧。</p></li>
+</ul></li>
+<li><strong>示例</strong>
+<pre><code class="language-php">$server = new Swoole\WebSocket\Server("0.0.0.0", 9501);
+$server-&gt;set(array("open_websocket_ping_frame" =&gt; true));
+$server-&gt;on('open', function (Swoole\WebSocket\Server $server, $request) {
+});
+$server-&gt;on('message', function (Swoole\WebSocket\Server $server, $frame) {
+if ($frame-&gt;opcode == 0x09) {
+    echo "Ping frame received: Code {$frame-&gt;opcode}\n";
+    // 回复 Pong 帧
+    $pongFrame = new Swoole\WebSocket\Frame;
+    $pongFrame-&gt;opcode = WEBSOCKET_OPCODE_PONG;
+    $server-&gt;push($frame-&gt;fd, $pongFrame);
+} else {
+    echo "Message received: {$frame-&gt;data}\n";
+}
+});
+$server-&gt;on('close', function ($server, $fd) {
+});
+$server-&gt;start();</code></pre>
+<p><a name="open_websocket_pong_frame"></a></p>
+<h3>open_websocket_pong_frame</h3>
+<p>?&gt; <strong>启用<code>WebSocket</code>协议中<code>Pong</code>帧（<code>opcode</code>为<code>0x0A</code>的帧）在<code>onMessage</code>回调中接收，默认为<code>false</code>。</strong>
+?&gt; 开启后，可在<code>Swoole\WebSocket\Server</code>中的<code>onMessage</code>回调中接收到客户端或服务端发送的<code>Pong</code>帧，开发者可自行对其进行处理。
+!&gt; Swoole版本 &gt;= <code>v4.5.4</code> 可用</p>
+<pre><code class="language-php">$server-&gt;set([
+'open_websocket_pong_frame' =&gt; true,
+]);</code></pre></li>
+<li><strong>示例</strong>
+<pre><code class="language-php">$server = new Swoole\WebSocket\Server("0.0.0.0", 9501);
+$server-&gt;set(array("open_websocket_pong_frame" =&gt; true));
+$server-&gt;on('open', function (Swoole\WebSocket\Server $server, $request) {
+});
+$server-&gt;on('message', function (Swoole\WebSocket\Server $server, $frame) {
+if ($frame-&gt;opcode == 0xa) {
+    echo "Pong frame received: Code {$frame-&gt;opcode}\n";
+} else {
+    echo "Message received: {$frame-&gt;data}\n";
+}
+});
+$server-&gt;on('close', function ($server, $fd) {
+});
+$server-&gt;start();</code></pre>
+<p><a name="websocket_compression"></a></p>
+<h3>websocket_compression</h3>
+<p>?&gt; <strong>启用数据压缩</strong>
+?&gt; 为<code>true</code>时允许对帧进行<code>zlib</code>压缩，具体是否能够压缩取决于客户端是否能够处理压缩（根据握手信息决定，参见<code>RFC-7692</code>） 需要配合<code>flags</code>参数<code>SWOOLE_WEBSOCKET_FLAG_COMPRESS</code>来真正地对具体的某个帧进行压缩，具体使用方法<a href="/websocket_server?id=websocket帧压缩-（rfc-7692）">见此节</a>
+!&gt; Swoole版本 &gt;= <code>v4.4.12</code> 可用
+<a name="其他"></a></p>
+<h2>其他</h2>
+<p>!&gt; 相关示例代码可以在 <a href="https://github.com/swoole/swoole-src/tree/master/tests/swoole_websocket_server">WebSocket 单元测试</a> 中找到
+<a name="WebSocket帧压缩 （RFC-7692）"></a></p>
+<h3>WebSocket帧压缩 （RFC-7692）</h3>
+<p>?&gt; 首先你需要配置<code>'websocket_compression' =&gt; true</code>来启用压缩（<code>WebSocket</code>握手时将与对端交换压缩支持信息）后，你可以使用 <code>flag SWOOLE_WEBSOCKET_FLAG_COMPRESS</code> 来对具体的某个帧进行压缩
+<a name="示例"></a></p>
+<h4>示例</h4></li>
+<li><strong>服务端</strong>
+<pre><code class="language-php">use Swoole\WebSocket\Frame;
+use Swoole\WebSocket\Server;
+$server = new Server('127.0.0.1', 9501);
+$server-&gt;set(['websocket_compression' =&gt; true]);
+$server-&gt;on('message', function (Server $server, Frame $frame) {
+$server-&gt;push(
+    $frame-&gt;fd,
+    'Hello Swoole',
+    SWOOLE_WEBSOCKET_OPCODE_TEXT,
+    SWOOLE_WEBSOCKET_FLAG_FIN | SWOOLE_WEBSOCKET_FLAG_COMPRESS
+);
+// $server-&gt;push($frame-&gt;fd, $frame); // 或者 服务端可以直接原封不动转发客户端的帧对象
+});
+$server-&gt;start();</code></pre></li>
+<li><strong>客户端</strong>
+<pre><code class="language-php">use Swoole\Coroutine\Http\Client;
+use function Swoole\Coroutine\run;
+run(function () {
+$cli = new Client('127.0.0.1', 9501);
+$cli-&gt;set(['websocket_compression' =&gt; true]);
+$cli-&gt;upgrade('/');
+$cli-&gt;push(
+    'Hello Swoole',
+    SWOOLE_WEBSOCKET_OPCODE_TEXT,
+    SWOOLE_WEBSOCKET_FLAG_FIN | SWOOLE_WEBSOCKET_FLAG_COMPRESS
+);
+});</code></pre>
+<p><a name="发送Ping帧"></a></p>
+<h3>发送Ping帧</h3>
+<p>?&gt; 由于 WebSocket 是长连接，如果一定时间内没有通讯，连接可能会断开。这时候需要心跳机制，WebSocket 协议包含了 Ping 和 Pong 两个帧，可以定时发送 Ping 帧来保持长连接。
+<a name="示例"></a></p>
+<h4>示例</h4></li>
+<li><strong>服务端</strong>
+<pre><code class="language-php">use Swoole\WebSocket\Frame;
+use Swoole\WebSocket\Server;
+$server = new Server('127.0.0.1', 9501);
+$server-&gt;on('message', function (Server $server, Frame $frame) {
+$pingFrame = new Frame;
+$pingFrame-&gt;opcode = WEBSOCKET_OPCODE_PING;
+$server-&gt;push($frame-&gt;fd, $pingFrame);
+});
+$server-&gt;start();</code></pre></li>
+<li>
+<p><strong>客户端</strong></p>
+<pre><code class="language-php">use Swoole\WebSocket\Frame;
+use Swoole\Coroutine\Http\Client;
+use function Swoole\Coroutine\run;
+run(function () {
+$cli = new Client('127.0.0.1', 9501);
+$cli-&gt;upgrade('/');
+$pingFrame = new Frame;
+$pingFrame-&gt;opcode = WEBSOCKET_OPCODE_PING;
+// 发送 PING
+$cli-&gt;push($pingFrame);
+
+// 接收 PONG
+$pongFrame = $cli-&gt;recv();
+var_dump($pongFrame-&gt;opcode === WEBSOCKET_OPCODE_PONG);
+});</code></pre>
+</li>
+</ul>
+</body>
+</html>

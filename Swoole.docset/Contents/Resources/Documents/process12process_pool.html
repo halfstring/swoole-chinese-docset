@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>Swoole\Process\Pool</h1>
+<p>进程池，基于<a href="/server/init">Swoole\Server</a>的Manager管理进程模块实现。可管理多个工作进程。该模块的核心功能为进程管理，相比<code>Process</code>实现多进程，<code>Process\Pool</code>更加简单，封装层次更高，开发者无需编写过多代码即可实现进程管理功能，配合<a href="/coroutine/server?id=完整示例">Co\Server</a>可以创建纯协程风格的，能利用多核CPU的服务端程序。
+<a name="进程间通信"></a></p>
+<h2>进程间通信</h2>
+<p><code>Swoole\Process\Pool</code>一共提供了三种进程间通信的方式：
+<a name="消息队列"></a></p>
+<h3>消息队列</h3>
+<p><code>Swoole\Process\Pool-&gt;__construct</code>的第二个参数设置为<code>SWOOLE_IPC_MSGQUEUE</code>时，表示使用消息队列进行进程间通信。可以通过<code>php sysvmsg</code>这个扩展投递信息，消息最大不能超过<code>65536</code>。</p>
+<ul>
+<li><strong>注意</strong>
+<ul>
+<li>如果要使用<code>sysvmsg</code>扩展投递信息，构造函数中必须传入<code>msgqueue_key</code></li>
+<li><code>Swoole</code>底层不支持<code>sysvmsg</code>扩展<code>msg_send</code>的第二个参数<code>mtype</code>，请传入任意非<code>0</code>值
+<a name="Socket通信"></a>
+<h3>Socket通信</h3>
+<p><code>Swoole\Process\Pool-&gt;__construct</code>的第二个参数设置为<code>SWOOLE_IPC_SOCKET</code>时，表示使用<code>Socket通信</code>，如果你的客户端和服务端不在同一台机器上，那就可以使用这个方式进行通信。
+通过<a href="/process/process_pool?id=listen">Swoole\Process\Pool-&gt;listen()</a>方法监听端口，使用<a href="/process/process_pool?id=on">Message事件</a>接收客户端发过来的数据，使用<a href="/process/process_pool?id=write">Swoole\Process\Pool-&gt;write()</a>方法返回响应给客户端。
+<code>Swoole</code>要求客户端使用这方方式发送数据时，必须在实际数据前增加 4 字节、网络字节序的长度值。</p>
+<pre><code class="language-php">$msg = 'Hello Swoole';
+$packet = pack('N', strlen($msg)) . $msg;</code></pre>
+<p><a name="UnixSocket"></a></p>
+<h3>UnixSocket</h3>
+<p><code>Swoole\Process\Pool-&gt;__construct</code>的第二个参数设置为<code>SWOOLE_IPC_UNIXSOCK</code>时，表示使用<a href="/learn?id=什么是IPC">UnixSocket</a>，<strong>强烈推荐用此种方式进程间通讯</strong>。
+这种方式比较简单，只需要通过<a href="/process/process_pool?id=sendMessage">Swoole\Process\Pool-&gt;sendMessage()</a>方法和<a href="/process/process_pool?id=on">Message事件</a>就可以完成进程间通信。
+或者开启<code>协程模式</code>后，也可以通过<a href="/process/process_pool?id=getProcess">Swoole\Process\Pool-&gt;getProcess()</a>获得<code>Swoole\Process</code>对象，<a href="/process/process?id=exportsocket">Swoole\Process-&gt;exportsocket()</a>获得<code>Swoole\Coroutine\Socket</code>对象，使用这个对象实现进程间通信。不过此时不能设置<a href="/process/process_pool?id=on">Message事件</a>
+!&gt; 参数和环境配置可以看看<a href="/process/process_pool?id=__construct">构造函数</a>和<a href="/process/process_pool?id=set">配置参数</a>
+<a name="常量"></a></p>
+<h2>常量</h2>
+<table>
+<thead>
+<tr>
+<th>常量</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SWOOLE_IPC_MSGQUEUE</td>
+<td>系统<a href="/learn?id=什么是IPC">消息队列</a>通信</td>
+</tr>
+<tr>
+<td>SWOOLE_IPC_SOCKET</td>
+<td>SOCKET通信</td>
+</tr>
+<tr>
+<td>SWOOLE_IPC_UNIXSOCK</td>
+<td><a href="/learn?id=什么是IPC">UnixSocket</a>通信(v4.4+)</td>
+</tr>
+</tbody>
+</table>
+<p><a name="协程支持"></a></p>
+<h2>协程支持</h2>
+<p>在<code>v4.4.0</code>版本中增加了对协程的支持，请参考 <a href="/process/process_pool?id=__construct">Swoole\Process\Pool::__construct</a>
+<a name="使用示例"></a></p>
+<h2>使用示例</h2>
+<pre><code class="language-php">use Swoole\Process;
+use Swoole\Coroutine;
+$pool = new Process\Pool(5);
+$pool-&gt;set(['enable_coroutine' =&gt; true]);
+$pool-&gt;on('WorkerStart', function (Process\Pool $pool, $workerId) {
+/** 当前是 Worker 进程 */
+static $running = true;
+Process::signal(SIGTERM, function () use (&amp;$running) {
+$running = false;
+echo "TERM\n";
+});
+echo("[Worker #{$workerId}] WorkerStart, pid: " . posix_getpid() . "\n");
+while ($running) {
+Coroutine::sleep(1);
+echo "sleep 1\n";
+}
+});
+$pool-&gt;on('WorkerStop', function (\Swoole\Process\Pool $pool, $workerId) {
+echo("[Worker #{$workerId}] WorkerStop\n");
+});
+$pool-&gt;start();</code></pre>
+<p><a name="方法"></a></p>
+<h2>方法</h2>
+<p><a name="__construct"></a></p>
+<h3>__construct()</h3>
+<p>构造方法。</p>
+<pre><code class="language-php">Swoole\Process\Pool::__construct(int $worker_num, int $ipc_type = SWOOLE_IPC_NONE, int $msgqueue_key = 0, bool $enable_coroutine = false);</code></pre></li>
+</ul></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>int $worker_num</code></strong></li>
+<li><strong>功能</strong>：指定工作进程的数量</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong><code>int $ipc_type</code></strong></li>
+<li><strong>功能</strong>：进程间通信的模式【默认为<code>SWOOLE_IPC_NONE</code>表示不使用任何进程间通信特性】</li>
+<li><strong>默认值</strong>：<code>SWOOLE_IPC_NONE</code></li>
+<li><strong>其它值</strong>：<code>SWOOLE_IPC_MSGQUEUE</code>，<code>SWOOLE_IPC_SOCKET</code>，<code>SWOOLE_IPC_UNIXSOCK</code>
+!&gt; -设置为<code>SWOOLE_IPC_NONE</code>时必须设置<code>onWorkerStart</code>回调，并且必须在<code>onWorkerStart</code>中实现循环逻辑，当<code>onWorkerStart</code>函数退出时工作进程会立即退出，之后会由<code>Manager</code>进程重新拉起进程；<br />
+-设置为<code>SWOOLE_IPC_MSGQUEUE</code>表示使用系统消息队列通信，可设置<code>$msgqueue_key</code>指定消息队列的<code>KEY</code>，未设置消息队列<code>KEY</code>，将申请私有队列；<br />
+-设置为<code>SWOOLE_IPC_SOCKET</code>表示使用<code>Socket</code>进行通信，需要使用<a href="/process/process_pool?id=listen">listen</a>方法指定监听的地址和端口；<br />
+-设置为<code>SWOOLE_IPC_UNIXSOCK</code>表示使用<a href="/learn?id=什么是IPC">unixSocket</a>进行通信，协程模式下使用，<strong>强烈推荐用此种方式进程间通讯</strong>，具体用法见下文；<br />
+-使用非<code>SWOOLE_IPC_NONE</code>设置时，必须设置<code>onMessage</code>回调，<code>onWorkerStart</code>变更为可选。</li>
+<li><strong><code>int $msgqueue_key</code></strong></li>
+<li><strong>功能</strong>：消息队列的 <code>key</code></li>
+<li><strong>默认值</strong>：<code>0</code></li>
+<li><strong>其它值</strong>：无</li>
+<li><strong><code>bool $enable_coroutine</code></strong></li>
+<li><strong>功能</strong>：是否开启协程支持【使用协程后将无法设置<code>onMessage</code>回调】</li>
+<li><strong>默认值</strong>：<code>false</code></li>
+<li><strong>其它值</strong>：<code>true</code></li>
+</ul></li>
+<li><strong>协程模式</strong></li>
+</ul>
+<p>在<code>v4.4.0</code>版本中<code>Process\Pool</code>模块增加了对协程的支持，可以配置第<code>4</code>个参数为<code>true</code>来启用。启用协程后底层会在<code>onWorkerStart</code>时自动创建一个协程和<a href="/coroutine/scheduler">协程容器</a>，在回调函数中可直接使用协程相关<code>API</code>，例如：</p>
+<pre><code class="language-php">$pool = new Swoole\Process\Pool(1, SWOOLE_IPC_NONE, 0, true);
+$pool-&gt;on('workerStart', function (Swoole\Process\Pool $pool, int $workerId) {
+    while (true) {
+        Co::sleep(0.5);
+        echo "hello world\n";
+    }
+});
+$pool-&gt;start();</code></pre>
+<p>开启协程后Swoole会禁止设置<code>onMessage</code>事件回调，需要进程间通讯的话需要将第二个设置为<code>SWOOLE_IPC_UNIXSOCK</code>表示使用<a href="/learn?id=什么是IPC">unixSocket</a>进行通信，然后使用<code>$pool-&gt;getProcess()-&gt;exportSocket()</code>导出<a href="/coroutine_client/socket">Swoole\Coroutine\Socket</a>对象，实现<code>Worker</code>进程间通信。例如：</p>
+<pre><code class="language-php">$pool = new Swoole\Process\Pool(2, SWOOLE_IPC_UNIXSOCK, 0, true);
+$pool-&gt;on('workerStart', function (Swoole\Process\Pool $pool, int $workerId) {
+    $process = $pool-&gt;getProcess(0);
+    $socket = $process-&gt;exportSocket();
+    if ($workerId == 0) {
+        echo $socket-&gt;recv();
+        $socket-&gt;send("hello proc1\n");
+        echo "proc0 stop\n";
+    } else {
+        $socket-&gt;send("hello proc0\n");
+        echo $socket-&gt;recv();
+        echo "proc1 stop\n";
+        $pool-&gt;shutdown();
+    }
+});
+$pool-&gt;start();</code></pre>
+<p>!&gt; 具体用法可以参考<a href="/coroutine_client/socket">Swoole\Coroutine\Socket</a>和<a href="/process/process?id=exportsocket">Swoole\Process</a>相关章节。</p>
+<pre><code class="language-php">$q = msg_get_queue($key);
+foreach (range(1, 100) as $i) {
+    $data = json_encode(['data' =&gt; base64_encode(random_bytes(1024)), 'id' =&gt; uniqid(), 'index' =&gt; $i,]);
+    msg_send($q, $i, $data, false);
+}</code></pre>
+<p><a name="set"></a></p>
+<h3>set()</h3>
+<p>设置参数。</p>
+<pre><code class="language-php">Swoole\Process\Pool-&gt;set(array $settings): void</code></pre>
+<table>
+<thead>
+<tr>
+<th>可选参数</th>
+<th>类型</th>
+<th>作用</th>
+<th>默认值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>enable_coroutine</td>
+<td>bool</td>
+<td>控制是否启用协程</td>
+<td>false</td>
+</tr>
+<tr>
+<td>enable_message_bus</td>
+<td>bool</td>
+<td>启用消息总线，该值为<code>true</code>时，如果发送大数据时，底层会切分成小块数据，再一块块发送到对端</td>
+<td>false</td>
+</tr>
+<tr>
+<td>max_package_size</td>
+<td>int</td>
+<td>限制了进程所能接收的最大数据量</td>
+<td>2 <em> 1024 </em> 1024</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>注意</strong>
+<ul>
+<li><code>enable_message_bus</code>为<code>true</code>时，<code>max_package_size</code>是没有作用的，因为底层会将数据拆成小块数据，发送出去，接收数据也是一样的。</li>
+<li><code>SWOOLE_IPC_MSGQUEUE</code>模式下，<code>max_package_size</code>也是没有作用的，底层一次最多接收<code>65536</code>的数据量。</li>
+<li><code>SWOOLE_IPC_SOCKET</code>模式下，<code>enable_message_bus</code>为<code>false</code>时，如果获取的数据量大于<code>max_package_size</code>，底层会直接中断连接。</li>
+<li><code>SWOOLE_IPC_UNIXSOCK</code>模式下，<code>enable_message_bus</code>为<code>false</code>时，如果数据大于<code>max_package_size</code>，超过<code>max_package_size</code>的数据会被截断。</li>
+<li>如果开启了协程模式，<code>enable_message_bus</code>为<code>true</code>时，<code>max_package_size</code>也是没有作用的。底层会做好数据的拆分（发送）和合并（接收），否则就会根据<code>max_package_size</code>限制接收数据量
+!&gt; Swoole版本 &gt;= v4.4.4 可用
+<a name="on"></a>
+<h3>on()</h3>
+<p>设置进程池回调函数。</p>
+<pre><code class="language-php">Swoole\Process\Pool-&gt;on(string $event, callable $function): bool;</code></pre></li>
+</ul></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>string $event</code></strong></li>
+<li><strong>功能</strong>：指定事件</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong><code>callable $function</code></strong></li>
+<li><strong>功能</strong>：回调函数</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong>事件</strong>
+<ul>
+<li><strong>onWorkerStart</strong> 子进程启动
+<pre><code class="language-php">
+/**</code></pre></li>
+<li>@param \Swoole\Process\Pool $pool Pool对象</li>
+<li>@param int $workerId   WorkerId当前工作进程的编号，底层会对子进程进行标号
+*/
+$pool = new Swoole\Process\Pool(2);
+$pool-&gt;on('WorkerStart', function(Swoole\Process\Pool $pool, int $workerId){
+echo &quot;Worker#{$workerId} is started\n&quot;;
+});
+<pre><code></code></pre></li>
+<li><strong>onWorkerStop</strong> 子进程结束
+<pre><code class="language-php">
+/**</code></pre></li>
+<li>@param \Swoole\Process\Pool $pool Pool对象</li>
+<li>@param int $workerId   WorkerId当前工作进程的编号，底层会对子进程进行标号
+*/
+$pool = new Swoole\Process\Pool(2);
+$pool-&gt;on('WorkerStop', function(Swoole\Process\Pool $pool, int $workerId){
+echo &quot;Worker#{$workerId} stop\n&quot;;
+});
+<pre><code></code></pre></li>
+<li><strong>onMessage</strong> 消息接收
+!&gt; 收到外部投递的消息。 一次连接只能投递一次消息, 类似于<code>PHP-FPM</code>的短连接机制
+<pre><code class="language-php">
+/**</code></pre></li>
+<li>@param \Swoole\Process\Pool $pool Pool对象</li>
+<li>@param string $data 消息数据内容
+*/
+$pool = new Swoole\Process\Pool(2);
+$pool-&gt;on('Message', function(Swoole\Process\Pool $pool, string $data){
+var_dump($data);
+});
+<pre><code>!&gt; 事件名称不区分大小写，`WorkerStart`，`workerStart`或者`workerstart`都是一样的
+&lt;a name="listen"&gt;&lt;/a&gt;
+### listen()
+监听`SOCKET`，必须在`$ipc_mode = SWOOLE_IPC_SOCKET`时才能使用。
+```php
+Swoole\Process\Pool-&gt;listen(string $host, int $port = 0, int $backlog = 2048): bool</code></pre></li>
+</ul></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>string $host</code></strong></li>
+<li><strong>功能</strong>：监听的地址【支持<code>TCP</code>和<a href="/learn?id=什么是IPC">unixSocket</a>两种类型。<code>127.0.0.1</code>表示监听<code>TCP</code>地址，需要指定<code>$port</code>。<code>unix:/tmp/php.sock</code>监听<a href="/learn?id=什么是IPC">unixSocket</a>地址】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong><code>int $port</code></strong></li>
+<li><strong>功能</strong>：监听的端口【在<code>TCP</code>模式下需要指定】</li>
+<li><strong>默认值</strong>：<code>0</code></li>
+<li><strong>其它值</strong>：无</li>
+<li><strong><code>int $backlog</code></strong></li>
+<li><strong>功能</strong>：监听的队列长度</li>
+<li><strong>默认值</strong>：<code>2048</code></li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong>返回值</strong>
+<ul>
+<li>成功监听返回<code>true</code></li>
+<li>监听失败返回<code>false</code>，可调用<code>swoole_errno</code>获取错误码。监听失败后，调用<code>start</code>时会立即返回<code>false</code></li>
+</ul></li>
+<li><strong>通信协议</strong>
+向监听端口发送数据时，客户端必须在请求前增加4字节、网络字节序的长度值。协议格式为：
+<pre><code class="language-php">// $msg 需要发送的数据
+$packet = pack('N', strlen($msg)) . $msg;</code></pre></li>
+<li><strong>使用示例</strong>
+<pre><code class="language-php">$pool-&gt;listen('127.0.0.1', 8089);
+$pool-&gt;listen('unix:/tmp/php.sock');</code></pre>
+<p><a name="write"></a></p>
+<h3>write()</h3>
+<p>向对端写入数据，必须在<code>$ipc_mode</code>为<code>SWOOLE_IPC_SOCKET</code>时才能使用。</p>
+<pre><code class="language-php">Swoole\Process\Pool-&gt;write(string $data): bool</code></pre>
+<p>!&gt; 此方法为内存操作，没有<code>IO</code>消耗，发送数据操作是同步阻塞<code>IO</code></p></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>string $data</code></strong></li>
+<li><strong>功能</strong>：写入的数据内容【可多次调用<code>write</code>，底层会在<code>onMessage</code>函数退出后将数据全部写入<code>socket</code>中，并<code>close</code>连接】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li>
+<p><strong>使用示例</strong></p>
+<ul>
+<li><strong>服务端</strong>
+<pre><code class="language-php">
+$pool = new Swoole\Process\Pool(2, SWOOLE_IPC_SOCKET);</code></pre></li>
+</ul>
+<p>$pool-&gt;on(&quot;Message&quot;, function ($pool, $message) {
+echo &quot;Message: {$message}\n&quot;;
+$pool-&gt;write(&quot;hello &quot;);
+$pool-&gt;write(&quot;world &quot;);
+$pool-&gt;write(&quot;\n&quot;);
+});</p>
+<p>$pool-&gt;listen('127.0.0.1', 8089);
+$pool-&gt;start();</p>
+<pre><code>* **调用端**
+```php
+$fp = stream_socket_client("tcp://127.0.0.1:8089", $errno, $errstr) or die("error: $errstr\n");
+$msg = json_encode(['data' =&gt; 'hello', 'uid' =&gt; 1991]);
+fwrite($fp, pack('N', strlen($msg)) . $msg);
+sleep(1);
+//将显示 hello world\n
+$data = fread($fp, 8192);
+var_dump(substr($data, 4, unpack('N', substr($data, 0, 4))[1]));
+fclose($fp);</code></pre>
+<p><a name="sendMessage"></a></p>
+<h3>sendMessage()</h3>
+<p>往目标进程发送数据，必须在<code>$ipc_mode</code>为<code>SWOOLE_IPC_UNIXSOCK</code>时才能使用。</p>
+<pre><code class="language-php">Swoole\Process\Pool-&gt;sendMessage(string $data, int $dst_worker_id): bool</code></pre>
+</li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>string $data</code></strong></li>
+<li><strong>功能</strong>：需要发送的数据</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong><code>int $dst_worker_id</code></strong></li>
+<li><strong>功能</strong>：目标进程id</li>
+<li><strong>默认值</strong>：<code>0</code></li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong>返回值</strong>
+<ul>
+<li>发送成功返回<code>true</code></li>
+<li>发送失败返回<code>false</code></li>
+</ul></li>
+<li><strong>注意</strong>
+<ul>
+<li>如果发送数据大于<code>max_package_size</code>并且<code>enable_message_bus</code>为<code>false</code>的话，目标进程在接收数据的时候会对数据进行截断
+<pre><code class="language-php">&lt;?php
+use Swoole\Process;
+use Swoole\Coroutine;
+$pool = new Process\Pool(2, SWOOLE_IPC_UNIXSOCK);
+$pool-&gt;set(['enable_coroutine' =&gt; true, 'enable_message_bus' =&gt; false, 'max_package_size' =&gt; 2 * 1024]);
+$pool-&gt;on('WorkerStart', function (Swoole\Process\Pool $pool, int $workerId) {
+if ($workerId == 0) {
+$pool-&gt;sendMessage(str_repeat('a', 2 * 3000), 1);
+}
+});
+$pool-&gt;on('Message', function (Swoole\Process\Pool $pool, string $data) {
+var_dump(strlen($data));
+});
+$pool-&gt;start();
+// int(2048)
+$pool = new Process\Pool(2, SWOOLE_IPC_UNIXSOCK);
+$pool-&gt;set(['enable_coroutine' =&gt; true, 'enable_message_bus' =&gt; true, 'max_package_size' =&gt; 2 * 1024]);
+$pool-&gt;on('WorkerStart', function (Swoole\Process\Pool $pool, int $workerId) {
+if ($workerId == 0) {
+$pool-&gt;sendMessage(str_repeat('a', 2 * 3000), 1);
+}
+});
+$pool-&gt;on('Message', function (Swoole\Process\Pool $pool, string $data) {
+var_dump(strlen($data));
+});
+$pool-&gt;start();
+// int(6000)</code></pre>
+<p><a name="start"></a></p>
+<h3>start()</h3>
+<p>启动工作进程。</p>
+<pre><code class="language-php">Swoole\Process\Pool-&gt;start(): bool</code></pre>
+<p>!&gt; 启动成功，当前进程进入<code>wait</code>状态，管理工作进程；<br />
+启动失败，返回<code>false</code>，可使用<code>swoole_errno</code>获取错误码。</p></li>
+</ul></li>
+<li><strong>使用示例</strong>
+<pre><code class="language-php">$workerNum = 10;
+$pool = new Swoole\Process\Pool($workerNum);
+$pool-&gt;on("WorkerStart", function ($pool, $workerId) {
+echo "Worker#{$workerId} is started\n";
+$redis = new Redis();
+$redis-&gt;pconnect('127.0.0.1', 6379);
+$key = "key1";
+while (true) {
+     $msg = $redis-&gt;brpop($key, 2);
+     if ( $msg == null) continue;
+     var_dump($msg);
+ }
+});
+$pool-&gt;on("WorkerStop", function ($pool, $workerId) {
+echo "Worker#{$workerId} is stopped\n";
+});
+$pool-&gt;start();</code></pre></li>
+<li><strong>进程管理</strong>
+<ul>
+<li>某个工作进程遇到致命错误、主动退出时管理器会进行回收，避免出现僵尸进程</li>
+<li>工作进程退出后，管理器会自动拉起、创建一个新的工作进程</li>
+<li>主进程收到<code>SIGTERM</code>信号时将停止<code>fork</code>新进程，并<code>kill</code>所有正在运行的工作进程</li>
+<li>主进程收到<code>SIGUSR1</code>信号时将将逐个<code>kill</code>正在运行的工作进程，并重新启动新的工作进程</li>
+</ul></li>
+<li><strong>信号处理</strong>
+底层仅设置了主进程（管理进程）的信号处理，并未对<code>Worker</code>工作进程设置信号，需要开发者自行实现信号的监听。
+<ul>
+<li>工作进程为异步模式，请使用 <a href="/process/process?id=signal">Swoole\Process::signal</a> 监听信号</li>
+<li>工作进程为同步模式，请使用<code>pcntl_signal</code>和<code>pcntl_signal_dispatch</code>监听信号
+在工作进程中应当监听<code>SIGTERM</code>信号，当主进程需要终止该进程时，会向此进程发送<code>SIGTERM</code>信号。如果工作进程未监听<code>SIGTERM</code>信号，底层会强行终止当前进程，造成部分逻辑丢失。
+<pre><code class="language-php">$pool-&gt;on("WorkerStart", function ($pool, $workerId) {
+$running = true;
+pcntl_signal(SIGTERM, function () use (&amp;$running) {
+$running = false;
+});
+echo "Worker#{$workerId} is started\n";
+$redis = new Redis();
+$redis-&gt;pconnect('127.0.0.1', 6379);
+$key = "key1";
+while ($running) {
+ $msg = $redis-&gt;brpop($key);
+ pcntl_signal_dispatch();
+ if ( $msg == null) continue;
+ var_dump($msg);
+}
+});</code></pre>
+<p><a name="stop"></a></p>
+<h3>stop()</h3>
+<p>将当前进程套接字移出事件循环，开启协程后，这个函数才有作用</p>
+<pre><code class="language-php">Swoole\Process\Pool-&gt;stop(): bool</code></pre>
+<p><a name="shutdown"></a></p>
+<h3>shutdown()</h3>
+<p>终止工作进程。</p>
+<pre><code class="language-php">Swoole\Process\Pool-&gt;shutdown(): bool</code></pre>
+<p><a name="getProcess"></a></p>
+<h3>getProcess()</h3>
+<p>获取当前工作进程对象。返回<a href="/process/process">Swoole\Process</a>对象。
+!&gt; Swoole 版本 &gt;= <code>v4.2.0</code> 可用</p>
+<pre><code class="language-php">Swoole\Process\Pool-&gt;getProcess(int $worker_id): Swoole\Process</code></pre></li>
+</ul></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>int $worker_id</code></strong></li>
+<li><strong>功能</strong>：指定获取 <code>worker</code> 【可选参数,  默认当前 <code>worker</code>】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无
+!&gt; 必须在<code>start</code>之后，在工作进程的<code>onWorkerStart</code>或其他回调函数中调用；<br />
+返回的<code>Process</code>对象是单例模式，在工作进程中重复调用<code>getProcess()</code>将返回同一个对象。</li>
+</ul></li>
+<li><strong>使用示例</strong>
+<pre><code class="language-php">$pool = new Swoole\Process\Pool(3);
+$pool-&gt;on('WorkerStart', function ($pool, $workerId) {
+$process = $pool-&gt;getProcess();
+$process-&gt;exec('/usr/local/bin/php', ['-r', 'var_dump(swoole_version());']);
+});
+$pool-&gt;start();</code></pre>
+<p><a name="detach"></a></p>
+<h3>detach()</h3>
+<p>将进程池内当前 Worker 进程脱离管理，底层会立即创建新的进程，老的进程不再处理数据，由应用层代码自行管理生命周期。
+!&gt; Swoole 版本 &gt;= <code>v4.7.0</code> 可用</p>
+<pre><code class="language-php">Swoole\Process\Pool-&gt;detach(): bool</code></pre></li>
+</ul>
+</body>
+</html>

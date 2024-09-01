@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>UDP 服务器</h1>
+<p><a name="程序代码"></a></p>
+<h2>程序代码</h2>
+<p>请将以下代码写入udpServer.php。</p>
+<pre><code class="language-php">$server = new Swoole\Server('127.0.0.1', 9502, SWOOLE_PROCESS, SWOOLE_SOCK_UDP);
+//监听数据接收事件。
+$server-&gt;on('Packet', function ($server, $data, $clientInfo) {
+    var_dump($clientInfo);
+    $server-&gt;sendto($clientInfo['address'], $clientInfo['port'], "Server：{$data}");
+});
+//启动服务器
+$server-&gt;start();</code></pre>
+<p>UDP服务器与TCP服务器不同，UDP没有连接的概念。启动Server后，客户端无需Connect，直接可以向Server监听的9502端口发送数据包。对应的事件为onPacket。</p>
+<ul>
+<li><code>$clientInfo</code>是客户端的相关信息，是一个数组，有客户端的IP和端口等内容。</li>
+<li>调用 <code>$server-&gt;sendto</code> 方法向客户端发送数据。
+!&gt; Docker 默认使用 TCP 协议来通信，如果你需要使用 UDP 协议，你需要通过配置 Docker 网络来实现。  
+<pre><code class="language-shell">docker run -p 9502:9502/udp &lt;image-name&gt;</code></pre>
+<p><a name="启动服务"></a></p>
+<h2>启动服务</h2>
+<pre><code class="language-shell">php udpServer.php</code></pre>
+<p>UDP服务器可以使用 <code>netcat -u</code> 来连接测试。</p>
+<pre><code class="language-shell">netcat -u 127.0.0.1 9502
+hello
+Server: hello</code></pre></li>
+</ul>
+</body>
+</html>

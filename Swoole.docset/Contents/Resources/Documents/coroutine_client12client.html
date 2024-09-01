@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>协程TCP/UDP客户端</h1>
+<p><code>Coroutine\Client</code>提供了<code>TCP</code>、<code>UDP</code>、<a href="/learn?id=什么是IPC">unixSocket</a>传输协议的<a href="/coroutine_client/socket">Socket客户端</a>封装代码，使用时仅需<code>new Swoole\Coroutine\Client</code>即可。</p>
+<ul>
+<li><strong>实现原理</strong>
+<ul>
+<li><code>Coroutine\Client</code>的所有涉及网络请求的方法，<code>Swoole</code>都会进行<a href="/coroutine?id=协程调度">协程调度</a>，业务层无需感知</li>
+<li>使用方法和<a href="/client">Client</a>同步模式方法完全一致</li>
+<li><code>connect</code>超时设置同时作用于<code>Connect</code>、<code>Recv</code>和<code>Send</code> 超时</li>
+</ul></li>
+<li><strong>继承关系</strong>
+<ul>
+<li><code>Coroutine\Client</code>与<a href="/client">Client</a>并不是继承关系，但<code>Client</code>提供的方法均可在<code>Coroutine\Client</code>中使用。请参考 <a href="/client?id=方法">Swoole\Client</a>，在此不再赘述 。</li>
+<li>在<code>Coroutine\Client</code>中可以使用<code>set</code>方法设置<a href="/client?id=配置">配置选项</a>，使用方法和与<code>Client-&gt;set</code>完全一致，对于使用有区别的函数，在<code>set()</code>函数小节会单独说明</li>
+</ul></li>
+<li><strong>使用示例</strong>
+<pre><code class="language-php">use Swoole\Coroutine\Client;
+use function Swoole\Coroutine\run;
+run(function () {
+$client = new Client(SWOOLE_SOCK_TCP);
+if (!$client-&gt;connect('127.0.0.1', 9501, 0.5))
+{
+    echo "connect failed. Error: {$client-&gt;errCode}\n";
+}
+$client-&gt;send("hello world\n");
+echo $client-&gt;recv();
+$client-&gt;close();
+});</code></pre></li>
+<li><strong>协议处理</strong>
+协程客户端也支持长度和<code>EOF</code>协议处理，设置方法与 <a href="/client?id=配置">Swoole\Client</a> 完全一致。
+<pre><code class="language-php">$client = new Swoole\Coroutine\Client(SWOOLE_SOCK_TCP);
+$client-&gt;set(array(
+'open_length_check'     =&gt; true,
+'package_length_type'   =&gt; 'N',
+'package_length_offset' =&gt; 0, //第N个字节是包长度的值
+'package_body_offset'   =&gt; 4, //第几个字节开始计算长度
+'package_max_length'    =&gt; 2000000, //协议最大长度
+));</code></pre>
+<p><a name="connect"></a></p>
+<h3>connect()</h3>
+<p>连接到远程服务器。</p>
+<pre><code class="language-php">Swoole\Coroutine\Client-&gt;connect(string $host, int $port, float $timeout = 0.5): bool</code></pre>
+<ul>
+<li><strong>参数</strong> </li>
+<li><strong><code>string $host</code></strong>
+<ul>
+<li><strong>功能</strong>：远程服务器的地址【底层会自动进行协程切换解析域名为IP地址】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $port</code></strong>
+<ul>
+<li><strong>功能</strong>：远程服务器端口</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>float $timeout</code></strong>
+<ul>
+<li><strong>功能</strong>：网络IO的超时时间；包括<code>connect/send/recv</code>，超时发生时，连接会被自动<code>close</code>，参考<a href="/coroutine_client/init?id=超时规则">客户端超时规则</a></li>
+<li><strong>值单位</strong>：秒【支持浮点型，如<code>1.5</code>表示<code>1s</code>+<code>500ms</code>】</li>
+<li><strong>默认值</strong>：<code>0.5s</code></li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+</ul></li>
+<li><strong>提示</strong>
+<ul>
+<li>如果连接失败，会返回<code>false</code></li>
+<li>超时后返回，检查<code>$cli-&gt;errCode</code>为<code>110</code></li>
+</ul></li>
+<li><strong>失败重试</strong>
+!&gt; <code>connect</code>连接失败后，不可直接进行重连。必须使用<code>close</code>关闭已有<code>socket</code>，然后再进行<code>connect</code>重试。
+<pre><code class="language-php">//连接失败
+if ($cli-&gt;connect('127.0.0.1', 9501) == false) {
+//关闭已有socket
+$cli-&gt;close();
+//重试
+$cli-&gt;connect('127.0.0.1', 9501);
+}</code></pre></li>
+<li><strong>示例</strong>
+<pre><code class="language-php">if ($cli-&gt;connect('127.0.0.1', 9501)) {
+$cli-&gt;send('data');
+} else {
+echo 'connect failed.';
+}
+if ($cli-&gt;connect('/tmp/rpc.sock')) {
+$cli-&gt;send('data');
+} else {
+echo 'connect failed.';
+}</code></pre>
+<p><a name="isConnected"></a></p>
+<h3>isConnected()</h3>
+<p>返回Client的连接状态</p>
+<pre><code class="language-php">Swoole\Coroutine\Client-&gt;isConnected(): bool</code></pre>
+<ul>
+<li><strong>返回值</strong></li>
+<li>返回<code>false</code>，表示当前未连接到服务器</li>
+<li>返回<code>true</code>，表示当前已连接到服务器</li>
+</ul></li>
+</ul>
+<p>!&gt; <code>isConnected</code>方法返回的是应用层状态，只表示<code>Client</code>执行了<code>connect</code>并成功连接到了<code>Server</code>，并且没有执行<code>close</code>关闭连接。<code>Client</code>可以执行<code>send</code>、<code>recv</code>、<code>close</code>等操作，但不能再次执行<code>connect</code> 。<br />
+这不代表连接一定是可用的，当执行<code>send</code>或<code>recv</code>时仍然有可能返回错误，因为应用层无法获得底层<code>TCP</code>连接的状态，执行<code>send</code>或<code>recv</code>时应用层与内核发生交互，才能得到真实的连接可用状态。
+<a name="send"></a></p>
+<h3>send()</h3>
+<p>发送数据。</p>
+<pre><code class="language-php">Swoole\Coroutine\Client-&gt;send(string $data): int|bool</code></pre>
+<ul>
+<li>
+<p><strong>参数</strong> </p>
+<ul>
+<li>
+<p><strong><code>string $data</code></strong></p>
+<ul>
+<li><strong>功能</strong>：为发送的数据，必须为字符串类型，支持二进制数据</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>发送成功返回写入<code>Socket</code>缓存区的字节数，底层会尽可能地将所有数据发出。如果返回的字节数与传入的<code>$data</code>长度不同，可能是<code>Socket</code>已被对端关闭，再下一次调用<code>send</code>或<code>recv</code>时将返回对应的错误码。</li>
+<li>发送失败返回false，可以使用 <code>$client-&gt;errCode</code> 获取错误原因。
+<a name="recv"></a>
+<h3>recv()</h3>
+<p>recv方法用于从服务器端接收数据。</p>
+<pre><code class="language-php">Swoole\Coroutine\Client-&gt;recv(float $timeout = 0): string|bool</code></pre></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>float $timeout</code></strong>
+<ul>
+<li><strong>功能</strong>：设置超时时间</li>
+<li><strong>值单位</strong>：秒【支持浮点型，如<code>1.5</code>表示<code>1s</code>+<code>500ms</code>】</li>
+<li><strong>默认值</strong>：参考<a href="/coroutine_client/init?id=超时规则">客户端超时规则</a></li>
+<li><strong>其它值</strong>：无
+!&gt; 设置超时，优先使用指定的参数，其次使用<code>set</code>方法中传入的<code>timeout</code>配置。发生超时的错误码为<code>ETIMEDOUT</code></li>
+</ul></li>
+</ul></li>
+<li><strong>返回值</strong>
+<ul>
+<li>设置了<a href="/client?id=协议解析">通信协议</a>，<code>recv</code>会返回完整的数据，长度受限于<a href="/server/setting?id=package_max_length">package_max_length</a></li>
+<li>未设置通信协议，<code>recv</code>最大返回<code>64K</code>数据</li>
+<li>未设置通信协议返回原始的数据，需要<code>PHP</code>代码中自行实现网络协议的处理</li>
+<li><code>recv</code>返回空字符串表示服务端主动关闭连接，需要<code>close</code></li>
+<li><code>recv</code>失败，返回<code>false</code>，检测<code>$client-&gt;errCode</code>获取错误原因，处理方式可参考下文的<a href="/coroutine_client/client?id=完整示例">完整示例</a>
+<a name="close"></a>
+<h3>close()</h3>
+<p>关闭连接。
+!&gt; <code>close</code>不存在阻塞，会立即返回。关闭操作没有协程切换。</p>
+<pre><code class="language-php">Swoole\Coroutine\Client-&gt;close(): bool</code></pre>
+<p><a name="peek"></a></p>
+<h3>peek()</h3>
+<p>窥视数据。
+!&gt; <code>peek</code>方法直接操作<code>socket</code>，因此不会引起<a href="/coroutine?id=协程调度">协程调度</a>。</p>
+<pre><code class="language-php">Swoole\Coroutine\Client-&gt;peek(int $length = 65535): string</code></pre></li>
+</ul></li>
+<li><strong>提示</strong>
+<ul>
+<li><code>peek</code>方法仅用于窥视内核<code>socket</code>缓存区中的数据，不进行偏移。使用<code>peek</code>之后，再调用<code>recv</code>仍然可以读取到这部分数据</li>
+<li><code>peek</code>方法是非阻塞的，它会立即返回。当<code>socket</code>缓存区中有数据时，会返回数据内容。缓存区为空时返回<code>false</code>，并设置<code>$client-&gt;errCode</code></li>
+<li>连接已被关闭<code>peek</code>会返回空字符串
+<a name="set"></a>
+<h3>set()</h3>
+<p>设置客户端参数。</p>
+<pre><code class="language-php">Swoole\Coroutine\Client-&gt;set(array $settings): bool</code></pre></li>
+</ul></li>
+<li>
+<p><strong>配置参数</strong></p>
+<ul>
+<li>请参考 <a href="/client?id=set">Swoole\Client</a> 。</li>
+<li><strong>和<a href="/client?id=set">Swoole\Client</a>的差异</strong></li>
+</ul>
+<p>协程客户端提供了更细粒度的超时控制。可以设置：</p>
+<ul>
+<li><code>timeout</code>：总超时，包括连接、发送、接收所有超时</li>
+<li><code>connect_timeout</code>：连接超时</li>
+<li><code>read_timeout</code>：接收超时</li>
+<li><code>write_timeout</code>：发送超时</li>
+<li>参考<a href="/coroutine_client/init?id=超时规则">客户端超时规则</a></li>
+<li><strong>示例</strong>
+<pre><code class="language-php">use Swoole\Coroutine\Client;
+use function Swoole\Coroutine\run;
+run(function () {
+$client = new Client(SWOOLE_SOCK_TCP);
+$client-&gt;set(array(
+'timeout' =&gt; 0.5,
+'connect_timeout' =&gt; 1.0,
+'write_timeout' =&gt; 10.0,
+'read_timeout' =&gt; 0.5,
+));
+if (!$client-&gt;connect('127.0.0.1', 9501, 0.5))
+{
+echo "connect failed. Error: {$client-&gt;errCode}\n";
+}
+$client-&gt;send("hello world\n");
+echo $client-&gt;recv();
+$client-&gt;close();
+});</code></pre>
+<p><a name="完整示例"></a></p>
+<h3>完整示例</h3>
+<pre><code class="language-php">use Swoole\Coroutine\Client;
+use function Swoole\Coroutine\run;
+run(function () {
+$client = new Client(SWOOLE_SOCK_TCP);
+if (!$client-&gt;connect('127.0.0.1', 9501, 0.5)) {
+echo "connect failed. Error: {$client-&gt;errCode}\n";
+}
+$client-&gt;send("hello world\n");
+while (true) {
+$data = $client-&gt;recv();
+if (strlen($data) &gt; 0) {
+    echo $data;
+    $client-&gt;send(time() . PHP_EOL);
+} else {
+    if ($data === '') {
+        // 全等于空 直接关闭连接
+        $client-&gt;close();
+        break;
+    } else {
+        if ($data === false) {
+            // 可以自行根据业务逻辑和错误码进行处理，例如：
+            // 如果超时时则不关闭连接，其他情况直接关闭连接
+            if ($client-&gt;errCode !== SOCKET_ETIMEDOUT) {
+                $client-&gt;close();
+                break;
+            }
+        } else {
+            $client-&gt;close();
+            break;
+        }
+    }
+}
+\Co::sleep(1);
+}
+});</code></pre></li>
+</ul>
+</li>
+</ul>
+</body>
+</html>

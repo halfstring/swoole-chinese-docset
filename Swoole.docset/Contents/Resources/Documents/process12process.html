@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>Swoole\Process</h1>
+<p>Swoole提供的进程管理模块，用来替代PHP的<code>pcntl</code><br />
+!&gt; 此模块比较底层，是操作系统进程管理的封装，使用者需要具备<code>Linux</code>系统多进程编程经验。
+<code>PHP</code>自带的<code>pcntl</code>，存在很多不足，如：</p>
+<ul>
+<li>没有提供进程间通信的功能</li>
+<li>不支持重定向标准输入和输出</li>
+<li>只提供了<code>fork</code>这样原始的接口，容易使用错误
+<code>Process</code>提供了比<code>pcntl</code>更强大的功能，更易用的<code>API</code>，使PHP在多进程编程方面更加轻松。
+<code>Process</code>提供了如下特性：</li>
+<li>可以方便的实现进程间通讯</li>
+<li>支持重定向标准输入和输出，在子进程内<code>echo</code>不会打印屏幕，而是写入管道，读键盘输入可以重定向为管道读取数据</li>
+<li>提供了<a href="/process/process?id=exec">exec</a>接口，创建的进程可以执行其他程序，与原<code>PHP</code>父进程之间可以方便的通信</li>
+<li>在协程环境中无法使用<code>Process</code>模块，可以使用<code>runtime hook</code>+<code>proc_open</code>实现，参考<a href="/coroutine/proc_open">协程进程管理</a>
+<a name="使用示例"></a>
+<h3>使用示例</h3>
+<ul>
+<li>创建3个子进程，主进程用wait回收进程</li>
+<li>主进程异常退出时，子进程会继续执行，完成所有任务后退出
+<pre><code class="language-php">use Swoole\Process;
+for ($n = 1; $n &lt;= 3; $n++) {
+$process = new Process(function () use ($n) {
+echo 'Child #' . getmypid() . " start and sleep {$n}s" . PHP_EOL;
+sleep($n);
+echo 'Child #' . getmypid() . ' exit' . PHP_EOL;
+});
+$process-&gt;start();
+}
+for ($n = 3; $n--;) {
+$status = Process::wait(true);
+echo "Recycled #{$status['pid']}, code={$status['code']}, signal={$status['signal']}" . PHP_EOL;
+}
+echo 'Parent #' . getmypid() . ' exit' . PHP_EOL;</code></pre>
+<p><a name="属性"></a></p>
+<h2>属性</h2>
+<p><a name="pipe"></a></p>
+<h3>pipe</h3>
+<p><a href="/learn?id=什么是IPC">unixSocket</a>的文件描述符。</p>
+<pre><code class="language-php">public int $pipe;</code></pre>
+<p><a name="msgQueueId"></a></p>
+<h3>msgQueueId</h3>
+<p>消息队列的<code>id</code>。</p>
+<pre><code class="language-php">public int $msgQueueId;</code></pre>
+<p><a name="msgQueueKey"></a></p>
+<h3>msgQueueKey</h3>
+<p>消息队列的<code>key</code>。</p>
+<pre><code class="language-php">public string $msgQueueKey;</code></pre>
+<p><a name="pid"></a></p>
+<h3>pid</h3>
+<p>当前进程的<code>pid</code>。</p>
+<pre><code class="language-php">public int $pid;</code></pre>
+<p><a name="id"></a></p>
+<h3>id</h3>
+<p>当前进程<code>id</code>。</p>
+<pre><code class="language-php">public int $id;</code></pre>
+<p><a name="常量"></a></p>
+<h2>常量</h2>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Swoole\Process::IPC_NOWAIT</td>
+<td>当消息队列没有数据时，立刻返回</td>
+</tr>
+<tr>
+<td>Swoole\Process::PIPE_READ</td>
+<td>关闭读套接字</td>
+</tr>
+<tr>
+<td>Swoole\Process::PIPE_WRITE</td>
+<td>关闭写套接字</td>
+</tr>
+</tbody>
+</table>
+<p><a name="方法"></a></p>
+<h2>方法</h2>
+<p><a name="__construct"></a></p>
+<h3>__construct()</h3>
+<p>构造方法。</p>
+<pre><code class="language-php">Swoole\Process-&gt;__construct(callable $function, bool $redirect_stdin_stdout = false, int $pipe_type = SOCK_DGRAM, bool $enable_coroutine = false)</code></pre></li>
+</ul></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>callable $function</code></strong></li>
+<li><strong>功能</strong>：子进程创建成功后要执行的函数【底层会自动将函数保存到对象的<code>callback</code>属性上】,注意，该属性是<code>private</code>类私有的。</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong><code>bool $redirect_stdin_stdout</code></strong></li>
+<li><strong>功能</strong>：重定向子进程的标准输入和输出。【启用此选项后，在子进程内输出内容将不是打印屏幕，而是写入到主进程管道。读取键盘输入将变为从管道中读取数据。默认为阻塞读取。参考<a href="/process/process?id=exec">exec()</a>方法内容】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong><code>int $pipe_type</code></strong></li>
+<li><strong>功能</strong>：<a href="/learn?id=什么是IPC">unixSocket</a>类型【启用<code>$redirect_stdin_stdout</code>后，此选项将忽略用户参数，强制为<code>SOCK_STREAM</code>。如果子进程内没有进程间通信，可以设置为 <code>0</code>】</li>
+<li><strong>默认值</strong>：<code>SOCK_DGRAM</code></li>
+<li><strong>其它值</strong>：<code>0</code>、<code>SOCK_STREAM</code></li>
+<li><strong><code>bool $enable_coroutine</code></strong></li>
+<li><strong>功能</strong>：在<code>callback function</code>中启用协程，开启后可以直接在子进程的函数中使用协程API</li>
+<li><strong>默认值</strong>：<code>false</code></li>
+<li><strong>其它值</strong>：<code>true</code></li>
+<li><strong>版本影响</strong>：Swoole版本 &gt;= v4.3.0</li>
+</ul></li>
+<li>
+<table>
+<thead>
+<tr>
+<th><strong><a href="/learn?id=什么是IPC">unixSocket</a>类型</strong>
+unixSocket类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>不创建</td>
+</tr>
+<tr>
+<td>1</td>
+<td>创建<a href="/learn?id=什么是IPC">SOCK_STREAM</a>类型的unixSocket</td>
+</tr>
+<tr>
+<td>2</td>
+<td>创建<a href="/learn?id=什么是IPC">SOCK_DGRAM</a>类型的unixSocket</td>
+</tr>
+</tbody>
+</table>
+<p><a name="useQueue"></a></p>
+<h3>useQueue()</h3>
+<p>使用消息队列进行进程间通信。</p>
+<pre><code class="language-php">Swoole\Process-&gt;useQueue(int $key = 0, int $mode = SWOOLE_MSGQUEUE_BALANCE, int $capacity = -1): bool</code></pre>
+</li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>int $key</code></strong></li>
+<li><strong>功能</strong>：消息队列的 key，如果传入一个小于等于0的值，底层会通过<code>ftok</code>函数，以当前执行文件的文件名作为参数，生成对应的key。</li>
+<li><strong>默认值</strong>：<code>0</code></li>
+<li><strong>其它值</strong>：<code>无</code></li>
+<li><strong><code>int $mode</code></strong></li>
+<li><strong>功能</strong>：进程间通信模式，</li>
+<li><strong>默认值</strong>：<code>SWOOLE_MSGQUEUE_BALANCE</code>，<code>Swoole\Process::pop()</code>会返回队列第一个消息，<code>Swoole\Process::push()</code>不会为消息添加特定类型。</li>
+<li><strong>其它值</strong>：<code>SWOOLE_MSGQUEUE_ORIENT</code>，<code>Swoole\Process::pop()</code>会返回队列中消息类型为<code>进程id + 1</code>的特定数据，<code>Swoole\Process::push()</code>会为消息添加<code>进程id + 1</code>的类型。</li>
+<li><strong><code>int $capacity</code></strong></li>
+<li><strong>功能</strong>：消息队列允许存储的消息数量最大值。</li>
+<li><strong>默认值</strong>：<code>-1</code></li>
+<li><strong>其它值</strong>：<code>无</code></li>
+</ul></li>
+<li><strong>注意</strong>
+<ul>
+<li>当消息队列没有数据时，<code>Swoole\Porcess-&gt;pop()</code>会一直阻塞，或者消息队列没有空间容纳新数据，<code>Swoole\Porcess-&gt;push()</code>也会一直阻塞。如果不想阻塞，<code>$mode</code>的值必须是 <code>SWOOLE_MSGQUEUE_BALANCE|Swoole\Process::IPC_NOWAIT</code> 或者 <code>SWOOLE_MSGQUEUE_ORIENT|Swoole\Process::IPC_NOWAIT</code>。
+<a name="statQueue"></a>
+<h3>statQueue()</h3>
+<p>获取消息队列状态</p>
+<pre><code class="language-php">Swoole\Process-&gt;statQueue(): array|false</code></pre></li>
+</ul></li>
+<li><strong>返回值</strong> 
+<ul>
+<li>返回数组表示成功，数组包含两个键值对，<code>queue_num</code>表示现在队列里面消息总数量，<code>queue_bytes</code>表示现在队列的消息总大小。</li>
+<li>失败返回<code>false</code>。
+<a name="freeQueue"></a>
+<h3>freeQueue()</h3>
+<p>销毁消息队列。</p>
+<pre><code class="language-php">Swoole\Process-&gt;freeQueue(): bool</code></pre></li>
+</ul></li>
+<li><strong>返回值</strong> 
+<ul>
+<li>成功返回<code>true</code>。</li>
+<li>失败返回<code>false</code>。
+<a name="pop"></a>
+<h3>pop()</h3>
+<p>从消息队列获取数据。</p>
+<pre><code class="language-php">Swoole\Process-&gt;pop(int $size = 65536): string|false</code></pre></li>
+</ul></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>int $size</code></strong></li>
+<li><strong>功能</strong>：获取的数据大小。</li>
+<li><strong>默认值</strong>：<code>65536</code></li>
+<li><strong>其它值</strong>：<code>无</code></li>
+</ul></li>
+<li><strong>返回值</strong> 
+<ul>
+<li>返回<code>string</code>表示成功。</li>
+<li>失败返回<code>false</code>。</li>
+</ul></li>
+<li><strong>注意</strong>
+<ul>
+<li>当消息队列类型为<code>SW_MSGQUEUE_BALANCE</code>时，返回队列第一条信息。</li>
+<li>当消息队列类型为<code>SW_MSGQUEUE_ORIENT</code>时，返回队列第一条类型为当前<code>进程id + 1</code>的信息。
+<a name="push"></a>
+<h3>push()</h3>
+<p>往消息队列发送数据。</p>
+<pre><code class="language-php">Swoole\Process-&gt;push(string $data): bool</code></pre></li>
+</ul></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>string $data</code></strong></li>
+<li><strong>功能</strong>：发送的数据。</li>
+<li><strong>默认值</strong>：``</li>
+<li><strong>其它值</strong>：<code>无</code></li>
+</ul></li>
+<li><strong>返回值</strong> 
+<ul>
+<li>返回<code>true</code>表示成功。</li>
+<li>失败返回<code>false</code>。</li>
+</ul></li>
+<li><strong>注意</strong>
+<ul>
+<li>当消息队列类型为<code>SW_MSGQUEUE_BALANCE</code>时，数据将直接插入消息队列。</li>
+<li>当消息队列类型为<code>SW_MSGQUEUE_ORIENT</code>时，数据会被添加一个类型，为当前<code>进程id + 1</code>。
+<a name="setTimeout"></a>
+<h3>setTimeout()</h3>
+<p>设置消息队列读写超时。</p>
+<pre><code class="language-php">Swoole\Process-&gt;setTimeout(float $seconds): bool</code></pre></li>
+</ul></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>float $seconds</code></strong></li>
+<li><strong>功能</strong>：超时时间</li>
+<li><strong>默认值</strong>：<code>无</code></li>
+<li><strong>其它值</strong>：<code>无</code></li>
+</ul></li>
+<li><strong>返回值</strong> 
+<ul>
+<li>成功返回<code>true</code>。</li>
+<li>失败返回<code>false</code>。
+<a name="setBlocking"></a>
+<h3>setBlocking()</h3>
+<p>设置消息队列套接字是否阻塞。</p>
+<pre><code class="language-php">Swoole\Process-&gt;setBlocking(bool $$blocking): void</code></pre></li>
+</ul></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>bool $blocking</code></strong></li>
+<li><strong>功能</strong>：是否阻塞，<code>true</code>表示阻塞，<code>false</code>表示不阻塞</li>
+<li><strong>默认值</strong>：<code>无</code></li>
+<li><strong>其它值</strong>：<code>无</code></li>
+</ul></li>
+<li><strong>注意</strong>
+<ul>
+<li>新创建的进程套接字默认是阻塞的，所以在做UNIX域套接字通信时，发送或读取消息会使进程阻塞。
+<a name="write"></a>
+<h3>write()</h3>
+<p>父子进程间消息写入（UNIX域套接字）。</p>
+<pre><code class="language-php">Swoole\Process-&gt;write(string $data): false|int</code></pre></li>
+</ul></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>string $data</code></strong></li>
+<li><strong>功能</strong>：要写入的数据</li>
+<li><strong>默认值</strong>：<code>无</code></li>
+<li><strong>其它值</strong>：<code>无</code></li>
+</ul></li>
+<li><strong>返回值</strong> 
+<ul>
+<li>成功返回<code>int</code>，表示成功写入的字节数。</li>
+<li>失败返回<code>false</code>。
+<a name="read"></a>
+<h3>read()</h3>
+<p>父子进程间消息读取（UNIX域套接字）。</p>
+<pre><code class="language-php">Swoole\Process-&gt;read(int $size = 8192): false|string</code></pre></li>
+</ul></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>int $size</code></strong></li>
+<li><strong>功能</strong>：要读取的数据大小</li>
+<li><strong>默认值</strong>：<code>8192</code></li>
+<li><strong>其它值</strong>：<code>无</code></li>
+</ul></li>
+<li><strong>返回值</strong> 
+<ul>
+<li>成功返回<code>string</code>。</li>
+<li>失败返回<code>false</code>。
+<a name="set"></a>
+<h3>set()</h3>
+<p>设置参数。</p>
+<pre><code class="language-php">Swoole\Process-&gt;set(array $settings): void</code></pre>
+<p>可以使用<code>enable_coroutine</code>来控制是否启用协程，和构造函数的第四个参数作用一致。</p>
+<pre><code class="language-php">Swoole\Process-&gt;set(['enable_coroutine' =&gt; true]);</code></pre>
+<p>!&gt; Swoole版本 &gt;= v4.4.4 可用
+<a name="start"></a></p>
+<h3>start()</h3>
+<p>执行<code>fork</code>系统调用，启动子进程。在<code>Linux</code>系统下创建一个进程需要数百微秒时间。</p>
+<pre><code class="language-php">Swoole\Process-&gt;start(): int|false</code></pre></li>
+</ul></li>
+<li><strong>返回值</strong>
+<ul>
+<li>成功返回子进程的<code>PID</code></li>
+<li>失败返回<code>false</code>。可使用<a href="/functions?id=swoole_errno">swoole_errno</a>和<a href="/functions?id=swoole_strerror">swoole_strerror</a>得到错误码和错误信息。</li>
+</ul></li>
+<li>
+<p><strong>注意</strong></p>
+<ul>
+<li>子进程会继承父进程的内存和文件句柄</li>
+<li>子进程在启动时会清除从父进程继承的<a href="/learn?id=什么是eventloop">EventLoop</a>、<a href="/process/process?id=signal">Signal</a>、<a href="/timer">Timer</a></li>
+</ul>
+<p>!&gt; 执行后子进程会保持父进程的内存和资源，如父进程内创建了一个redis连接，那么在子进程会保留此对象，所有操作都是对同一个连接进行的。以下举例说明</p>
+<pre><code class="language-php">$redis = new Redis;
+$redis-&gt;connect('127.0.0.1', 6379);
+function callback_function() {
+swoole_timer_after(1000, function () {
+    echo "hello world\n";
+});
+global $redis;//同一个连接
+};
+swoole_timer_tick(1000, function () {
+echo "parent timer\n";
+});//不会继承
+Swoole\Process::signal(SIGCHLD, function ($sig) {
+while ($ret = Swoole\Process::wait(false)) {
+    // create a new child process
+    $p = new Swoole\Process('callback_function');
+    $p-&gt;start();
+}
+});
+// create a new child process
+$p = new Swoole\Process('callback_function');
+$p-&gt;start();</code></pre>
+<p>!&gt; 1. 子进程启动后会自动清除父进程中<a href="/timer?id=tick">Swoole\Timer::tick</a>创建的定时器、<a href="/process/process?id=signal">Process::signal</a>监听的信号和<a href="/event?id=add">Swoole\Event::add</a>添加的事件监听；  </p>
+<ol start="2">
+<li>子进程会继承父进程创建的<code>$redis</code>连接对象，父子进程使用的连接是同一个。
+<a name="exportSocket"></a>
+<h3>exportSocket()</h3>
+<p>将<code>unixSocket</code>导出为<code>Swoole\Coroutine\Socket</code>对象，然后利用<code>Swoole\Coroutine\socket</code>对象的方法进程间通讯，具体用法请参考<a href="/coroutine_client/socket">Coroutine\socket</a>和<a href="/learn?id=什么是IPC">IPC通讯</a>。</p>
+<pre><code class="language-php">Swoole\Process-&gt;exportSocket(): Swoole\Coroutine\Socket|false</code></pre>
+<p>!&gt; 多次调用此方法，返回的对象是同一个；<br />
+<code>exportSocket()</code>导出的<code>socket</code>是一个新的<code>fd</code>，当关闭导出的<code>socket</code>时不会影响进程原有的管道。<br />
+由于是<code>Swoole\Coroutine\Socket</code>对象，必须在<a href="/coroutine/scheduler">协程容器</a>中使用，所以Swoole\Process构造函数<code>$enable_coroutine</code>参数必须为true。<br />
+同样的父进程想用<code>Swoole\Coroutine\Socket</code>对象，需要手动<code>Coroutine\run()</code>以创建协程容器。</p></li>
+</ol>
+</li>
+<li><strong>返回值</strong>
+<ul>
+<li>成功返回<code>Coroutine\Socket</code>对象</li>
+<li>进程未创建unixSocket，操作失败，返回<code>false</code></li>
+</ul></li>
+<li><strong>使用示例</strong>
+实现了一个简单的父子进程通讯：  
+<pre><code class="language-php">use Swoole\Process;
+use function Swoole\Coroutine\run;
+$proc1 = new Process(function (Process $proc) {
+$socket = $proc-&gt;exportSocket();
+echo $socket-&gt;recv();
+$socket-&gt;send("hello master\n");
+echo "proc1 stop\n";
+}, false, 1, true);
+$proc1-&gt;start();
+//父进程创建一个协程容器
+run(function() use ($proc1) {
+$socket = $proc1-&gt;exportSocket();
+$socket-&gt;send("hello pro1\n");
+var_dump($socket-&gt;recv());
+});
+Process::wait(true);</code></pre>
+<p>比较复杂的通讯例子：</p>
+<pre><code class="language-php">use Swoole\Process;
+use Swoole\Timer;
+use function Swoole\Coroutine\run;
+$process = new Process(function ($proc) {
+Timer::tick(1000, function () use ($proc) {
+    $socket = $proc-&gt;exportSocket();
+    $socket-&gt;send("hello master\n");
+    echo "child timer\n";
+});
+}, false, 1, true);
+$process-&gt;start();
+run(function() use ($process) {
+Process::signal(SIGCHLD, static function ($sig) {
+    while ($ret = Swoole\Process::wait(false)) {
+        /* clean up then event loop will exit */
+        Process::signal(SIGCHLD, null);
+        Timer::clearAll();
+    }
+});
+/* your can run your other async or coroutine code here */
+Timer::tick(500, function () {
+    echo "parent timer\n";
+});
+$socket = $process-&gt;exportSocket();
+while (1) {
+    var_dump($socket-&gt;recv());
+}
+});</code></pre>
+<p>!&gt; 注意默认类型是<code>SOCK_STREAM</code>，需要处理TCP数据包边界问题，参考<a href="/coroutine_client/socket">Coroutine\socket</a>的<code>setProtocol()</code>方法。<br />
+使用<code>SOCK_DGRAM</code>类型进行IPC通讯，可以避免处理TCP数据包边界问题，参考<a href="/learn?id=什么是IPC">IPC通讯</a>：</p>
+<pre><code class="language-php">use Swoole\Process;
+use function Swoole\Coroutine\run;
+//IPC通讯即使是 SOCK_DGRAM 类型的socket也不需要用 sendto / recvfrom 这组函数，send/recv即可。
+$proc1 = new Process(function (Process $proc) {
+$socket = $proc-&gt;exportSocket();
+while (1) {
+    var_dump($socket-&gt;send("hello master\n"));
+}
+echo "proc1 stop\n";
+}, false, 2, 1);//构造函数pipe type传为2 即SOCK_DGRAM
+$proc1-&gt;start();
+run(function() use ($proc1) {
+$socket = $proc1-&gt;exportSocket();
+Swoole\Coroutine::sleep(5);
+var_dump(strlen($socket-&gt;recv()));//一次recv只会收到一个"hello master\n"字符串 不会出现多个"hello master\n"字符串
+});
+Process::wait(true);</code></pre>
+<p><a name="name"></a></p>
+<h3>name()</h3>
+<p>修改进程名称。此函数是<a href="/functions?id=swoole_set_process_name">swoole_set_process_name</a>的别名。</p>
+<pre><code class="language-php">Swoole\Process-&gt;name(string $name): bool</code></pre>
+<p>!&gt; 在执行<code>exec</code>后，进程名称会被新的程序重新设置；<code>name</code>方法应当在<code>start</code>之后的子进程回调函数中使用。
+<a name="exec"></a></p>
+<h3>exec()</h3>
+<p>执行一个外部程序，此函数是<code>exec</code>系统调用的封装。</p>
+<pre><code class="language-php">Swoole\Process-&gt;exec(string $execfile, array $args);</code></pre></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>string $execfile</code></strong></li>
+<li><strong>功能</strong>：指定可执行文件的绝对路径，如 <code>"/usr/bin/python"</code></li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong><code>array $args</code></strong></li>
+<li><strong>功能</strong>：<code>exec</code>的参数列表【如 <code>array('test.py', 123)</code>，相当于<code>python test.py 123</code>】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无
+执行成功后，当前进程的代码段将会被新程序替换。子进程蜕变成另外一套程序。父进程与当前进程仍然是父子进程关系。
+父进程与新进程之间可以通过标准输入输出进行通信，必须启用标准输入输出重定向。
+!&gt; <code>$execfile</code>必须使用绝对路径，否则会报文件不存在错误；<br />
+由于<code>exec</code>系统调用会使用指定的程序覆盖当前程序，子进程需要读写标准输出与父进程进行通信；<br />
+如果未指定<code>redirect_stdin_stdout = true</code>，执行<code>exec</code>后子进程与父进程无法通信。</li>
+</ul></li>
+<li><strong>使用示例</strong>
+例 1：可以在 <code>Swoole\Process</code> 创建的子进程中使用 <a href="/server/init">Swoole\Server</a>，但为了安全必须在<code>$process-&gt;start</code> 创建进程后，调用 <code>$worker-&gt;exec()</code> 执行。代码如下：
+<pre><code class="language-php">$process = new Swoole\Process('callback_function', true);
+$pid = $process-&gt;start();
+function callback_function(Swoole\Process $worker)
+{
+$worker-&gt;exec('/usr/local/bin/php', array(__DIR__.'/swoole_server.php'));
+}
+Swoole\Process::wait();</code></pre>
+<p>例 2：启动Yii程序</p>
+<pre><code class="language-php">$process = new \Swoole\Process(function (\Swoole\Process $childProcess) {
+// 不支持这种写法
+// $childProcess-&gt;exec('/usr/local/bin/php /var/www/project/yii-best-practice/cli/yii t/index -m=123 abc xyz');
+// 封装 exec 系统调用
+// 绝对路径
+// 参数必须分开放到数组中
+$childProcess-&gt;exec('/usr/local/bin/php', ['/var/www/project/yii-best-practice/cli/yii', 't/index', '-m=123', 'abc', 'xyz']); // exec 系统调用
+});
+$process-&gt;start(); // 启动子进程</code></pre>
+<p>例3：父进程与<code>exec</code>子进程使用标准输入输出进行通信:</p>
+<pre><code class="language-php">// exec - 与exec进程进行管道通信
+use Swoole\Process;
+use function Swoole\Coroutine\run;
+$process = new Process(function (Process $worker) {
+$worker-&gt;exec('/bin/echo', ['hello']);
+}, true, 1, true); // 需要启用标准输入输出重定向
+$process-&gt;start();
+run(function() use($process) {
+$socket = $process-&gt;exportSocket();
+echo "from exec: " . $socket-&gt;recv() . "\n";
+});</code></pre>
+<p>例4：执行 shell 命令
+<code>exec</code>方法与<code>PHP</code>提供的<code>shell_exec</code>不同，它是更底层的系统调用封装。如果需要执行一条<code>shell</code>命令，请使用以下方法：</p>
+<pre><code class="language-php">$worker-&gt;exec('/bin/sh', array('-c', "cp -rf /data/test/* /tmp/test/"));</code></pre>
+<p><a name="close"></a></p>
+<h3>close()</h3>
+<p>用于关闭创建的好的<a href="/learn?id=什么是IPC">unixSocket</a>。 </p>
+<pre><code class="language-php">Swoole\Process-&gt;close(int $which): bool</code></pre></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>int $which</code></strong></li>
+<li><strong>功能</strong>：由于unixSocket是全双工的，指定关闭哪一端【默认为<code>0</code>表示同时关闭读和写，<code>1</code>：关闭写，<code>2</code>关闭读】</li>
+<li><strong>默认值</strong>：<code>0</code>，关闭读写套接字。</li>
+<li><strong>其它值</strong>：<code>Swoole/Process::SW_PIPE_CLOSE_READ</code> 关闭读套接字，<code>Swoole/Process::SW_PIPE_CLOSE_WRITE</code> 关闭写套接字，
+!&gt; 有一些特殊的情况<code>Process</code>对象无法释放，如果持续创建进程会导致连接泄漏。调用此函数就可以直接关闭<code>unixSocket</code>，释放资源。
+<a name="exit"></a>
+<h3>exit()</h3>
+<p>退出子进程。</p>
+<pre><code class="language-php">Swoole\Process-&gt;exit(int $status = 0);</code></pre></li>
+</ul></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>int $status</code></strong></li>
+<li><strong>功能</strong>：退出进程的状态码【如果为<code>0</code>表示正常结束，会继续执行清理工作】</li>
+<li><strong>默认值</strong>：<code>0</code></li>
+<li><strong>其它值</strong>：无
+!&gt; 清理工作包括：</li>
+<li><code>PHP</code>的<code>shutdown_function</code></li>
+<li>对象析构（<code>__destruct</code>）</li>
+<li>其他扩展的<code>RSHUTDOWN</code>函数
+如果<code>$status</code>不为<code>0</code>，表示异常退出，会立即终止进程，不再执行相关进程终止的清理工作。
+在父进程中，执行<code>Process::wait</code>可以得到子进程退出的事件和状态码。
+<a name="kill"></a>
+<h3>kill()</h3>
+<p>向指定<code>pid</code>进程发送信号。</p>
+<pre><code class="language-php">Swoole\Process::kill(int $pid, int $signo = SIGTERM): bool</code></pre></li>
+</ul></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>int $pid</code></strong></li>
+<li><strong>功能</strong>：进程 <code>pid</code></li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong><code>int $signo</code></strong></li>
+<li><strong>功能</strong>：发送的信号【<code>$signo=0</code>，可以检测进程是否存在，不会发送信号】</li>
+<li><strong>默认值</strong>：<code>SIGTERM</code></li>
+<li><strong>其它值</strong>：无
+<a name="signal"></a>
+<h3>signal()</h3>
+<p>设置异步信号监听。</p>
+<pre><code class="language-php">Swoole\Process::signal(int $signo, callable $callback): bool</code></pre>
+<p>此方法基于<code>signalfd</code>和<a href="/learn?id=什么是eventloop">EventLoop</a>是异步<code>IO</code>，不能用于阻塞的程序中，会导致注册的监听回调函数得不到调度；
+同步阻塞的程序可以使用<code>pcntl</code>扩展提供的<code>pcntl_signal</code>；
+如果已设置了此信号的回调函数，重新设置时会覆盖历史设置。</p></li>
+</ul></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>int $signo</code></strong></li>
+<li><strong>功能</strong>：信号</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong><code>callable $callback</code></strong></li>
+<li><strong>功能</strong>：回调函数【<code>$callback</code>如果为<code>null</code>，表示移除信号监听】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无
+!&gt; 在<a href="/server/init">Swoole\Server</a>中不能设置某些信号监听，如<code>SIGTERM</code>和<code>SIGALAM</code></li>
+</ul></li>
+<li><strong>使用示例</strong>
+<pre><code class="language-php">Swoole\Process::signal(SIGTERM, function($signo) {
+ echo "shutdown.";
+});</code></pre>
+<p>!&gt; 在<code>v4.4.0</code>版本中如果进程的<a href="/learn?id=什么是eventloop">EventLoop</a>中只有信号监听的事件，没有其他事件(例如Timer定时器等)，进程会直接退出。</p>
+<pre><code class="language-php">Swoole\Process::signal(SIGTERM, function($signo) {
+ echo "shutdown.";
+});
+Swoole\Event::wait();</code></pre>
+<p>上述程序不会进入<a href="/learn?id=什么是eventloop">EventLoop</a>，<code>Swoole\Event::wait()</code>将立即返回，并退出进程。
+<a name="wait"></a></p>
+<h3>wait()</h3>
+<p>回收结束运行的子进程。
+!&gt; Swoole 版本 &gt;= <code>v4.5.0</code> 时推荐使用协程版本的<code>wait()</code>，参考<a href="/coroutine/system?id=wait">Swoole\Coroutine\System::wait()</a></p>
+<pre><code class="language-php">Swoole\Process::wait(bool $blocking = true): array|false</code></pre></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>bool $blocking</code></strong></li>
+<li><strong>功能</strong>：指定是否阻塞等待【默认为阻塞】</li>
+<li><strong>默认值</strong>：<code>true</code></li>
+<li><strong>其它值</strong>：<code>false</code></li>
+</ul></li>
+<li><strong>返回值</strong>
+<ul>
+<li>操作成功会返回一个数组包含子进程的<code>PID</code>、退出状态码、被哪种信号<code>KILL</code></li>
+<li>失败返回<code>false</code>
+!&gt; 每个子进程结束后，父进程必须都要执行一次<code>wait()</code>进行回收，否则子进程会变成僵尸进程，会浪费操作系统的进程资源。<br />
+如果父进程有其他任务要做，没法阻塞<code>wait</code>在那里，父进程必须注册信号<code>SIGCHLD</code>对退出的进程执行<code>wait</code>。<br />
+SIGCHILD信号发生时可能同时有多个子进程退出；必须将<code>wait()</code>设置为非阻塞，循环执行<code>wait</code>直到返回<code>false</code>。</li>
+</ul></li>
+<li><strong>示例</strong>
+<pre><code class="language-php">Swoole\Process::signal(SIGCHLD, function ($sig) {
+//必须为false，非阻塞模式
+while ($ret = Swoole\Process::wait(false)) {
+    echo "PID={$ret['pid']}\n";
+}
+});</code></pre>
+<p><a name="daemon"></a></p>
+<h3>daemon()</h3>
+<p>使当前进程蜕变为一个守护进程。</p>
+<pre><code class="language-php">Swoole\Process::daemon(bool $nochdir = true, bool $noclose = true): bool</code></pre></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>bool $nochdir</code></strong></li>
+<li><strong>功能</strong>：是否切换当前目录到根目录【为<code>true</code>表示不要切换当前目录到根目录】</li>
+<li><strong>默认值</strong>：<code>true</code></li>
+<li><strong>其它值</strong>：<code>false</code></li>
+<li><strong><code>bool $noclose</code></strong></li>
+<li><strong>功能</strong>：是否要关闭标准输入输出文件描述符【为<code>true</code>表示不要关闭标准输入输出文件描述符】</li>
+<li><strong>默认值</strong>：<code>true</code></li>
+<li><strong>其它值</strong>：<code>false</code>
+!&gt; 蜕变为守护进程时，该进程的<code>PID</code>将发生变化，可以使用<code>getmypid()</code>来获取当前的<code>PID</code>
+<a name="alarm"></a>
+<h3>alarm()</h3>
+<p>高精度定时器，是操作系统<code>setitimer</code>系统调用的封装，可以设置微秒级别的定时器。定时器会触发信号，需要与<a href="/process/process?id=signal">Process::signal</a>或<code>pcntl_signal</code>配合使用。
+!&gt; <code>alarm</code>不能和 <a href="/timer">Timer</a> 同时使用</p>
+<pre><code class="language-php">Swoole\Process-&gt;alarm(int $time, int $type = 0): bool</code></pre></li>
+</ul></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>int $time</code></strong></li>
+<li><strong>功能</strong>：定时器间隔时间【如果为负数表示清除定时器】</li>
+<li><strong>值单位</strong>：微秒</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong><code>int $type</code></strong></li>
+<li><strong>功能</strong>：定时器类型</li>
+<li><strong>默认值</strong>：<code>0</code></li>
+<li>
+<table>
+<thead>
+<tr>
+<th><strong>其它值</strong>：
+定时器类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>表示为真实时间，触发<code>SIGALAM</code>信号</td>
+</tr>
+<tr>
+<td>1</td>
+<td>表示用户态CPU时间，触发<code>SIGVTALAM</code>信号</td>
+</tr>
+<tr>
+<td>2</td>
+<td>表示用户态+内核态时间，触发<code>SIGPROF</code>信号</td>
+</tr>
+</tbody>
+</table>
+</li>
+</ul></li>
+<li><strong>返回值</strong>
+<ul>
+<li>设置成功返回<code>true</code></li>
+<li>失败返回<code>false</code>，可以使用<code>swoole_errno</code>得到错误码</li>
+</ul></li>
+<li><strong>使用示例</strong>
+<pre><code class="language-php">use Swoole\Process;
+use function Swoole\Coroutine\run;
+run(function () {
+Process::signal(SIGALRM, function () {
+    static $i = 0;
+    echo "#{$i}\talarm\n";
+    $i++;
+    if ($i &gt; 20) {
+        Process::alarm(-1);
+        Process::kill(getmypid());
+    }
+});
+//100ms
+Process::alarm(100 * 1000);
+while(true) {
+    sleep(0.5);
+}
+});</code></pre>
+<p><a name="setAffinity"></a></p>
+<h3>setAffinity()</h3>
+<p>设置<code>CPU</code>亲和性，可以将进程绑定到特定的<code>CPU</code>核上。
+此函数的作用是让进程只在某几个<code>CPU</code>核上运行，让出某些<code>CPU</code>资源执行更重要的程序。</p>
+<pre><code class="language-php">Swoole\Process-&gt;setAffinity(array $cpus): bool</code></pre></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>array $cpus</code></strong></li>
+<li><strong>功能</strong>：绑定<code>CPU</code>核 【如<code>array(0,2,3)</code>表示绑定<code>CPU0/CPU2/CPU3</code>】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无
+!&gt; -<code>$cpus</code>内的元素不能超过<code>CPU</code>核数；<br />
+-<code>CPU-ID</code>不得超过（<code>CPU</code>核数 - <code>1</code>）；<br />
+-该函数需要操作系统支持设置绑定<code>CPU</code>的功能；<br />
+-使用 <a href="/functions?id=swoole_cpu_num">swoole_cpu_num()</a> 可以得到当前服务器的<code>CPU</code>核数。
+<a name="setPriority"></a>
+<h3>setPriority()</h3>
+<p>设置进程、进程组和用户进程的优先级。
+!&gt; Swoole版本 &gt;= <code>v4.5.9</code> 可用</p>
+<pre><code class="language-php">Swoole\Process-&gt;setPriority(int $which, int $priority): bool</code></pre></li>
+</ul></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>int $which</code></strong></li>
+<li><strong>功能</strong>：决定修改优先级的类型</li>
+<li><strong>默认值</strong>：无</li>
+<li>
+<table>
+<thead>
+<tr>
+<th><strong>其它值</strong>：</th>
+<th>常量</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PRIO_PROCESS</td>
+<td>进程</td>
+</tr>
+<tr>
+<td>PRIO_PGRP</td>
+<td>进程组</td>
+</tr>
+<tr>
+<td>PRIO_USER</td>
+<td>用户进程</td>
+</tr>
+</tbody>
+</table>
+</li>
+<li><strong><code>int $priority</code></strong></li>
+<li><strong>功能</strong>：优先级。值越小，优先级越高</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：<code>[-20, 20]</code></li>
+</ul></li>
+<li><strong>返回值</strong>
+<ul>
+<li>如果返回<code>false</code>，可使用<a href="/functions?id=swoole_errno">swoole_errno</a>和<a href="/functions?id=swoole_strerror">swoole_strerror</a>得到错误码和错误信息。
+<a name="getPriority"></a>
+<h3>getPriority()</h3>
+<p>获取进程的优先级。
+!&gt; Swoole版本 &gt;= <code>v4.5.9</code> 可用</p>
+<pre><code class="language-php">Swoole\Process-&gt;getPriority(int $which): int</code></pre></li>
+</ul></li>
+</ul>
+</body>
+</html>

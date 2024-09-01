@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>MQTT(物联网)服务器</h1>
+<p>通过设置<a href="/server/setting?id=open_mqtt_protocol">open_mqtt_protocol</a>选项，启用后会解析<code>MQTT</code>包头，Worker 进程的<a href="/server/events?id=onreceive">onReceive</a>事件每次会返回一个完整的<code>MQTT</code>数据包。
+可以使用 Swoole 作为 MQTT 服务端或客户端，实现一套完整物联网（IOT）解决方案。</p>
+<blockquote>
+<p>完整的 MQTT 协议解析和协程客户端可以使用 <a href="https://github.com/simps/mqtt">simps/mqtt</a>
+<a name="程序代码"></a></p>
+<h2>程序代码</h2>
+<p>请将以下代码写入mqttServer.php</p>
+<pre><code class="language-php">function decodeValue($data)
+{
+return 256 * ord($data[0]) + ord($data[1]);
+}
+function decodeString($data)
+{
+$length = decodeValue($data);
+return substr($data, 2, $length);
+}
+function mqttGetHeader($data)
+{
+$byte = ord($data[0]);
+$header['type'] = ($byte &amp; 0xF0) &gt;&gt; 4;
+$header['dup'] = ($byte &amp; 0x08) &gt;&gt; 3;
+$header['qos'] = ($byte &amp; 0x06) &gt;&gt; 1;
+$header['retain'] = $byte &amp; 0x01;
+return $header;
+}
+function eventConnect($header, $data)
+{
+$connect_info['protocol_name'] = decodeString($data);
+$offset = strlen($connect_info['protocol_name']) + 2;
+$connect_info['version'] = ord(substr($data, $offset, 1));
+$offset += 1;
+$byte = ord($data[$offset]);
+$connect_info['willRetain'] = ($byte &amp; 0x20 == 0x20);
+$connect_info['willQos'] = ($byte &amp; 0x18 &gt;&gt; 3);
+$connect_info['willFlag'] = ($byte &amp; 0x04 == 0x04);
+$connect_info['cleanStart'] = ($byte &amp; 0x02 == 0x02);
+$offset += 1;
+$connect_info['keepalive'] = decodeValue(substr($data, $offset, 2));
+$offset += 2;
+$connect_info['clientId'] = decodeString(substr($data, $offset));
+return $connect_info;
+}
+$server = new Swoole\Server('127.0.0.1', 9501, SWOOLE_BASE);
+$server-&gt;set([
+'open_mqtt_protocol' =&gt; true, // 启用 MQTT 协议
+'worker_num' =&gt; 1,
+]);
+$server-&gt;on('Connect', function ($server, $fd) {
+echo "Client:Connect.\n";
+});
+$server-&gt;on('Receive', function ($server, $fd, $reactor_id, $data) {
+$header = mqttGetHeader($data);
+var_dump($header);
+if ($header['type'] == 1) {
+$resp = chr(32) . chr(2) . chr(0) . chr(0);
+eventConnect($header, substr($data, 2));
+$server-&gt;send($fd, $resp);
+} elseif ($header['type'] == 3) {
+$offset = 2;
+$topic = decodeString(substr($data, $offset));
+$offset += strlen($topic) + 2;
+$msg = substr($data, $offset);
+echo "client msg: {$topic}\n----------\n{$msg}\n";
+//file_put_contents(__DIR__.'/data.log', $data);
+}
+echo "received length=" . strlen($data) . "\n";
+});
+$server-&gt;on('Close', function ($server, $fd) {
+echo "Client: Close.\n";
+});
+$server-&gt;start();</code></pre>
+</blockquote>
+</body>
+</html>

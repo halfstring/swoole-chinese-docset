@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>Http\Server</h1>
+<p>?&gt; <code>Http\Server</code>继承自<a href="/server/init">Server</a>，所以<code>Server</code>提供的所有<code>API</code>和配置项都可以使用，进程模型也是一致的。请参考<a href="/server/init">Server</a>章节。
+内置<code>HTTP</code>服务器的支持，通过几行代码即可写出一个高并发，高性能，<a href="/learn?id=同步io异步io">异步IO</a>的多进程<code>HTTP</code>服务器。</p>
+<pre><code class="language-php">$http = new Swoole\Http\Server("127.0.0.1", 9501);
+$http-&gt;on('request', function ($request, $response) {
+    $response-&gt;end("&lt;h1&gt;Hello Swoole. #".rand(1000, 9999)."&lt;/h1&gt;");
+});
+$http-&gt;start();</code></pre>
+<p>通过使用<code>Apache bench</code>工具进行压力测试，在<code>Inter Core-I5 4核 + 8G内存</code>的普通PC机器上，<code>Http\Server</code>可以达到近<code>11万QPS</code>。
+远远超过<code>PHP-FPM</code>、<code>Golang</code>、<code>Node.js</code>自带<code>Http</code>服务器。性能几乎接近与<code>Nginx</code>的静态文件处理。</p>
+<pre><code class="language-shell">ab -c 200 -n 200000 -k http://127.0.0.1:9501/</code></pre>
+<ul>
+<li><strong>使用 HTTP2 协议</strong>
+<ul>
+<li>使用<code>SSL</code>下的<code>HTTP2</code>协议必须安装<code>openssl</code>, 且需要高版本<code>openssl</code>必须支持<code>TLS1.2</code>、<code>ALPN</code>、<code>NPN</code></li>
+<li>编译时需要使用<a href="/environment?id=编译选项">--enable-http2</a>开启</li>
+<li>从Swoole5开始，默认启用http2协议
+<pre><code class="language-shell">./configure --enable-openssl --enable-http2</code></pre>
+<p>设置<code>HTTP</code>服务器的<a href="/http_server?id=open_http2_protocol">open_http2_protocol</a>为<code>true</code></p>
+<pre><code class="language-php">$server = new Swoole\Http\Server("127.0.0.1", 9501, SWOOLE_PROCESS, SWOOLE_SOCK_TCP | SWOOLE_SSL);
+$server-&gt;set([
+'ssl_cert_file' =&gt; $ssl_dir . '/ssl.crt',
+'ssl_key_file' =&gt; $ssl_dir . '/ssl.key',
+'open_http2_protocol' =&gt; true,
+]);</code></pre></li>
+</ul></li>
+<li><strong>Nginx + Swoole 配置</strong>
+!&gt; 由于<code>Http\Server</code>对<code>HTTP</code>协议的支持并不完整，建议仅作为应用服务器，用于处理动态请求，并且在前端增加<code>Nginx</code>作为代理。
+<pre><code class="language-nginx">server {
+listen 80;
+server_name swoole.test;
+location / {
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_pass http://127.0.0.1:9501;
+}
+}</code></pre>
+<p>?&gt; 可以通过读取<code>$request-&gt;header['x-real-ip']</code>来获取客户端的真实<code>IP</code>
+<a name="方法"></a></p>
+<h2>方法</h2>
+<p><a name="on"></a></p>
+<h3>on()</h3>
+<p>?&gt; <strong>注册事件回调函数。</strong>
+?&gt; 与 <a href="/server/events">Server的回调</a> 相同，不同之处是：</p>
+<ul>
+<li><code>Http\Server-&gt;on</code>不接受<a href="/server/events?id=onconnect">onConnect</a>/<a href="/server/events?id=onreceive">onReceive</a>回调设置</li>
+<li><code>Http\Server-&gt;on</code>额外接受1种新的事件类型<code>onRequest</code>，客户端发来的请求就在<code>Request</code>事件执行
+<pre><code class="language-php">$http_server-&gt;on('request', function(\Swoole\Http\Request $request, \Swoole\Http\Response $response) {
+$response-&gt;end("&lt;h1&gt;hello swoole&lt;/h1&gt;");
+});</code></pre>
+<p>在收到一个完整的HTTP请求后，会回调此函数。回调函数共有<code>2</code>个参数：</p></li>
+</ul></li>
+<li><a href="/http_server?id=httpRequest">Swoole\Http\Request</a>，<code>HTTP</code>请求信息对象，包含了<code>header/get/post/cookie</code>等相关信息</li>
+<li><a href="/http_server?id=httpResponse">Swoole\Http\Response</a>，<code>HTTP</code>响应对象，支持<code>cookie/header/status</code>等<code>HTTP</code>操作
+!&gt; 在<a href="/http_server?id=on">onRequest</a>回调函数返回时底层会销毁<code>$request</code>和<code>$response</code>对象
+<a name="start"></a>
+<h3>start()</h3>
+<p>?&gt; <strong>启动HTTP服务器</strong>
+?&gt; 启动后开始监听端口，并接收新的<code>HTTP</code>请求。</p>
+<pre><code class="language-php">Swoole\Http\Server-&gt;start();</code></pre>
+<p><a name="Swoole\Http\Request"></a></p>
+<h2>Swoole\Http\Request</h2>
+<p><code>HTTP</code>请求对象，保存了<code>HTTP</code>客户端请求的相关信息，包括<code>GET</code>、<code>POST</code>、<code>COOKIE</code>、<code>Header</code>等。
+!&gt; 请勿使用<code>&amp;</code>符号引用<code>Http\Request</code>对象
+<a name="header"></a></p>
+<h3>header</h3>
+<p>?&gt; <strong><code>HTTP</code>请求的头部信息。类型为数组，所有<code>key</code>均为小写。</strong></p>
+<pre><code class="language-php">Swoole\Http\Request-&gt;header: array</code></pre></li>
+<li><strong>示例</strong>
+<pre><code class="language-php">echo $request-&gt;header['host'];
+echo $request-&gt;header['accept-language'];</code></pre>
+<p><a name="server"></a></p>
+<h3>server</h3>
+<p>?&gt; <strong><code>HTTP</code>请求相关的服务器信息。</strong>
+?&gt; 相当于<code>PHP</code>的<code>$_SERVER</code>数组。包含了<code>HTTP</code>请求的方法，<code>URL</code>路径，客户端<code>IP</code>等信息。</p>
+<pre><code class="language-php">Swoole\Http\Request-&gt;server: array</code></pre>
+<p>数组的<code>key</code>全部为小写，并且与<code>PHP</code>的<code>$_SERVER</code>数组保持一致</p></li>
+<li><strong>示例</strong>
+<pre><code class="language-php">echo $request-&gt;server['request_time'];</code></pre>
+<table>
+<thead>
+<tr>
+<th>key</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>query_string</td>
+<td>请求的 <code>GET</code> 参数，如：<code>id=1&amp;cid=2</code> 如果没有 <code>GET</code> 参数，该项不存在</td>
+</tr>
+<tr>
+<td>request_method</td>
+<td>请求方法，<code>GET/POST</code>等</td>
+</tr>
+<tr>
+<td>request_uri</td>
+<td>无 <code>GET</code> 参数的访问地址，如<code>/favicon.ico</code></td>
+</tr>
+<tr>
+<td>path_info</td>
+<td>同 <code>request_uri</code></td>
+</tr>
+<tr>
+<td>request_time</td>
+<td><code>request_time</code>是在<code>Worker</code>设置的，在<a href="/learn?id=swoole_process">SWOOLE_PROCESS</a>模式下存在<code>dispatch</code>过程，因此可能会与实际收包时间存在偏差。尤其是当请求量超过服务器处理能力时，<code>request_time</code>可能远滞后于实际收包时间。可以通过<code>$server-&gt;getClientInfo</code>方法获取<code>last_time</code>获得准确的收包时间。</td>
+</tr>
+<tr>
+<td>request_time_float</td>
+<td>请求开始的时间戳，以微秒为单位，<code>float</code>类型，如<code>1576220199.2725</code></td>
+</tr>
+<tr>
+<td>server_protocol</td>
+<td>服务器协议版本号，<code>HTTP</code> 是：<code>HTTP/1.0</code> 或 <code>HTTP/1.1</code>，<code>HTTP2</code> 是：<code>HTTP/2</code></td>
+</tr>
+<tr>
+<td>server_port</td>
+<td>服务器监听的端口</td>
+</tr>
+<tr>
+<td>remote_port</td>
+<td>客户端的端口</td>
+</tr>
+<tr>
+<td>remote_addr</td>
+<td>客户端的 <code>IP</code> 地址</td>
+</tr>
+<tr>
+<td>master_time</td>
+<td>连接上次通讯时间</td>
+</tr>
+</tbody>
+</table>
+<p><a name="get"></a></p>
+<h3>get</h3>
+<p>?&gt; <strong><code>HTTP</code>请求的<code>GET</code>参数，相当于<code>PHP</code>中的<code>$_GET</code>，格式为数组。</strong></p>
+<pre><code class="language-php">Swoole\Http\Request-&gt;get: array</code></pre></li>
+<li><strong>示例</strong>
+<pre><code class="language-php">// 如：index.php?hello=123
+echo $request-&gt;get['hello'];
+// 获取所有GET参数
+var_dump($request-&gt;get);</code></pre></li>
+<li><strong>注意</strong>
+!&gt; 为防止<code>HASH</code>攻击，<code>GET</code>参数最大不允许超过<code>128</code>个
+<a name="post"></a>
+<h3>post</h3>
+<p>?&gt; <strong><code>HTTP</code>请求的<code>POST</code>参数，格式为数组</strong></p>
+<pre><code class="language-php">Swoole\Http\Request-&gt;post: array</code></pre></li>
+<li><strong>示例</strong>
+<pre><code class="language-php">echo $request-&gt;post['hello'];</code></pre></li>
+<li><strong>注意</strong>
+!&gt; -<code>POST</code>与<code>Header</code>加起来的尺寸不得超过<a href="/server/setting?id=package_max_length">package_max_length</a>的设置，否则会认为是恶意请求<br />
+-<code>POST</code>参数的个数最大不超过<code>128</code>个
+<a name="cookie"></a>
+<h3>cookie</h3>
+<p>?&gt; <strong><code>HTTP</code>请求携带的<code>COOKIE</code>信息，格式为键值对数组。</strong></p>
+<pre><code class="language-php">Swoole\Http\Request-&gt;cookie: array</code></pre></li>
+<li><strong>示例</strong>
+<pre><code class="language-php">echo $request-&gt;cookie['username'];</code></pre>
+<p><a name="files"></a></p>
+<h3>files</h3>
+<p>?&gt; <strong>上传文件信息。</strong>
+?&gt; 类型为以<code>form</code>名称为<code>key</code>的二维数组。与<code>PHP</code>的<code>$_FILES</code>相同。最大文件尺寸不得超过<a href="/server/setting?id=package_max_length">package_max_length</a>设置的值。因为Swoole在解析报文的时候是会占用内存的，报文越大，内存占用越大，因此请勿使用<code>Swoole\Http\Server</code>处理大文件上传或者由用户自行设计断点续传的功能。</p>
+<pre><code class="language-php">Swoole\Http\Request-&gt;files: array</code></pre></li>
+<li><strong>示例</strong>
+<pre><code class="language-php">Array
+(
+[name] =&gt; facepalm.jpg // 浏览器上传时传入的文件名称
+[type] =&gt; image/jpeg // MIME类型
+[tmp_name] =&gt; /tmp/swoole.upfile.n3FmFr // 上传的临时文件，文件名以/tmp/swoole.upfile开头
+[error] =&gt; 0
+[size] =&gt; 15476 // 文件尺寸
+)</code></pre></li>
+<li><strong>注意</strong>
+!&gt; 当<code>Swoole\Http\Request</code>对象销毁时，会自动删除上传的临时文件
+<a name="getContent"></a>
+<h3>getContent()</h3>
+<p>!&gt; Swoole版本 &gt;= <code>v4.5.0</code> 可用, 在低版本可使用别名<code>rawContent</code> (此别名将永久保留, 即向下兼容)
+?&gt; <strong>获取原始的<code>POST</code>包体。</strong>
+?&gt; 用于非<code>application/x-www-form-urlencoded</code>格式的HTTP <code>POST</code>请求。返回原始<code>POST</code>数据，此函数等同于<code>PHP</code>的<code>fopen('php://input')</code></p>
+<pre><code class="language-php">Swoole\Http\Request-&gt;getContent(): string|false</code></pre>
+<ul>
+<li><strong>返回值</strong></li>
+<li>执行成功返回报文，如果上下文连接不存在返回<code>false</code>
+!&gt; 有些情况下服务器不需要解析HTTP <code>POST</code>请求参数，通过<a href="/http_server?id=http_parse_post">http_parse_post</a> 配置，可以关闭<code>POST</code>数据解析。
+<a name="getData"></a>
+<h3>getData()</h3>
+<p>?&gt; <strong>获取完整的原始<code>Http</code>请求报文，注意<code>Http2</code>下无法使用。包括<code>Http Header</code>和<code>Http Body</code></strong></p>
+<pre><code class="language-php">Swoole\Http\Request-&gt;getData(): string|false</code></pre></li>
+<li><strong>返回值</strong></li>
+<li>执行成功返回报文，如果上下文连接不存在或者在<code>Http2</code>模式下返回<code>false</code>
+<a name="create"></a>
+<h3>create()</h3>
+<p>?&gt; <strong>创建一个<code>Swoole\Http\Request</code>对象。</strong>
+!&gt; Swoole版本 &gt;= <code>v4.6.0</code> 可用</p>
+<pre><code class="language-php">Swoole\Http\Request-&gt;create(array $options): Swoole\Http\Request</code></pre></li>
+<li><strong>参数</strong></li>
+<li><strong><code>array $options</code></strong>
+<ul>
+<li>
+<table>
+<thead>
+<tr>
+<th><strong>功能</strong>：可选参数，用于设置 <code>Request</code> 对象的配置</th>
+<th>参数</th>
+<th>默认值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="/http_server?id=http_parse_cookie">parse_cookie</a></td>
+<td>true</td>
+<td>设置是否解析<code>Cookie</code></td>
+</tr>
+<tr>
+<td><a href="/http_server?id=http_parse_post">parse_body</a></td>
+<td>true</td>
+<td>设置是否解析<code>Http Body</code></td>
+</tr>
+<tr>
+<td><a href="/http_server?id=http_parse_files">parse_files</a></td>
+<td>true</td>
+<td>设置上传文件解析开关</td>
+</tr>
+<tr>
+<td>enable_compression</td>
+<td>true，如果服务器不支持压缩报文，默认值为false</td>
+<td>设置是否启用压缩</td>
+</tr>
+<tr>
+<td>compression_level</td>
+<td>1</td>
+<td>设置压缩级别，范围是 1-9，等级越高压缩后的尺寸越小，但 CPU 消耗更多</td>
+</tr>
+<tr>
+<td>upload_tmp_dir</td>
+<td>/tmp</td>
+<td>临时文件存储位置，文件上传用</td>
+</tr>
+</tbody>
+</table>
+</li>
+</ul></li>
+<li><strong>返回值</strong></li>
+<li>返回一个<code>Swoole\Http\Request</code>对象</li>
+</ul></li>
+<li><strong>示例</strong>
+<pre><code class="language-php">Swoole\Http\Request::create([
+'parse_cookie' =&gt; true,
+'parse_body' =&gt; true,
+'parse_files' =&gt; true,
+'enable_compression' =&gt; true,
+'compression_level' =&gt; 1,
+'upload_tmp_dir' =&gt; '/tmp',
+]);</code></pre>
+<p><a name="parse"></a></p>
+<h3>parse()</h3>
+<p>?&gt; <strong>解析<code>HTTP</code>请求数据包，会返回成功解析的数据包长度。</strong>
+!&gt; Swoole版本 &gt;= <code>v4.6.0</code> 可用</p>
+<pre><code class="language-php">Swoole\Http\Request-&gt;parse(string $data): int|false</code></pre>
+<ul>
+<li><strong>参数</strong></li>
+<li><strong><code>string $data</code></strong>
+<ul>
+<li>要解析的报文</li>
+</ul></li>
+<li><strong>返回值</strong></li>
+<li>解析成功返回解析的报文长度，连接上下文不存在或者上下文已经结束返回<code>false</code>
+<a name="isCompleted"></a>
+<h3>isCompleted()</h3>
+<p>?&gt; <strong>获取当前的<code>HTTP</code>请求数据包是否已到达结尾。</strong>
+!&gt; Swoole版本 &gt;= <code>v4.6.0</code> 可用</p>
+<pre><code class="language-php">Swoole\Http\Request-&gt;isCompleted(): bool</code></pre></li>
+<li><strong>返回值</strong></li>
+<li><code>true</code>表示已经是结尾，<code>false</code>表示连接上下文已经结束或者未到结尾</li>
+</ul></li>
+<li><strong>示例</strong>
+<pre><code class="language-php">use Swoole\Http\Request;
+$data = "GET /index.html?hello=world&amp;test=2123 HTTP/1.1\r\n";
+$data .= "Host: 127.0.0.1\r\n";
+$data .= "Connection: keep-alive\r\n";
+$data .= "Pragma: no-cache\r\n";
+$data .= "Cache-Control: no-cache\r\n";
+$data .= "Upgrade-Insecure-Requests: \r\n";
+$data .= "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.75 Safari/537.36\r\n";
+$data .= "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9\r\n";
+$data .= "Accept-Encoding: gzip, deflate, br\r\n";
+$data .= "Accept-Language: zh-CN,zh;q=0.9,en;q=0.8,zh-TW;q=0.7,ja;q=0.6\r\n";
+$data .= "Cookie: env=pretest; phpsessid=fcccs2af8673a2f343a61a96551c8523d79ea; username=hantianfeng\r\n";
+/** @var Request $req */
+$req = Request::create(['parse_cookie' =&gt; false]);
+var_dump($req);
+var_dump($req-&gt;isCompleted());
+var_dump($req-&gt;parse($data));
+var_dump($req-&gt;parse("\r\n"));
+var_dump($req-&gt;isCompleted());
+var_dump($req);
+// 关闭了解析cookie，所以会是null
+var_dump($req-&gt;cookie);</code></pre>
+<p><a name="getMethod"></a></p>
+<h3>getMethod()</h3>
+<p>?&gt; <strong>获取当前的<code>HTTP</code>请求的请求方式。</strong>
+!&gt; Swoole版本 &gt;= <code>v4.6.2</code> 可用</p>
+<pre><code class="language-php">Swoole\Http\Request-&gt;getMethod(): string|false</code></pre>
+<ul>
+<li><strong>返回值</strong></li>
+<li>成返回大写的请求方式，<code>false</code>表示连接上下文不存在
+<pre><code class="language-php">var_dump($request-&gt;server['request_method']);
+var_dump($request-&gt;getMethod());</code></pre>
+<p><a name="Swoole\Http\Response"></a></p>
+<h2>Swoole\Http\Response</h2>
+<p><code>HTTP</code>响应对象，通过调用此对象的方法，实现<code>HTTP</code>响应发送。
+?&gt; 当<code>Response</code>对象销毁时，如果未调用<a href="/http_server?id=end">end</a>发送<code>HTTP</code>响应，底层会自动执行<code>end("")</code>;
+!&gt; 请勿使用<code>&amp;</code>符号引用<code>Http\Response</code>对象
+<a name="header :id=setheader"></a></p>
+<h3>header() :id=setheader</h3>
+<p>?&gt; <strong>设置HTTP响应的Header信息</strong>【别名<code>setHeader</code>】</p>
+<pre><code class="language-php">Swoole\Http\Response-&gt;header(string $key, string $value, bool $format = true): bool;</code></pre></li>
+</ul></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>string $key</code></strong></li>
+<li><strong>功能</strong>：<code>HTTP</code>头的<code>Key</code></li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong><code>string $value</code></strong></li>
+<li><strong>功能</strong>：<code>HTTP</code>头的<code>value</code></li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong><code>bool $format</code></strong></li>
+<li><strong>功能</strong>：是否需要对<code>Key</code>进行<code>HTTP</code>约定格式化【默认<code>true</code>会自动格式化】</li>
+<li><strong>默认值</strong>：<code>true</code></li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong>返回值</strong> 
+<ul>
+<li>设置失败，返回<code>false</code></li>
+<li>设置成功，返回<code>true</code></li>
+</ul></li>
+<li><strong>注意</strong>
+-<code>header</code>设置必须在<code>end</code>方法之前
+-<code>$key</code>必须完全符合<code>HTTP</code>的约定，每个单词首字母大写，不得包含中文，下划线或者其他特殊字符<br />
+-<code>$value</code>必须填写<br />
+-<code>$ucwords</code> 设为 <code>true</code>，底层会自动对<code>$key</code>进行约定格式化<br />
+-重复设置相同<code>$key</code>的<code>HTTP</code>头会覆盖，取最后一次<br />
+-如果客户端设置了<code>Accept-Encoding</code>，那么服务端不能设置<code>Content-Length</code>响应, <code>Swoole</code>检测到这种情况会忽略<code>Content-Length</code>的值，并且抛出一个警告<br />
+-设置了<code>Content-Length</code>响应不能调用<code>Swoole\Http\Response::write()</code>，<code>Swoole</code>检测到这种情况会忽略<code>Content-Length</code>的值，并且抛出一个警告
+!&gt; Swoole 版本 &gt;= <code>v4.6.0</code>时，支持重复设置相同<code>$key</code>的<code>HTTP</code>头，并且<code>$value</code>支持多种类型，如<code>array</code>、<code>object</code>、<code>int</code>、<code>float</code>，底层会进行<code>toString</code>转换，并且会移除末尾的空格以及换行。</li>
+<li><strong>示例</strong>
+<pre><code class="language-php">$response-&gt;header('content-type', 'image/jpeg', true);
+$response-&gt;header('Content-Length', '100002 ');
+$response-&gt;header('Test-Value', [
+"a\r\n",
+'d5678',
+"e  \n ",
+null,
+5678,
+3.1415926,
+]);
+$response-&gt;header('Foo', new SplFileInfo('bar'));</code></pre>
+<p><a name="trailer"></a></p>
+<h3>trailer()</h3>
+<p>?&gt; <strong>将<code>Header</code>信息附加到<code>HTTP</code>响应的末尾，仅在<code>HTTP2</code>中可用，用于消息完整性检查，数字签名等。</strong></p>
+<pre><code class="language-php">Swoole\Http\Response-&gt;trailer(string $key, string $value): bool;</code></pre></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>string $key</code></strong></li>
+<li><strong>功能</strong>：<code>HTTP</code>头的<code>Key</code></li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong><code>string $value</code></strong></li>
+<li><strong>功能</strong>：<code>HTTP</code>头的<code>value</code></li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong>返回值</strong> 
+<ul>
+<li>设置失败，返回<code>false</code></li>
+<li>设置成功，返回<code>true</code></li>
+</ul></li>
+<li><strong>注意</strong>
+!&gt; 重复设置相同<code>$key</code>的<code>Http</code>头会覆盖，取最后一次。</li>
+<li>
+<p><strong>示例</strong></p>
+<pre><code class="language-php">$response-&gt;trailer('grpc-status', 0);
+$response-&gt;trailer('grpc-message', '');</code></pre>
+<p><a name="cookie"></a></p>
+<h3>cookie()</h3>
+<p>?&gt; <strong>设置<code>HTTP</code>响应的<code>cookie</code>信息。别名<code>setCookie</code>。此方法参数与<code>PHP</code>的<code>setcookie</code>一致。</strong></p>
+<pre><code class="language-php">Swoole\Http\Response-&gt;cookie(string $key, string $value = '', int $expire = 0 , string $path = '/', string $domain  = '', bool $secure = false , bool $httponly = false, string $samesite = '', string $priority = ''): bool;</code></pre>
+<ul>
+<li>
+<p><strong>参数</strong> </p>
+</li>
+<li>
+<p><strong><code>string $key</code></strong></p>
+<ul>
+<li><strong>功能</strong>：<code>Cookie</code>的<code>Key</code></li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul>
+</li>
+<li>
+<p><strong><code>string $value</code></strong></p>
+<ul>
+<li><strong>功能</strong>：<code>Cookie</code>的<code>value</code></li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul>
+</li>
+<li>
+<p><strong><code>int $expire</code></strong></p>
+<ul>
+<li><strong>功能</strong>：<code>Cookie</code>的<code>过期时间</code></li>
+<li><strong>默认值</strong>：0，不过期</li>
+<li><strong>其它值</strong>：无</li>
+</ul>
+</li>
+<li>
+<p><strong><code>string $path</code></strong></p>
+<ul>
+<li><strong>功能</strong>：<code>规定 Cookie 的服务器路径。</code></li>
+<li><strong>默认值</strong>：/</li>
+<li><strong>其它值</strong>：无</li>
+</ul>
+</li>
+<li>
+<p><strong><code>string $domain</code></strong></p>
+<ul>
+<li><strong>功能</strong>：<code>规定 Cookie 的域名</code></li>
+<li><strong>默认值</strong>：''</li>
+<li><strong>其它值</strong>：无</li>
+</ul>
+</li>
+<li>
+<p><strong><code>bool $secure</code></strong></p>
+<ul>
+<li><strong>功能</strong>：<code>规定是否通过安全的 HTTPS 连接来传输 Cookie</code></li>
+<li><strong>默认值</strong>：''</li>
+<li><strong>其它值</strong>：无</li>
+</ul>
+</li>
+<li>
+<p><strong><code>bool $httponly</code></strong></p>
+<ul>
+<li><strong>功能</strong>：<code>是否允许浏览器的JavaScript访问带有 HttpOnly 属性的 Cookie</code>，<code>true</code>表示不允许，<code>false</code>表示允许</li>
+<li><strong>默认值</strong>：false</li>
+<li><strong>其它值</strong>：无</li>
+</ul>
+</li>
+<li>
+<p><strong><code>string $samesite</code></strong></p>
+<ul>
+<li><strong>功能</strong>：<code>限制第三方 Cookie，从而减少安全风险</code>，可选值为<code>Strict</code>，<code>Lax</code>，<code>None</code></li>
+<li><strong>默认值</strong>：''</li>
+<li><strong>其它值</strong>：无</li>
+</ul>
+</li>
+<li>
+<p><strong><code>string $priority</code></strong></p>
+<ul>
+<li><strong>功能</strong>：<code>Cookie优先级，当Cookie数量超过规定，低优先级的会先被删除</code>，可选值为<code>Low</code>，<code>Medium</code>，<code>High</code></li>
+<li><strong>默认值</strong>：''</li>
+<li><strong>其它值</strong>：无</li>
+</ul>
+</li>
+<li>
+<p><strong>返回值</strong> </p>
+</li>
+<li>
+<p>设置失败，返回<code>false</code></p>
+</li>
+<li>
+<p>设置成功，返回<code>true</code></p>
+</li>
+</ul>
+</li>
+<li><strong>注意</strong>
+!&gt; -<code>cookie</code>设置必须在<a href="/http_server?id=end">end</a>方法之前<br />
+-<code>$samesite</code> 参数从 <code>v4.4.6</code> 版本开始支持，<code>$priority</code> 参数从 <code>v4.5.8</code> 版本开始支持<br />
+-<code>Swoole</code>会自动会对<code>$value</code>进行<code>urlencode</code>编码，可使用<code>rawCookie()</code>方法关闭对<code>$value</code>的编码处理<br />
+-<code>Swoole</code>允许设置多个相同<code>$key</code>的<code>COOKIE</code>
+<a name="rawCookie"></a>
+<h3>rawCookie()</h3>
+<p>?&gt; <strong>设置<code>HTTP</code>响应的<code>cookie</code>信息</strong>
+!&gt; <code>rawCookie()</code>的参数和上文的<code>cookie()</code>一致，只不过不进行编码处理
+<a name="status"></a></p>
+<h3>status()</h3>
+<p>?&gt; <strong>发送<code>Http</code>状态码。别名<code>setStatusCode()</code></strong></p>
+<pre><code class="language-php">Swoole\Http\Response-&gt;status(int $http_status_code, string $reason = ''): bool</code></pre></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>int $http_status_code</code></strong></li>
+<li><strong>功能</strong>：设置 <code>HttpCode</code></li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong><code>string $reason</code></strong></li>
+<li><strong>功能</strong>：状态码原因</li>
+<li><strong>默认值</strong>：''</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong>返回值</strong> </li>
+<li>设置失败，返回<code>false</code></li>
+<li>设置成功，返回<code>true</code></li>
+</ul></li>
+<li><strong>提示</strong>
+<ul>
+<li>如果只传入了第一个参数 <code>$http_status_code</code>必须为合法的<code>HttpCode</code>，如<code>200</code>、<code>502</code>、<code>301</code>、<code>404</code>等，否则会设置为<code>200</code>状态码</li>
+<li>如果设置了第二个参数<code>$reason</code>，<code>$http_status_code</code>可以为任意的数值，包括未定义的<code>HttpCode</code>，如<code>499</code></li>
+<li>必须在 <a href="/http_server?id=end">$response-&gt;end()</a> 之前执行<code>status</code>方法
+<a name="gzip"></a>
+<h3>gzip()</h3>
+<p>!&gt; 此方法在<code>4.1.0</code>或更高版本中已废弃, 请移步<a href="/http_server?id=http_compression">http_compression</a>；在新版本中使用<code>http_compression</code>配置项取代了<code>gzip</code>方法。<br />
+主要原因是<code>gzip()</code>方法未判断浏览器客户端传入的<code>Accept-Encoding</code>头，如果客户端不支持<code>gzip</code>压缩，强行使用会导致客户端无法解压。<br />
+全新的<code>http_compression</code>配置项会根据客户端<code>Accept-Encoding</code>头，自动选择是否压缩，并自动选择最佳的压缩算法。
+?&gt; <strong>启用<code>Http GZIP</code>压缩。压缩可以减小<code>HTML</code>内容的尺寸，有效节省网络带宽，提高响应时间。必须在<code>write/end</code>发送内容之前执行<code>gzip</code>，否则会抛出错误。</strong></p>
+<pre><code class="language-php">Swoole\Http\Response-&gt;gzip(int $level = 1);</code></pre></li>
+</ul></li>
+<li>
+<p><strong>参数</strong> </p>
+<ul>
+<li><strong><code>int $level</code></strong>
+<ul>
+<li><strong>功能</strong>：压缩等级，等级越高压缩后的尺寸越小，但<code>CPU</code>消耗更多。</li>
+<li><strong>默认值</strong>：1</li>
+<li><strong>其它值</strong>：<code>1-9</code>
+!&gt; 调用<code>gzip</code>方法后，底层会自动添加<code>Http</code>编码头，PHP代码中不应当再行设置相关<code>Http</code>头；<code>jpg/png/gif</code>格式的图片已经经过压缩，无需再次压缩
+!&gt; <code>gzip</code>功能依赖<code>zlib</code>库，在编译swoole时底层会检测系统是否存在<code>zlib</code>，如果不存在，<code>gzip</code>方法将不可用。可以使用<code>yum</code>或<code>apt-get</code>安装<code>zlib</code>库：
+<pre><code class="language-shell">sudo apt-get install libz-dev</code></pre>
+<p><a name="redirect"></a></p>
+<h3>redirect()</h3>
+<p>?&gt; <strong>发送<code>Http</code>跳转。调用此方法会自动<code>end</code>发送并结束响应。</strong></p>
+<pre><code class="language-php">Swoole\Http\Response-&gt;redirect(string $url, int $http_code = 302): bool</code></pre></li>
+<li><strong>参数</strong> </li>
+</ul></li>
+</ul>
+</li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong>参数</strong> </li>
+</ul></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong>参数</strong> </li>
+<li><strong><code>string $url</code></strong>
+<ul>
+<li><strong>功能</strong>：跳转的新地址，作为<code>Location</code>头进行发送</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $http_code</code></strong>
+<ul>
+<li><strong>功能</strong>：状态码【默认为<code>302</code>临时跳转，传入<code>301</code>表示永久跳转】</li>
+<li><strong>默认值</strong>：<code>302</code></li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong>返回值</strong> </li>
+<li>调用成功，返回<code>true</code>，调用失败或连接上下文不存在，返回<code>false</code></li>
+</ul></li>
+<li>
+<p><strong>示例</strong></p>
+<pre><code class="language-php">$http = new Swoole\Http\Server("0.0.0.0", 9501, SWOOLE_BASE);
+$http-&gt;on('request', function ($req, Swoole\Http\Response $resp) {
+$resp-&gt;redirect("http://www.baidu.com/", 301);
+});
+$http-&gt;start();</code></pre>
+<p><a name="write"></a></p>
+<h3>write()</h3>
+<p>?&gt; <strong>启用<code>Http Chunk</code>分段向浏览器发送相应内容。</strong>
+?&gt; 关于<code>Http Chunk</code>可以参考<code>Http</code>协议标准文档。</p>
+<pre><code class="language-php">Swoole\Http\Response-&gt;write(string $data): bool</code></pre>
+<ul>
+<li>
+<p><strong>参数</strong> </p>
+</li>
+<li>
+<p><strong><code>string $data</code></strong></p>
+<ul>
+<li><strong>功能</strong>：要发送的数据内容【最大长度不得超过<code>2M</code>，受<a href="/server/setting?id=buffer_output_size">buffer_output_size</a>配置项控制】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul>
+</li>
+<li>
+<p><strong>返回值</strong> </p>
+</li>
+<li>
+<p>调用成功，返回<code>true</code>，调用失败或连接上下文不存在，返回<code>false</code></p>
+</li>
+</ul>
+</li>
+<li><strong>提示</strong>
+<ul>
+<li>使用<code>write</code>分段发送数据后，<a href="/http_server?id=end">end</a>方法将不接受任何参数，调用<code>end</code>只是会发送一个长度为<code>0</code>的<code>Chunk</code>表示数据传输完毕</li>
+<li>如果通过Swoole\Http\Response::header()方法设置了<code>Content-Length</code>，然后又调用这个方法，<code>Swoole</code>会忽略<code>Content-Length</code>的设置，并抛出一个警告</li>
+<li><code>Http2</code>不能使用这个函数，否则会抛出一个警告</li>
+<li>如果客户端支持响应压缩，<code>Swoole\Http\Response::write()</code>会强制关闭压缩
+<a name="sendfile"></a>
+<h3>sendfile()</h3>
+<p>?&gt; <strong>发送文件到浏览器。</strong></p>
+<pre><code class="language-php">Swoole\Http\Response-&gt;sendfile(string $filename, int $offset = 0, int $length = 0): bool</code></pre></li>
+<li><strong>参数</strong> </li>
+<li><strong><code>string $filename</code></strong>
+<ul>
+<li><strong>功能</strong>：要发送的文件名称【文件不存在或没有访问权限<code>sendfile</code>会失败】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $offset</code></strong>
+<ul>
+<li><strong>功能</strong>：上传文件的偏移量【可以指定从文件的中间部分开始传输数据。此特性可用于支持断点续传】</li>
+<li><strong>默认值</strong>：<code>0</code></li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $length</code></strong>
+<ul>
+<li><strong>功能</strong>：发送数据的尺寸</li>
+<li><strong>默认值</strong>：文件的尺寸</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong>返回值</strong> 
+<ul>
+<li>调用成功，返回<code>true</code>，调用失败或连接上下文不存在，返回<code>false</code></li>
+</ul></li>
+</ul></li>
+<li><strong>提示</strong>
+<ul>
+<li>底层无法推断要发送文件的MIME格式因此需要应用代码指定<code>Content-Type</code></li>
+<li>调用<code>sendfile</code>前不得使用<code>write</code>方法发送<code>Http-Chunk</code></li>
+<li>调用<code>sendfile</code>后底层会自动执行<code>end</code></li>
+<li><code>sendfile</code>不支持<code>gzip</code>压缩</li>
+</ul></li>
+<li>
+<p><strong>示例</strong></p>
+<pre><code class="language-php">$response-&gt;header('Content-Type', 'image/jpeg');
+$response-&gt;sendfile(__DIR__.$request-&gt;server['request_uri']);</code></pre>
+<p><a name="end"></a></p>
+<h3>end()</h3>
+<p>?&gt; <strong>发送<code>Http</code>响应体，并结束请求处理。</strong></p>
+<pre><code class="language-php">Swoole\Http\Response-&gt;end(string $html): bool</code></pre>
+<ul>
+<li>
+<p><strong>参数</strong> </p>
+</li>
+<li>
+<p><strong><code>string $html</code></strong></p>
+<ul>
+<li><strong>功能</strong>：要发送的内容</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul>
+</li>
+<li>
+<p><strong>返回值</strong> </p>
+</li>
+<li>
+<p>调用成功，返回<code>true</code>，调用失败或连接上下文不存在，返回<code>false</code></p>
+</li>
+</ul>
+</li>
+<li><strong>提示</strong>
+<ul>
+<li><code>end</code>只能调用一次，如果需要分多次向客户端发送数据，请使用<a href="/http_server?id=write">write</a>方法</li>
+<li>客户端开启了<a href="/coroutine_client/http_client?id=keep_alive">KeepAlive</a>，连接将会保持，服务器会等待下一次请求</li>
+<li>客户端未开启<code>KeepAlive</code>，服务器将会切断连接</li>
+<li><code>end</code>要发送的内容，由于受到<a href="/server/setting?id=buffer_output_size">output_buffer_size</a>的限制，默认为<code>2M</code>，如果大于这个限制则会响应失败，并抛出如下错误：
+!&gt; 解决方法为：使用<a href="/http_server?id=sendfile">sendfile</a>、<a href="/http_server?id=write">write</a>或调整<a href="/server/setting?id=buffer_output_size">output_buffer_size</a>
+<pre><code class="language-bash">WARNING finish (ERRNO 1203): The length of data [262144] exceeds the output buffer size[131072], please use the sendfile, chunked transfer mode or adjust the output_buffer_size</code></pre>
+<p><a name="detach"></a></p>
+<h3>detach()</h3>
+<p>?&gt; <strong>分离响应对象。</strong>使用此方法后，<code>$response</code>对象销毁时不会自动<a href="/http_server?id=httpresponse">end</a>，与 <a href="/http_server?id=create">Http\Response::create</a> 和 <a href="/server/methods?id=send">Server-&gt;send</a> 配合使用。</p>
+<pre><code class="language-php">Swoole\Http\Response-&gt;detach(): bool</code></pre></li>
+<li><strong>返回值</strong> </li>
+<li>调用成功，返回<code>true</code>，调用失败或连接上下文不存在，返回<code>false</code></li>
+</ul></li>
+<li><strong>示例</strong> 
+<ul>
+<li><strong>跨进程响应</strong>
+?&gt; 某些情况下，需要在 <a href="/learn?id=taskworker进程">Task进程</a>中对客户端发出响应。这时可以利用<code>detach</code>使<code>$response</code>对象独立。在 <a href="/learn?id=taskworker进程">Task进程</a>可以重新构建<code>$response</code>，发起<code>Http</code>请求响应。 
+<pre><code class="language-php">$http = new Swoole\Http\Server("0.0.0.0", 9501);
+$http-&gt;set(['task_worker_num' =&gt; 1, 'worker_num' =&gt; 1]);
+$http-&gt;on('request', function ($req, Swoole\Http\Response $resp) use ($http) {
+$resp-&gt;detach();
+$http-&gt;task(strval($resp-&gt;fd));
+});
+$http-&gt;on('finish', function () {
+echo "task finish";
+});
+$http-&gt;on('task', function ($serv, $task_id, $worker_id, $data) {
+var_dump($data);
+$resp = Swoole\Http\Response::create($data);
+$resp-&gt;end("in task");
+echo "async task\n";
+});
+$http-&gt;start();</code></pre></li>
+<li><strong>发送任意内容</strong>
+?&gt; 某些特殊的场景下，需要对客户端发送特殊的响应内容。<code>Http\Response</code>对象自带的<code>end</code>方法无法满足需求，可以使用<code>detach</code>分离响应对象，然后自行组装HTTP协议响应数据，并使用<code>Server-&gt;send</code>发送数据。
+<pre><code class="language-php">$http = new Swoole\Http\Server("0.0.0.0", 9501);
+$http-&gt;on('request', function ($req, Swoole\Http\Response $resp) use ($http) {
+$resp-&gt;detach();
+$http-&gt;send($resp-&gt;fd, "HTTP/1.1 200 OK\r\nServer: server\r\n\r\nHello World\n");
+});
+$http-&gt;start();</code></pre>
+<p><a name="create"></a></p>
+<h3>create()</h3>
+<p>?&gt; <strong>构造新的<code>Swoole\Http\Response</code>对象。</strong>
+!&gt; 使用此方法前请务必调用<code>detach</code>方法将旧的<code>$response</code>对象分离，否则可能会造成对同一个请求发送两次响应内容。</p>
+<pre><code class="language-php">Swoole\Http\Response::create(object|array|int $server = -1, int $fd = -1): Swoole\Http\Response</code></pre></li>
+<li><strong>参数</strong> </li>
+<li><strong><code>int $server</code></strong>
+<ul>
+<li><strong>功能</strong>：<code>Swoole\Server</code>或者<code>Swoole\Coroutine\Socket</code>对象，数组（数组只能有两个参数，第一个是<code>Swoole\Server</code>对象，第二个是<code>Swoole\Http\Request</code>对象），或者文件描述符</li>
+<li><strong>默认值</strong>：-1</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $fd</code></strong>
+<ul>
+<li><strong>功能</strong>：文件描述符。如果参数<code>$server</code>是<code>Swoole\Server</code>对象，<code>$fd</code>是必填的</li>
+<li><strong>默认值</strong>：-1</li>
+<li>
+</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong>返回值</strong> </li>
+<li>调用成功返回一个新的<code>Swoole\Http\Response</code>对象，调用失败返回<code>false</code></li>
+</ul></li>
+<li><strong>示例</strong>
+<pre><code class="language-php">$http = new Swoole\Http\Server('0.0.0.0', 9501);
+$http-&gt;on('request', function ($req, Swoole\Http\Response $resp) use ($http) {
+$resp-&gt;detach();
+// 示例1
+$resp2 = Swoole\Http\Response::create($req-&gt;fd);
+// 示例2
+$resp2 = Swoole\Http\Response::create($http, $req-&gt;fd);
+// 示例3
+$resp2 = Swoole\Http\Response::create([$http, $req]);
+// 示例4
+$socket = new Swoole\Coroutine\Socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
+$socket-&gt;connect('127.0.0.1', 9501)
+$resp2 = Swoole\Http\Response::create($socket);
+$resp2-&gt;end("hello world");
+});
+$http-&gt;start();</code></pre>
+<p><a name="isWritable"></a></p>
+<h3>isWritable()</h3>
+<p>?&gt; <strong>判断<code>Swoole\Http\Response</code>对象是否已结束(<code>end</code>)或已分离(<code>detach</code>)。</strong></p>
+<pre><code class="language-php">Swoole\Http\Response-&gt;isWritable(): bool</code></pre>
+<ul>
+<li><strong>返回值</strong> </li>
+<li><code>Swoole\Http\Response</code>对象未结束或者未分离返回<code>true</code>，否则返回<code>false</code>
+!&gt; Swoole版本 &gt;= <code>v4.6.0</code> 可用</li>
+</ul></li>
+<li><strong>示例</strong>
+<pre><code class="language-php">use Swoole\Http\Server;
+use Swoole\Http\Request;
+use Swoole\Http\Response;
+$http = new Server('0.0.0.0', 9501);
+$http-&gt;on('request', function (Request $req, Response $resp) {
+var_dump($resp-&gt;isWritable()); // true
+$resp-&gt;end('hello');
+var_dump($resp-&gt;isWritable()); // false
+$resp-&gt;setStatusCode(403); // http response is unavailable (maybe it has been ended or detached)
+});
+$http-&gt;start();</code></pre>
+<p><a name="配置选项"></a></p>
+<h2>配置选项</h2>
+<p><a name="http_parse_cookie"></a></p>
+<h3>http_parse_cookie</h3>
+<p>?&gt; <strong>针对<code>Swoole\Http\Request</code>对象的配置，关闭<code>Cookie</code>解析，将在<code>header</code>中保留未经处理的原始的<code>Cookies</code>信息。默认开启</strong></p>
+<pre><code class="language-php">$server-&gt;set([
+'http_parse_cookie' =&gt; false,
+]);</code></pre>
+<p><a name="http_parse_post"></a></p>
+<h3>http_parse_post</h3>
+<p>?&gt; <strong>针对<code>Swoole\Http\Request</code>对象的配置，设置POST消息解析开关，默认开启</strong></p></li>
+<li>设置为<code>true</code>时自动将<code>Content-Type为x-www-form-urlencoded</code>的请求包体解析到<code>POST</code>数组。</li>
+<li>设置为<code>false</code>时将关闭<code>POST</code>解析。
+<pre><code class="language-php">$server-&gt;set([
+'http_parse_post' =&gt; false,
+]);</code></pre>
+<p><a name="http_parse_files"></a></p>
+<h3>http_parse_files</h3>
+<p>?&gt; <strong>针对<code>Swoole\Http\Request</code>对象的配置，设置上传文件解析开关。默认开启</strong></p>
+<pre><code class="language-php">$server-&gt;set([
+'http_parse_files' =&gt; false,
+]);</code></pre>
+<p><a name="http_compression"></a></p>
+<h3>http_compression</h3>
+<p>?&gt; <strong>针对<code>Swoole\Http\Response</code>对象的配置，启用压缩。默认为开启。</strong>
+!&gt; -<code>http-chunk</code>不支持分段单独压缩, 若使用<a href="/http_server?id=write">write</a>方法, 将会强制关闭压缩。<br />
+-<code>http_compression</code>在<code>v4.1.0</code>或更高版本可用</p>
+<pre><code class="language-php">$server-&gt;set([
+'http_compression' =&gt; false,
+]);</code></pre>
+<p>目前支持<code>gzip</code>、<code>br</code>、<code>deflate</code> 三种压缩格式，底层会根据浏览器客户端传入的<code>Accept-Encoding</code>头自动选择压缩方式（压缩算法优先级：<code>br</code> &gt; <code>gzip</code> &gt; <code>deflate</code> ）。
+<strong>依赖：</strong>
+<code>gzip</code>和<code>deflate</code>依赖<code>zlib</code>库，在编译<code>Swoole</code>时底层会检测系统是否存在<code>zlib</code>。
+可以使用<code>yum</code>或<code>apt-get</code>安装<code>zlib</code>库：</p>
+<pre><code class="language-shell">sudo apt-get install libz-dev</code></pre>
+<p><code>br</code>压缩格式依赖<code>google</code>的 <code>brotli</code>库，安装方式请自行搜索<code>install brotli on linux</code>，在编译<code>Swoole</code>时底层会检测系统是否存在<code>brotli</code>。
+<a name="http_compression_level / compression_level / http_gzip_level"></a></p>
+<h3>http_compression_level / compression_level / http_gzip_level</h3>
+<p>?&gt; <strong>压缩级别，针对<code>Swoole\Http\Response</code>对象的配置</strong></p></li>
+</ul>
+<p>!&gt; <code>$level</code> 压缩等级，范围是<code>1-9</code>，等级越高压缩后的尺寸越小，但<code>CPU</code>消耗更多。默认为<code>1</code>, 最高为<code>9</code>
+<a name="http_compression_min_length / compression_min_length"></a></p>
+<h3>http_compression_min_length / compression_min_length</h3>
+<p>?&gt; <strong>设置开启压缩的最小字节，针对<code>Swoole\Http\Response</code>对象的配置，超过该选项值才开启压缩。默认20字节。</strong>
+!&gt; Swoole版本 &gt;= <code>v4.6.3</code> 可用</p>
+<pre><code class="language-php">$server-&gt;set([
+    'compression_min_length' =&gt; 128,
+]);</code></pre>
+<p><a name="upload_tmp_dir"></a></p>
+<h3>upload_tmp_dir</h3>
+<p>?&gt; <strong>设置上传文件的临时目录。目录最大长度不得超过<code>220</code>字节</strong></p>
+<pre><code class="language-php">$server-&gt;set([
+    'upload_tmp_dir' =&gt; '/data/uploadfiles/',
+]);</code></pre>
+<p><a name="upload_max_filesize"></a></p>
+<h3>upload_max_filesize</h3>
+<p>?&gt; <strong>设置上传文件的最大值</strong></p>
+<pre><code class="language-php">$server-&gt;set([
+    'upload_max_filesize' =&gt; 5 * 1024,
+]);</code></pre>
+<p><a name="enable_static_handler"></a></p>
+<h3>enable_static_handler</h3>
+<p>开启静态文件请求处理功能, 需配合<code>document_root</code>使用 默认<code>false</code>
+<a name="http_autoindex"></a></p>
+<h3>http_autoindex</h3>
+<p>开启<code>http autoindex</code>功能 默认不开启
+<a name="http_index_files"></a></p>
+<h3>http_index_files</h3>
+<p>配合<code>http_autoindex</code>使用，指定需要被索引的文件列表</p>
+<pre><code class="language-php">$server-&gt;set([
+    'document_root' =&gt; '/data/webroot/example.com',
+    'enable_static_handler' =&gt; true,
+    'http_autoindex' =&gt; true,
+    'http_index_files' =&gt; ['indesx.html', 'index.txt'],
+]);</code></pre>
+<p><a name="http_compression_types / compression_types"></a></p>
+<h3>http_compression_types / compression_types</h3>
+<p>?&gt; <strong>设置需要压缩的响应类型，针对<code>Swoole\Http\Response</code>对象的配置</strong></p>
+<pre><code class="language-php">$server-&gt;set([
+        'http_compression_types' =&gt; [
+            'text/html',
+            'application/json'
+        ],
+    ]);</code></pre>
+<p>!&gt; Swoole版本 &gt;= <code>v4.8.12</code> 可用
+<a name="static_handler_locations"></a></p>
+<h3>static_handler_locations</h3>
+<p>?&gt; <strong>设置静态处理器的路径。类型为数组，默认不启用。</strong>
+!&gt; Swoole版本 &gt;= <code>v4.4.0</code> 可用</p>
+<pre><code class="language-php">$server-&gt;set([
+    'static_handler_locations' =&gt; ['/static', '/app/images'],
+]);</code></pre>
+<ul>
+<li>类似于<code>Nginx</code>的<code>location</code>指令，可以指定一个或多个路径为静态路径。只有<code>URL</code>在指定路径下才会启用静态文件处理器，否则会视为动态请求。</li>
+<li><code>location</code>项必须以/开头</li>
+<li>支持多级路径，如<code>/app/images</code></li>
+<li>启用<code>static_handler_locations</code>后，如果请求对应的文件不存在，将直接返回404错误
+<a name="open_http2_protocol"></a>
+<h3>open_http2_protocol</h3>
+<p>?&gt; <strong>启用<code>HTTP2</code>协议解析</strong>【默认值：<code>false</code>】
+!&gt; 需要编译时启用 <a href="/environment?id=编译选项">--enable-http2</a> 选项，<code>Swoole5</code>开始默认编译http2。
+<a name="document_root"></a></p>
+<h3>document_root</h3>
+<p>?&gt; <strong>配置静态文件根目录，与<code>enable_static_handler</code>配合使用。</strong>
+!&gt; 此功能较为简易, 请勿在公网环境直接使用</p>
+<pre><code class="language-php">$server-&gt;set([
+'document_root' =&gt; '/data/webroot/example.com', // v4.4.0以下版本, 此处必须为绝对路径
+'enable_static_handler' =&gt; true,
+]);</code></pre></li>
+<li>设置<code>document_root</code>并设置<code>enable_static_handler</code>为<code>true</code>后，底层收到<code>Http</code>请求会先判断document_root路径下是否存在此文件，如果存在会直接发送文件内容给客户端，不再触发<a href="/http_server?id=on">onRequest</a>回调。</li>
+<li>使用静态文件处理特性时，应当将动态PHP代码和静态文件进行隔离，静态文件存放到特定的目录
+<a name="max_concurrency"></a>
+<h3>max_concurrency</h3>
+<p>?&gt; <strong>可限制 <code>HTTP1/2</code> 服务的最大并发请求数量，超过之后返回 <code>503</code> 错误，默认值为4294967295，即为无符号int的最大值</strong></p>
+<pre><code class="language-php">$server-&gt;set([
+'max_concurrency' =&gt; 1000,
+]);</code></pre>
+<p><a name="worker_max_concurrency"></a></p>
+<h3>worker_max_concurrency</h3>
+<p>?&gt; <strong>开启一键协程化之后，<code>worker</code>进程会源源不断的接受请求，为了避免压力过大，我们可以设置<code>worker_max_concurrency</code>限制<code>worker</code>进程的请求执行数，当请求数超过该值时，<code>worker</code>进程会将多余的请求暂存于队列，默认值为4294967295，即为无符号int的最大值。如果没有设置<code>worker_max_concurrency</code>，但是设置了<code>max_concurrency</code>的话，底层会自动设置<code>worker_max_concurrency</code>等于<code>max_concurrency</code></strong></p>
+<pre><code class="language-php">$server-&gt;set([
+'worker_max_concurrency' =&gt; 1000,
+]);</code></pre>
+<p>!&gt; Swoole版本 &gt;= <code>v5.0.0</code> 可用
+<a name="http2_header_table_size"></a></p>
+<h3>http2_header_table_size</h3>
+<p>?&gt; 定义HTTP/2网络连接的最大<code>header table</code>大小。</p>
+<pre><code class="language-php">$server-&gt;set([
+'http2_header_table_size' =&gt; 0x1
+])</code></pre>
+<p><a name="http2_enable_push"></a></p>
+<h3>http2_enable_push</h3>
+<p>?&gt; 该配置用于启用或禁用HTTP2推送。</p>
+<pre><code class="language-php">$server-&gt;set([
+'http2_enable_push' =&gt; 0x2
+])</code></pre>
+<p><a name="http2_max_concurrent_streams"></a></p>
+<h3>http2_max_concurrent_streams</h3>
+<p>?&gt; 设置每个HTTP/2网络连接中接受的多路复用流的最大数量。</p>
+<pre><code class="language-php">$server-&gt;set([
+'http2_max_concurrent_streams' =&gt; 0x3
+])</code></pre>
+<p><a name="http2_init_window_size"></a></p>
+<h3>http2_init_window_size</h3>
+<p>?&gt; 设置HTTP/2流量控制窗口的初始化大小。</p>
+<pre><code class="language-php">$server-&gt;set([
+'http2_init_window_size' =&gt; 0x4
+])</code></pre>
+<p><a name="http2_max_frame_size"></a></p>
+<h3>http2_max_frame_size</h3>
+<p>?&gt; 设置通过HTTP/2网络连接发送的单个HTTP/2协议帧的主体的最大大小。</p>
+<pre><code class="language-php">$server-&gt;set([
+'http2_max_frame_size' =&gt; 0x5
+])</code></pre>
+<p><a name="http2_max_header_list_size"></a></p>
+<h3>http2_max_header_list_size</h3>
+<p>?&gt; 设置在HTTP/2流上的请求中可以发送的头的最大大小。 </p>
+<pre><code class="language-php">$server-&gt;set([
+'http2_max_header_list_size' =&gt; 0x6
+])</code></pre></li>
+</ul>
+</body>
+</html>

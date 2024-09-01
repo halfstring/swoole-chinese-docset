@@ -18,6 +18,13 @@ $allMarkdown = [
     'server/properties.md',
     'server/setting.md',
     'server/events.md',
+    'server/task_class.md',
+    'server/packet_class.md',
+    'server/pipemessage_class.md',
+    'server/statusinfo_class.md',
+    'server/taskresult_class.md',
+    'server/event_class.md',
+    'server/server_port.md',
     'http_server.md',
     'websocket_server.md',
     'redis_server.md',
@@ -28,7 +35,6 @@ $allMarkdown = [
     'coroutine/ws_server.md',
     'client_init.md',
     'client.md',
-    'runtime.md',
     'coroutine_client/init.md',
     'coroutine_client/client.md',
     'coroutine_client/socket.md',
@@ -39,6 +45,7 @@ $allMarkdown = [
     'coroutine_client/mysql.md',
     'coroutine_client/redis.md',
     'coroutine.md',
+    'runtime.md',
     'coroutine/coroutine.md',
     'coroutine/scheduler.md',
     'coroutine/system.md',
@@ -52,12 +59,12 @@ $allMarkdown = [
     'coroutine/gdb.md',
     'coroutine/notice.md',
     'timer.md',
-    'memory/table.md',
-    'memory/atomic.md',
-    'memory/lock.md',
     'process/process.md',
     'process/process_pool.md',
     'process/process_manager.md',
+    'memory/table.md',
+    'memory/atomic.md',
+    'memory/lock.md',
     'event.md',
     'question/install.md',
     'question/use.md',
@@ -87,7 +94,7 @@ $allMarkdown = [
 
 class GenSwooleDocset
 {
-    private $swooleWiki = 'https://wiki.swoole.com/';
+    private $swooleWiki = 'http://wiki.swoole.com/';
 
     private $md   = [];
     private $tags = [];
@@ -171,10 +178,11 @@ class GenSwooleDocset
 
     private function getMarkdown($fileName)
     {
-        echo $fileName, "-----", $this->swooleWiki . $fileName, PHP_EOL;
         $file = './md/' . str_replace("/", "12", $fileName);
 
-        $content = file_get_contents($this->swooleWiki . $fileName);
+        $fileUrl = $this->swooleWiki . 'zh-cn/' . $fileName;
+        echo $fileUrl , PHP_EOL;
+        $content = file_get_contents($fileUrl);
 
         $lines = explode("\n", $content);
         $lines = array_filter($lines);

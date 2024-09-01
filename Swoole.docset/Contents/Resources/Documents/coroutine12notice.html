@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>协程编程须知</h1>
+<p>使用 Swoole <a href="/coroutine">协程</a> 特性，请认真阅读本章节编程须知。
+<a name="编程范式"></a></p>
+<h2>编程范式</h2>
+<ul>
+<li>协程内部禁止使用全局变量</li>
+<li>协程使用<code>use</code>关键字引入外部变量到当前作用域禁止使用引用</li>
+<li>协程之间通讯必须使用<a href="/coroutine/channel">Channel</a>
+!&gt; 即协程之间通讯不要使用全局变量或者引用外部变量到当前作用域，而要使用<code>Channel</code></li>
+<li>项目中如果有扩展<code>hook</code>了<code>zend_execute_ex</code>或者<code>zend_execute_internal</code>，需要特别注意一下C栈。可以使用<a href="/coroutine/coroutine?id=set">Co::set</a>重新设置C栈大小
+!&gt; <code>hook</code>这两个入口函数后，大部分情况下会把平坦的PHP指令调用变为<code>C</code>函数调用，增加C栈的消耗。
+<a name="退出协程"></a>
+<h2>退出协程</h2>
+<p>在Swoole低版本中，协程中使用<code>exit</code>强行退出脚本会导致内存错误导致不可预期的结果或<code>coredump</code>，在Swoole服务中使用<code>exit</code>会使整个服务进程退出且内部的协程全部异常终止导致严重问题，Swoole长期以来一直禁止开发者使用<code>exit</code>，但开发者可以使用抛出异常这种非常规的方式，在顶层<code>catch</code>来实现和<code>exit</code>相同的退出逻辑
+!&gt; v4.2.2版本及以上允许脚本(未创建<code>http_server</code>)在只有当前协程的情况下<code>exit</code>退出
+Swoole <strong>v4.1.0</strong> 版本及以上直接支持了在<code>协程</code>、<code>服务事件循环</code>中使用PHP的<code>exit</code>，此时底层会自动抛出一个可捕获的<code>Swoole\ExitException</code>，开发者可以在需要的位置捕获并实现与原生PHP一样的退出逻辑。
+<a name="Swoole\ExitException"></a></p>
+<h3>Swoole\ExitException</h3>
+<p><code>Swoole\ExitException</code>继承于<code>Exception</code>且新增了两个方法<code>getStatus</code>和<code>getFlags</code>:</p>
+<pre><code class="language-php">namespace Swoole;
+class ExitException extends \Exception
+{
+public function getStatus(): mixed
+public function getFlags(): int
+}</code></pre>
+<p><a name="getStatus"></a></p>
+<h4>getStatus()</h4>
+<p>获取exit($status)退出时的传入的<code>status</code>参数，支持任意的变量类型。</p>
+<pre><code class="language-php">public function getStatus(): mixed</code></pre>
+<p><a name="getFlags"></a></p>
+<h4>getFlags()</h4>
+<p>获取exit退出时所处的环境信息掩码。</p>
+<pre><code class="language-php">public function getFlags(): int</code></pre>
+<table>
+<thead>
+<tr>
+<th>目前有以下掩码：</th>
+<th>常量</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SWOOLE_EXIT_IN_COROUTINE</td>
+<td>协程中退出</td>
+</tr>
+<tr>
+<td>SWOOLE_EXIT_IN_SERVER</td>
+<td>Server中退出</td>
+</tr>
+</tbody>
+</table>
+<p><a name="使用方法"></a></p>
+<h3>使用方法</h3>
+<p><a name="基本使用"></a></p>
+<h4>基本使用</h4>
+<pre><code class="language-php">use Swoole\Coroutine;
+use function Swoole\Coroutine\run;
+function route()
+{
+controller();
+}
+function controller()
+{
+your_code();
+}
+function your_code()
+{
+Coroutine::sleep(.001);
+exit(1);
+}
+run(function () {
+try {
+    route();
+} catch (\Swoole\ExitException $e) {
+    var_dump($e-&gt;getMessage());
+    var_dump($e-&gt;getStatus() === 1);
+    var_dump($e-&gt;getFlags() === SWOOLE_EXIT_IN_COROUTINE);
+}
+});</code></pre>
+<p><a name="带状态码的退出"></a></p>
+<h4>带状态码的退出</h4>
+<pre><code class="language-php">use function Swoole\Coroutine\run;
+$exit_status = 0;
+run(function () {
+try {
+    exit(123);
+} catch (\Swoole\ExitException $e) {
+    global $exit_status;
+    $exit_status = $e-&gt;getStatus();
+}
+});
+var_dump($exit_status);</code></pre>
+<p><a name="异常处理"></a></p>
+<h2>异常处理</h2>
+<p>在协程编程中可直接使用<code>try/catch</code>处理异常。<strong>但必须在协程内捕获，不得跨协程捕获异常</strong>。
+!&gt; 不仅是应用层<code>throw</code>的<code>Exception</code>，底层的一些错误也是可以被捕获的，如<code>function</code>、<code>class</code>、<code>method</code>不存在
+<a name="错误示例"></a></p>
+<h3>错误示例</h3>
+<p>下面的代码中，<code>try/catch</code>和<code>throw</code>在不同的协程中，协程内无法捕获到此异常。当协程退出时，发现有未捕获的异常，将引起致命错误。</p>
+<pre><code class="language-bash">PHP Fatal error:  Uncaught RuntimeException</code></pre>
+<pre><code class="language-php">try {
+Swoole\Coroutine::create(function () {
+    throw new \RuntimeException(__FILE__, __LINE__);
+});
+}
+catch (\Throwable $e) {
+echo $e;
+}</code></pre>
+<p><a name="正确示例"></a></p>
+<h3>正确示例</h3>
+<p>在协程内捕获异常。</p>
+<pre><code class="language-php">function test() {
+throw new \RuntimeException(__FILE__, __LINE__);
+}
+Swoole\Coroutine::create(function () {
+try {
+    test();
+}
+catch (\Throwable $e) {
+    echo $e;
+}
+});</code></pre>
+<p><a name="在 __get / __set 魔术方法里不得产生协程切换"></a></p>
+<h2>在 <strong>get / </strong>set 魔术方法里不得产生协程切换</h2>
+<p>原因：<a href="https://github.com/pangudashu/php7-internal/blob/40645cfe087b373c80738881911ae3b178818f11/3/zend_object.md">参考PHP7内核剖析</a></p>
+<blockquote>
+<p><strong>Note:</strong> 如果类存在__get()方法，则在实例化对象分配属性内存(即:properties_table)时会多分配一个zval，类型为HashTable，每次调用__get($var)时会把输入的$var名称存入这个哈希表，这样做的目的是防止循环调用，举个例子：</p>
+<p><strong><em>public function __get($var) { return $this-&gt;$var; }</em></strong></p>
+<p>这种情况是调用<strong>get()时又访问了一个不存在的属性，也就是会在</strong>get()方法中递归调用，如果不对请求的$var作判断则将一直递归下去，所以在调用<strong>get()前首先会判断当前$var是不是已经在</strong>get()中了，如果是则不会再调用__get()，否则会把$var作为key插入那个HashTable，然后将哈希值设置为：<em>guard |= IN_ISSET，调用完__get()再把哈希值设置为：</em>guard &amp;= ~IN_ISSET。</p>
+<p>这个HashTable不仅仅是给__get()用的，其它魔术方法也会用到，所以其哈希值类型是zend_long，不同的魔术方法占不同的bit位；其次，并不是所有的对象都会额外分配这个HashTable，在对象创建时会根据 <strong><em>zend_class_entry.ce_flags</em></strong> 是否包含 <strong><em>ZEND_ACC_USE_GUARDS</em></strong> 确定是否分配，在类编译时如果发现定义了<strong>get()、</strong>set()、<strong>unset()、</strong>isset()方法则会将ce_flags打上这个掩码。
+协程切换出去后，下次调用将会被判断为循环调用，此问题为PHP<strong>特性</strong>所致，与PHP开发组沟通后仍暂时无解。
+注意：在魔术方法中，虽然没有可以导致协程切换的代码，但是设置打开协程抢占式调度后，依然可能导致魔术方法被强行切换协程。
+建议：自己实现<code>get</code>/<code>set</code>方法显式调用
+原始问题链接：<a href="https://github.com/swoole/swoole-src/issues/2625">#2625</a>
+<a name="严重错误"></a></p>
+<h2>严重错误</h2>
+<p>以下行为会导致出现严重错误。
+<a name="在多个协程间共用一个连接"></a></p>
+<h3>在多个协程间共用一个连接</h3>
+<p>与同步阻塞程序不同，协程是并发处理请求的，因此同一时间可能会有很多个请求在并行处理，一旦共用客户端连接，就会导致不同协程之间发生数据错乱。参考：<a href="/question/use?id=client-has-already-been-bound-to-another-coroutine">多协程共享TCP连接</a>
+<a name="使用类静态变量/全局变量保存上下文"></a></p>
+<h3>使用类静态变量/全局变量保存上下文</h3>
+<p>多个协程是并发执行的，因此不能使用类静态变量/全局变量保存协程上下文内容。使用局部变量是安全的，因为局部变量的值会自动保存在协程栈中，其他协程访问不到协程的局部变量。
+<a name="错误示例"></a></p>
+<h4>错误示例</h4>
+<pre><code class="language-php">$server = new Swoole\Http\Server('127.0.0.1', 9501);
+$_array = [];
+$server-&gt;on('request', function ($request, $response) {
+global $_array;
+//请求 /a（协程 1 ）
+if ($request-&gt;server['request_uri'] == '/a') {
+$_array['name'] = 'a';
+co::sleep(1.0);
+echo $_array['name'];
+$response-&gt;end($_array['name']);
+}
+//请求 /b（协程 2 ）
+else {
+$_array['name'] = 'b';
+$response-&gt;end();
+}
+});
+$server-&gt;start();</code></pre>
+<p>发起<code>2</code>个并发请求。</p>
+<pre><code class="language-shell">curl http://127.0.0.1:9501/a
+curl http://127.0.0.1:9501/b</code></pre>
+</blockquote></li>
+<li>协程<code>1</code>中设置了全局变量<code>$_array['name']</code>的值为<code>a</code></li>
+<li>协程<code>1</code>调用<code>co::sleep</code>挂起</li>
+<li>协程<code>2</code>执行，将<code>$_array['name']</code>的值为<code>b</code>，协程2结束</li>
+<li>这时定时器返回，底层恢复协程1的运行。而协程1的逻辑中有一个上下文的依赖关系。当再次打印<code>$_array['name']</code>的值时，程序预期是<code>a</code>，但这个值已经被协程<code>2</code>所修改，实际结果却是<code>b</code>，这样就造成了逻辑错误</li>
+<li>同理，使用类静态变量<code>Class::$array</code>、全局对象属性<code>$object-&gt;array</code>、其他超全局变量<code>$GLOBALS</code>等，进行上下文保存在协程程序中是非常危险的。可能会出现不符合预期的行为。
+<img src="../_images/coroutine/notice-1.png" alt="" />
+<a name="正确示例：使用Context管理上下文"></a>
+<h4>正确示例：使用Context管理上下文</h4>
+<p>可以使用一个<code>Context</code>类来管理协程上下文，在<code>Context</code>类中，使用<code>Coroutine::getuid</code>获取了协程<code>ID</code>，然后隔离不同协程之间的全局变量，协程退出时清理上下文数据</p>
+<pre><code class="language-php">use Swoole\Coroutine;
+class Context
+{
+protected static $pool = [];
+static function get($key)
+{
+    $cid = Coroutine::getuid();
+    if ($cid &lt; 0)
+    {
+        return null;
+    }
+    if(isset(self::$pool[$cid][$key])){
+        return self::$pool[$cid][$key];
+    }
+    return null;
+}
+static function put($key, $item)
+{
+    $cid = Coroutine::getuid();
+    if ($cid &gt; 0)
+    {
+        self::$pool[$cid][$key] = $item;
+    }
+}
+static function delete($key = null)
+{
+    $cid = Coroutine::getuid();
+    if ($cid &gt; 0)
+    {
+        if($key){
+            unset(self::$pool[$cid][$key]);
+        }else{
+            unset(self::$pool[$cid]);
+        }
+    }
+}
+}</code></pre>
+<p>使用：</p>
+<pre><code class="language-php">use Swoole\Coroutine\Context;
+$server = new Swoole\Http\Server('127.0.0.1', 9501);
+$server-&gt;on('request', function ($request, $response) {
+if ($request-&gt;server['request_uri'] == '/a') {
+    Context::put('name', 'a');
+    co::sleep(1.0);
+    echo Context::get('name');
+    $response-&gt;end(Context::get('name'));
+    //退出协程时清理
+    Context::delete('name');
+} else {
+    Context::put('name', 'b');
+    $response-&gt;end();
+    //退出协程时清理
+    Context::delete();
+}
+});
+$server-&gt;start();</code></pre></li>
+</ul>
+</body>
+</html>

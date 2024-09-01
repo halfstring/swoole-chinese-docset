@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>Swoole\Server\Task</h1>
+<p>这里是对<code>Swoole\Server\Task</code>的详细介绍。这个类很简单，但是你也不能够通过<code>new Swoole\Server\Task()</code>来获得一个<code>Task</code>对象，这种对象完全不包含任何服务端的信息，并且你执行<code>Swoole\Server\Task</code>任意的方法都会有一个致命错误。</p>
+<pre><code class="language-shell">Invalid instance of Swoole\Server\Task in /home/task.php on line 3</code></pre>
+<p><a name="属性"></a></p>
+<h2>属性</h2>
+<p><a name="$data"></a></p>
+<h3>$data</h3>
+<p><code>worker</code>进程传递给<code>task</code>进程的数据<code>data</code>，该属性是一个<code>string</code>类型的字符串。</p>
+<pre><code class="language-php">Swoole\Server\Task-&gt;data</code></pre>
+<p><a name="$dispatch_time"></a></p>
+<h3>$dispatch_time</h3>
+<p>返回该数据到达<code>task</code>进程的时间<code>dispatch_time</code>，该属性是一个<code>double</code>类型。</p>
+<pre><code class="language-php">Swoole\Server\Task-&gt;dispatch_time</code></pre>
+<p><a name="$id"></a></p>
+<h3>$id</h3>
+<p>返回该数据到达<code>task</code>进程的时间<code>dispatch_time</code>，该属性是一个<code>int</code>类型的整数。</p>
+<pre><code class="language-php">Swoole\Server\Task-&gt;id</code></pre>
+<p><a name="$worker_id"></a></p>
+<h3>$worker_id</h3>
+<p>返回该数据来自哪一个<code>worker</code>进程，该属性是一个<code>int</code>类型的整数。</p>
+<pre><code class="language-php">Swoole\Server\Task-&gt;worker_id</code></pre>
+<p><a name="$flags"></a></p>
+<h3>$flags</h3>
+<p>该异步任务的一些标志位信息<code>flags</code>，该属性是一个<code>int</code>类型的整数。</p>
+<pre><code class="language-php">Swoole\Server\Task-&gt;flags</code></pre>
+<p>?&gt; <code>flags</code>返回的结果是以下几种类型：  </p>
+<ul>
+<li>SWOOLE_TASK_NOREPLY | SWOOLE_TASK_NONBLOCK 表示这不是<code>Worker</code>进程发送给<code>task</code>进程的，此时如果在<code>onTask</code>事件中调用<code>Swoole\Server::finish()</code>的话，将会有一个警告发出。  </li>
+<li>SWOOLE_TASK_CALLBACK | SWOOLE_TASK_NONBLOCK 表示<code>Swoole\Server::finish()</code>中最后一个回调函数不是null，<code>onFinish</code>事件将不会执行，而只会执行这个回调函数。 </li>
+<li>SWOOLE_TASK_COROUTINE | SWOOLE_TASK_NONBLOCK 表示将会通过协程的形式处理任务。 </li>
+<li>SW_TASK_NONBLOCK 默认值，当以上三种情况都没有的时候。
+<a name="方法"></a>
+<h2>方法</h2>
+<p><a name="finish"></a></p>
+<h3>finish()</h3>
+<p>用于在 <a href="/learn?id=taskworker进程">Task进程</a>中通知<code>Worker</code>进程，投递的任务已完成。此函数可以传递结果数据给<code>Worker</code>进程。</p>
+<pre><code class="language-php">Swoole\Server\Task-&gt;finish(mixed $data): bool</code></pre></li>
+<li><strong>参数</strong>
+<ul>
+<li><code>mixed $data</code>
+<ul>
+<li>功能：任务处理的结果内容</li>
+<li>默认值：无</li>
+<li>其它值：无</li>
+</ul></li>
+</ul></li>
+<li><strong>提示</strong>
+<ul>
+<li><code>finish</code>方法可以连续多次调用，<code>Worker</code>进程会多次触发<a href="/server/events?id=onfinish">onFinish</a>事件</li>
+<li>在<a href="/server/events?id=ontask">onTask</a>回调函数中调用过<code>finish</code>方法后，<code>return</code>数据依然会触发<a href="/server/events?id=onfinish">onFinish</a>事件</li>
+<li><code>Swoole\Server\Task-&gt;finish</code>是可选的。如果<code>Worker</code>进程不关心任务执行的结果，不需要调用此函数</li>
+<li>在<a href="/server/events?id=ontask">onTask</a>回调函数中<code>return</code>字符串，等同于调用<code>finish</code></li>
+</ul></li>
+<li><strong>注意</strong>
+!&gt; 使用<code>Swoole\Server\Task-&gt;finish</code>函数必须为<code>Server</code>设置<a href="/server/events?id=onfinish">onFinish</a>回调函数。此函数只可用于 <a href="/learn?id=taskworker进程">Task进程</a>的<a href="/server/events?id=ontask">onTask</a>回调中
+<a name="pack"></a>
+<h3>pack()</h3>
+<p>将给定的数据序列化。</p>
+<pre><code class="language-php">Swoole\Server\Task-&gt;pack(mixed $data): string|false</code></pre></li>
+<li><strong>参数</strong>
+<ul>
+<li><code>mixed $data</code>
+<ul>
+<li>功能：任务处理的结果内容</li>
+<li>默认值：无</li>
+<li>其它值：无</li>
+</ul></li>
+</ul></li>
+<li><strong>返回值</strong>
+<ul>
+<li>调用成功返回序列化后的结果。
+<a name="unpack"></a>
+<h3>unpack()</h3>
+<p>将给定的数据反序列化。</p>
+<pre><code class="language-php">Swoole\Server\Task-&gt;unpack(string $data): mixed</code></pre></li>
+</ul></li>
+<li><strong>参数</strong>
+<ul>
+<li><code>string $data</code>
+<ul>
+<li>功能：需要反序列化的数据</li>
+<li>默认值：无</li>
+<li>其它值：无</li>
+</ul></li>
+</ul></li>
+<li><strong>返回值</strong>
+<ul>
+<li>调用成功返回反序列化后的结果。
+<a name="使用示例"></a>
+<h2>使用示例</h2>
+<pre><code class="language-php">&lt;?php
+$server-&gt;on('task', function(Swoole\Server $serv, Swoole\Server\Task $task) {
+$task-&gt;finish(['result' =&gt; true]);
+});</code></pre></li>
+</ul></li>
+</ul>
+</body>
+</html>

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>协程FastCGI客户端</h1>
+<p>PHP-FPM使用了高效的二进制协议：<code>FastCGI协议</code>进行通讯, 通过FastCGI客户端，那么就可以直接与PHP-FPM服务进行交互而无需通过任何HTTP反向代理
+<a href="https://github.com/swoole/library/blob/master/src/core/Coroutine/FastCGI">PHP源码目录</a>
+<a name="简单使用示例"></a></p>
+<h2>简单使用示例</h2>
+<p><a href="https://github.com/swoole/library/tree/master/examples/fastcgi">更多示例代码</a>
+!&gt; 以下示例代码需要在协程中调用
+<a name="快速调用"></a></p>
+<h3>快速调用</h3>
+<pre><code class="language-php">#greeter.php
+echo 'Hello ' . ($_POST['who'] ?? 'World');</code></pre>
+<pre><code class="language-php">echo \Swoole\Coroutine\FastCGI\Client::call(
+    '127.0.0.1:9000', // FPM监听地址, 也可以是形如 unix:/tmp/php-cgi.sock 的unixsocket地址
+    '/tmp/greeter.php', // 想要执行的入口文件
+    ['who' =&gt; 'Swoole'] // 附带的POST信息
+);</code></pre>
+<p><a name="PSR风格"></a></p>
+<h3>PSR风格</h3>
+<pre><code class="language-php">try {
+    $client = new \Swoole\Coroutine\FastCGI\Client('127.0.0.1:9000', 9000);
+    $request = (new \Swoole\FastCGI\HttpRequest())
+        -&gt;withScriptFilename(__DIR__ . '/greeter.php')
+        -&gt;withMethod('POST')
+        -&gt;withBody(['who' =&gt; 'Swoole']);
+    $response = $client-&gt;execute($request);
+    echo "Result: {$response-&gt;getBody()}\n";
+} catch (\Swoole\Coroutine\FastCGI\Client\Exception $exception) {
+    echo "Error: {$exception-&gt;getMessage()}\n";
+}</code></pre>
+<p><a name="复杂调用"></a></p>
+<h3>复杂调用</h3>
+<pre><code class="language-php">#var.php
+var_dump($_SERVER);
+var_dump($_GET);
+var_dump($_POST);</code></pre>
+<pre><code class="language-php">try {
+    $client = new \Swoole\Coroutine\FastCGI\Client('127.0.0.1', 9000);
+    $request = (new \Swoole\FastCGI\HttpRequest())
+        -&gt;withDocumentRoot(__DIR__)
+        -&gt;withScriptFilename(__DIR__ . '/var.php')
+        -&gt;withScriptName('var.php')
+        -&gt;withMethod('POST')
+        -&gt;withUri('/var?foo=bar&amp;bar=char')
+        -&gt;withHeader('X-Foo', 'bar')
+        -&gt;withHeader('X-Bar', 'char')
+        -&gt;withBody(['foo' =&gt; 'bar', 'bar' =&gt; 'char']);
+    $response = $client-&gt;execute($request);
+    echo "Result: \n{$response-&gt;getBody()}";
+} catch (\Swoole\Coroutine\FastCGI\Client\Exception $exception) {
+    echo "Error: {$exception-&gt;getMessage()}\n";
+}</code></pre>
+<p><a name="一键代理WordPress"></a></p>
+<h3>一键代理WordPress</h3>
+<p>!&gt; 此用法无生产意义, 生产中proxy可用于代理部分老API接口的HTTP请求到旧的FPM服务上 (而不是代理整站)</p>
+<pre><code class="language-php">use Swoole\Constant;
+use Swoole\Coroutine\FastCGI\Proxy;
+use Swoole\Http\Request;
+use Swoole\Http\Response;
+use Swoole\Http\Server;
+$documentRoot = '/var/www/html'; # WordPress项目根目录
+$server = new Server('0.0.0.0', 80, SWOOLE_BASE); # 这里端口需要和WordPress配置一致, 一般不会特定指定端口, 就是80
+$server-&gt;set([
+    Constant::OPTION_WORKER_NUM =&gt; swoole_cpu_num() * 2,
+    Constant::OPTION_HTTP_PARSE_COOKIE =&gt; false,
+    Constant::OPTION_HTTP_PARSE_POST =&gt; false,
+    Constant::OPTION_DOCUMENT_ROOT =&gt; $documentRoot,
+    Constant::OPTION_ENABLE_STATIC_HANDLER =&gt; true,
+    Constant::OPTION_STATIC_HANDLER_LOCATIONS =&gt; ['/wp-admin', '/wp-content', '/wp-includes'], #静态资源路径
+]);
+$proxy = new Proxy('127.0.0.1:9000', $documentRoot); # 建立代理对象
+$server-&gt;on('request', function (Request $request, Response $response) use ($proxy) {
+    $proxy-&gt;pass($request, $response); # 一键代理请求
+});
+$server-&gt;start();</code></pre>
+<p><a name="方法"></a></p>
+<h2>方法</h2>
+<p><a name="call"></a></p>
+<h3>call</h3>
+<p>静态方法, 直接创建一个新的客户端连接, 向FPM服务器发起请求并接收响应正文
+!&gt; FPM只支持短连接, 所以在通常情况下, 创建持久化对象没有太大的意义</p>
+<pre><code class="language-php">Swoole\Coroutine\FastCGI\Client::call(string $url, string $path, $data = '', float $timeout = -1): string</code></pre>
+<ul>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>string $url</code></strong>
+<ul>
+<li><strong>功能</strong>：FPM监听地址【如<code>127.0.0.1:9000</code>、<code>unix:/tmp/php-cgi.sock</code>等】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>string $path</code></strong>
+<ul>
+<li><strong>功能</strong>：想要执行的入口文件</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>$data</code></strong>
+<ul>
+<li><strong>功能</strong>：附带的请求数据</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>float $timeout</code></strong>
+<ul>
+<li><strong>功能</strong>：设置超时时间【默认为 -1 表示永不超时】</li>
+<li><strong>值单位</strong>：秒【支持浮点型，如 1.5 表示 1s+500ms】</li>
+<li><strong>默认值</strong>：<code>-1</code></li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+</ul></li>
+<li><strong>返回值</strong> 
+<ul>
+<li>返回服务器响应的主体内容(body)</li>
+<li>发生错误时将抛出<code>Swoole\Coroutine\FastCGI\Client\Exception</code>异常
+<a name="__construct"></a>
+<h3>__construct</h3>
+<p>客户端对象的构造方法, 指定目标FPM服务器</p>
+<pre><code class="language-php">Swoole\Coroutine\FastCGI\Client::__construct(string $host, int $port = 0)</code></pre></li>
+</ul></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>string $host</code></strong>
+<ul>
+<li><strong>功能</strong>：目标服务器的地址【如<code>127.0.0.1</code>、<code>unix://tmp/php-fpm.sock</code>等】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $port</code></strong>
+<ul>
+<li><strong>功能</strong>：目标服务器端口【目标地址为UNIXSocket时无需传入】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无
+<a name="execute"></a>
+<h3>execute</h3>
+<p>执行请求, 返回响应</p>
+<pre><code class="language-php">Swoole\Coroutine\FastCGI\Client-&gt;execute(Request $request, float $timeout = -1): Response</code></pre></li>
+</ul></li>
+</ul></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>Swoole\FastCGI\Request|Swoole\FastCGI\HttpRequest $request</code></strong>
+<ul>
+<li><strong>功能</strong>：包含请求信息的对象, 通常使用<code>Swoole\FastCGI\HttpRequest</code>来模拟HTTP请求, 有特殊需求时才会使用FPM协议的原始请求类<code>Swoole\FastCGI\Request</code></li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>float $timeout</code></strong>
+<ul>
+<li><strong>功能</strong>：设置超时时间【默认为<code>-1</code>表示永不超时】</li>
+<li><strong>值单位</strong>：秒【支持浮点型，如<code>1.5</code>表示<code>1s</code>+<code>500ms</code>】</li>
+<li><strong>默认值</strong>：<code>-1</code></li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+</ul></li>
+<li><strong>返回值</strong> 
+<ul>
+<li>返回和请求对象类型对标的Response对象, 如<code>Swoole\FastCGI\HttpRequest</code>会返回<code>Swoole\FastCGI\HttpResponse对象</code>, 包含了FPM服务器的响应信息</li>
+<li>发生错误时将抛出<code>Swoole\Coroutine\FastCGI\Client\Exception</code>异常
+<a name="相关请求/响应类"></a>
+<h2>相关请求/响应类</h2>
+<p>由于library无法引入PSR庞大的依赖实现和扩展加载总是在PHP代码执行之前, 所以相关的请求响应对象并没有继承PSR接口, 但尽量以PSR的风格实现以期开发者能够快速上手使用
+FastCGI模拟HTTP请求响应的类的相关源码地址如下, 非常简单, 代码即文档:
+<a href="https://github.com/swoole/library/blob/master/src/core/FastCGI/HttpRequest.php">Swoole\FastCGI\HttpRequest</a>
+<a href="https://github.com/swoole/library/blob/master/src/core/FastCGI/HttpResponse.php">Swoole\FastCGI\HttpResponse</a></p></li>
+</ul></li>
+</ul>
+</body>
+</html>

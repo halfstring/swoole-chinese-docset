@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>Coroutine\WaitGroup</h1>
+<p>在<code>Swoole4</code>中可以使用<a href="/coroutine/channel">Channel</a>实现协程间的通信、依赖管理、协程同步。基于<a href="/coroutine/channel">Channel</a>可以很容易地实现<code>Golang</code>的<code>sync.WaitGroup</code>功能。
+<a name="实现代码"></a></p>
+<h2>实现代码</h2>
+<blockquote>
+<p>此功能是使用PHP编写的功能，并不是C/C++代码，实现源代码在 <a href="https://github.com/swoole/library/blob/master/src/core/Coroutine/WaitGroup.php">Library</a> 当中</p>
+<ul>
+<li><code>add</code>方法增加计数</li>
+<li><code>done</code>表示任务已完成</li>
+<li><code>wait</code>等待所有任务完成恢复当前协程的执行</li>
+<li><code>WaitGroup</code>对象可以复用，<code>add</code>、<code>done</code>、<code>wait</code>之后可以再次使用
+<a name="使用示例"></a>
+<h2>使用示例</h2>
+<pre><code class="language-php">&lt;?php
+use Swoole\Coroutine;
+use Swoole\Coroutine\WaitGroup;
+use Swoole\Coroutine\Http\Client;
+use function Swoole\Coroutine\run;
+run(function () {
+$wg = new WaitGroup();
+$result = [];
+$wg-&gt;add();
+//启动第一个协程
+Coroutine::create(function () use ($wg, &amp;$result) {
+//启动一个协程客户端client，请求淘宝首页
+$cli = new Client('www.taobao.com', 443, true);
+$cli-&gt;setHeaders([
+'Host' =&gt; 'www.taobao.com',
+'User-Agent' =&gt; 'Chrome/49.0.2587.3',
+'Accept' =&gt; 'text/html,application/xhtml+xml,application/xml',
+'Accept-Encoding' =&gt; 'gzip',
+]);
+$cli-&gt;set(['timeout' =&gt; 1]);
+$cli-&gt;get('/index.php');
+$result['taobao'] = $cli-&gt;body;
+$cli-&gt;close();
+$wg-&gt;done();
+});
+$wg-&gt;add();
+//启动第二个协程
+Coroutine::create(function () use ($wg, &amp;$result) {
+//启动一个协程客户端client，请求百度首页
+$cli = new Client('www.baidu.com', 443, true);
+$cli-&gt;setHeaders([
+'Host' =&gt; 'www.baidu.com',
+'User-Agent' =&gt; 'Chrome/49.0.2587.3',
+'Accept' =&gt; 'text/html,application/xhtml+xml,application/xml',
+'Accept-Encoding' =&gt; 'gzip',
+]);
+$cli-&gt;set(['timeout' =&gt; 1]);
+$cli-&gt;get('/index.php');
+$result['baidu'] = $cli-&gt;body;
+$cli-&gt;close();
+$wg-&gt;done();
+});
+//挂起当前协程，等待所有任务完成后恢复
+$wg-&gt;wait();
+//这里 $result 包含了 2 个任务执行结果
+var_dump($result);
+});</code></pre></li>
+</ul>
+</blockquote>
+</body>
+</html>

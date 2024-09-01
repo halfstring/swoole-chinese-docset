@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>Swoole\Server\StatusInfo</h1>
+<p>这里是对<code>Swoole\Server\StatusInfo</code>的详细介绍。
+<a name="属性"></a></p>
+<h2>属性</h2>
+<p><a name="$worker_id"></a></p>
+<h3>$worker_id</h3>
+<p>返回当前<code>worker</code>进程id，该属性是一个<code>int</code>类型的整数。</p>
+<pre><code class="language-php">Swoole\Server\StatusInfo-&gt;worker_id</code></pre>
+<p><a name="$worker_pid"></a></p>
+<h3>$worker_pid</h3>
+<p>返回当前<code>worker</code>进程父进程id，该属性是一个<code>int</code>类型的整数。</p>
+<pre><code class="language-php">Swoole\Server\StatusInfo-&gt;worker_pid</code></pre>
+<p><a name="$status"></a></p>
+<h3>$status</h3>
+<p>返回进程状态<code>status</code>，该属性是一个<code>int</code>类型的整数。</p>
+<pre><code class="language-php">Swoole\Server\StatusInfo-&gt;status</code></pre>
+<p><a name="$exit_code"></a></p>
+<h3>$exit_code</h3>
+<p>返回进程退出状态码<code>exit_code</code>，该属性是一个<code>int</code>类型的整数，范围是<code>0-255</code>。</p>
+<pre><code class="language-php">Swoole\Server\StatusInfo-&gt;exit_code</code></pre>
+<p><a name="$signal"></a></p>
+<h3>$signal</h3>
+<p>进程退出的信号<code>signal</code>，该属性是一个<code>int</code>类型的整数。</p>
+<pre><code class="language-php">Swoole\Server\StatusInfo-&gt;signal</code></pre>
+</body>
+</html>

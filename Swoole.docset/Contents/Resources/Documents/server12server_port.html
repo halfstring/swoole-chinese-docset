@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>Swoole\Server\Port</h1>
+<p>这里是对<code>Swoole\Server\Port</code>的详细介绍。
+<a name="属性"></a></p>
+<h2>属性</h2>
+<p><a name="$host"></a></p>
+<h3>$host</h3>
+<p>返回监听的主机地址，该属性是一个<code>string</code>类型的字符串。</p>
+<pre><code class="language-php">Swoole\Server\Port-&gt;host</code></pre>
+<p><a name="$port"></a></p>
+<h3>$port</h3>
+<p>返回监听的主机端口，该属性是一个<code>int</code>类型的整数。</p>
+<pre><code class="language-php">Swoole\Server\Port-&gt;port</code></pre>
+<p><a name="$type"></a></p>
+<h3>$type</h3>
+<p>返回这组<code>server</code>类型。该属性是一个枚举，返回<code>SWOOLE_TCP</code>，<code>SWOOLE_TCP6</code>，<code>SWOOLE_UDP</code>，<code>SWOOLE_UDP6</code>，<code>SWOOLE_UNIX_DGRAM</code>，<code>SWOOLE_UNIX_STREAM</code>其中一个。</p>
+<pre><code class="language-php">Swoole\Server\Port-&gt;type</code></pre>
+<p><a name="$sock"></a></p>
+<h3>$sock</h3>
+<p>返回监听的套接字，该属性是一个<code>int</code>类型的整数。</p>
+<pre><code class="language-php">Swoole\Server\Port-&gt;sock</code></pre>
+<p><a name="$ssl"></a></p>
+<h3>$ssl</h3>
+<p>返回是否开启<code>ssl</code>加密，该属性是一个<code>bool</code>类型。</p>
+<pre><code class="language-php">Swoole\Server\Port-&gt;ssl</code></pre>
+<p><a name="$setting"></a></p>
+<h3>$setting</h3>
+<p>返回对该端口的设置，该属性是一个<code>array</code>的数组。</p>
+<pre><code class="language-php">Swoole\Server\Port-&gt;setting</code></pre>
+<p><a name="$connections"></a></p>
+<h3>$connections</h3>
+<p>返回连接该端口的全部连接，该属性是一个迭代器。</p>
+<pre><code class="language-php">Swoole\Server\Port-&gt;connections</code></pre>
+<p><a name="方法"></a></p>
+<h2>方法</h2>
+<p><a name="set"></a></p>
+<h3>set()</h3>
+<p>用于设置<code>Swoole\Server\Port</code>运行时的各项参数，使用方式与<a href="/server/methods?id=set">Swoole\Server-&gt;set()</a>一样。</p>
+<pre><code class="language-php">Swoole\Server\Port-&gt;set(array $setting): void</code></pre>
+<p><a name="on"></a></p>
+<h3>on()</h3>
+<p>用于设置<code>Swoole\Server\Port</code>回调函数，使用方式与<a href="/server/methods?id=on">Swoole\Server-&gt;on()</a>一样。</p>
+<pre><code class="language-php">Swoole\Server\Port-&gt;on(string $event, callable $callback): bool</code></pre>
+<p><a name="getCallback"></a></p>
+<h3>getCallback()</h3>
+<p>返回设置的回调函数。</p>
+<pre><code class="language-php">Swoole\Server\Port-&gt;getCallback(string $name): ?callback</code></pre>
+<ul>
+<li><strong>参数</strong>
+<ul>
+<li><code>string $name</code>
+<ul>
+<li>功能：回调事件名称</li>
+<li>默认值：无</li>
+<li>其它值：无</li>
+</ul></li>
+</ul></li>
+<li><strong>返回值</strong>
+<ul>
+<li>返回回调函数表示操作成功，返回<code>null</code>表示不存在此回调函数。
+<a name="getSocket"></a>
+<h3>getSocket()</h3>
+<p>将当前的套接字<code>fd</code>转化成php的<code>Socket</code>对象。</p>
+<pre><code class="language-php">Swoole\Server\Port-&gt;getSocket(): Socket|false</code></pre></li>
+</ul></li>
+<li><strong>返回值</strong>
+<ul>
+<li>返回<code>Socket</code>对象表示操作成功，返回<code>false</code>表示操作失败。
+!&gt; 注意，只有在编译<code>Swoole</code>的过程中开启了<code>--enable-sockets</code>，该函数才能使用。</li>
+</ul></li>
+</ul>
+</body>
+</html>

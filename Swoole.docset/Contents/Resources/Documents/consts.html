@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>常量</h1>
+<p>!&gt; 此处不包含所有常量，如需查看所有常量请访问或安装：<a href="https://github.com/swoole/ide-helper/blob/master/output/swoole/constants.php">ide-helper</a>
+<a name="Swoole"></a></p>
+<h2>Swoole</h2>
+<table>
+<thead>
+<tr>
+<th>常量</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SWOOLE_VERSION</td>
+<td>当前Swoole的版本号，字符串类型，如1.6.0</td>
+</tr>
+</tbody>
+</table>
+<p><a name="构造方法参数"></a></p>
+<h2>构造方法参数</h2>
+<table>
+<thead>
+<tr>
+<th>常量</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="/learn?id=swoole_base">SWOOLE_BASE</a></td>
+<td>使用Base模式，业务代码在Reactor进程中直接执行</td>
+</tr>
+<tr>
+<td><a href="/learn?id=swoole_process">SWOOLE_PROCESS</a></td>
+<td>使用进程模式，业务代码在Worker进程中执行</td>
+</tr>
+</tbody>
+</table>
+<p><a name="Socket 类型"></a></p>
+<h2>Socket 类型</h2>
+<table>
+<thead>
+<tr>
+<th>常量</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SWOOLE_SOCK_TCP</td>
+<td>创建tcp socket</td>
+</tr>
+<tr>
+<td>SWOOLE_SOCK_TCP6</td>
+<td>创建tcp ipv6 socket</td>
+</tr>
+<tr>
+<td>SWOOLE_SOCK_UDP</td>
+<td>创建udp socket</td>
+</tr>
+<tr>
+<td>SWOOLE_SOCK_UDP6</td>
+<td>创建udp ipv6 socket</td>
+</tr>
+<tr>
+<td>SWOOLE_SOCK_UNIX_DGRAM</td>
+<td>创建unix dgram socket</td>
+</tr>
+<tr>
+<td>SWOOLE_SOCK_UNIX_STREAM</td>
+<td>创建unix stream socket</td>
+</tr>
+<tr>
+<td>SWOOLE_SOCK_SYNC</td>
+<td>同步客户端</td>
+</tr>
+</tbody>
+</table>
+<p><a name="SSL 加密方法"></a></p>
+<h2>SSL 加密方法</h2>
+<table>
+<thead>
+<tr>
+<th>常量</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SWOOLE_SSLv3_METHOD</td>
+<td>-</td>
+</tr>
+<tr>
+<td>SWOOLE_SSLv3_SERVER_METHOD</td>
+<td>-</td>
+</tr>
+<tr>
+<td>SWOOLE_SSLv3_CLIENT_METHOD</td>
+<td>-</td>
+</tr>
+<tr>
+<td>SWOOLE_SSLv23_METHOD（默认加密方法）</td>
+<td>-</td>
+</tr>
+<tr>
+<td>SWOOLE_SSLv23_SERVER_METHOD</td>
+<td>-</td>
+</tr>
+<tr>
+<td>SWOOLE_SSLv23_CLIENT_METHOD</td>
+<td>-</td>
+</tr>
+<tr>
+<td>SWOOLE_TLSv1_METHOD</td>
+<td>-</td>
+</tr>
+<tr>
+<td>SWOOLE_TLSv1_SERVER_METHOD</td>
+<td>-</td>
+</tr>
+<tr>
+<td>SWOOLE_TLSv1_CLIENT_METHOD</td>
+<td>-</td>
+</tr>
+<tr>
+<td>SWOOLE_TLSv1_1_METHOD</td>
+<td>-</td>
+</tr>
+<tr>
+<td>SWOOLE_TLSv1_1_SERVER_METHOD</td>
+<td>-</td>
+</tr>
+<tr>
+<td>SWOOLE_TLSv1_1_CLIENT_METHOD</td>
+<td>-</td>
+</tr>
+<tr>
+<td>SWOOLE_TLSv1_2_METHOD</td>
+<td>-</td>
+</tr>
+<tr>
+<td>SWOOLE_TLSv1_2_SERVER_METHOD</td>
+<td>-</td>
+</tr>
+<tr>
+<td>SWOOLE_TLSv1_2_CLIENT_METHOD</td>
+<td>-</td>
+</tr>
+<tr>
+<td>SWOOLE_DTLSv1_METHOD</td>
+<td>-</td>
+</tr>
+<tr>
+<td>SWOOLE_DTLSv1_SERVER_METHOD</td>
+<td>-</td>
+</tr>
+<tr>
+<td>SWOOLE_DTLSv1_CLIENT_METHOD</td>
+<td>-</td>
+</tr>
+<tr>
+<td>SWOOLE_DTLS_SERVER_METHOD</td>
+<td>-</td>
+</tr>
+<tr>
+<td>SWOOLE_DTLS_CLIENT_METHOD</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<p>!&gt; <code>SWOOLE_DTLSv1_METHOD</code>、<code>SWOOLE_DTLSv1_SERVER_METHOD</code>、<code>SWOOLE_DTLSv1_CLIENT_METHOD</code>已在 Swoole 版本 &gt;= <code>v4.5.0</code> 中移除。
+<a name="SSL 协议"></a></p>
+<h2>SSL 协议</h2>
+<table>
+<thead>
+<tr>
+<th>常量</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SWOOLE_SSL_TLSv1</td>
+<td>-</td>
+</tr>
+<tr>
+<td>SWOOLE_SSL_TLSv1_1</td>
+<td>-</td>
+</tr>
+<tr>
+<td>SWOOLE_SSL_TLSv1_2</td>
+<td>-</td>
+</tr>
+<tr>
+<td>SWOOLE_SSL_TLSv1_3</td>
+<td>-</td>
+</tr>
+<tr>
+<td>SWOOLE_SSL_SSLv2</td>
+<td>-</td>
+</tr>
+<tr>
+<td>SWOOLE_SSL_SSLv3</td>
+<td>-</td>
+</tr>
+</tbody>
+</table>
+<p>!&gt; Swoole版本 &gt;= <code>v4.5.4</code> 可用
+<a name="日志等级"></a></p>
+<h2>日志等级</h2>
+<table>
+<thead>
+<tr>
+<th>常量</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SWOOLE_LOG_DEBUG</td>
+<td>调试日志，仅作为内核开发调试使用</td>
+</tr>
+<tr>
+<td>SWOOLE_LOG_TRACE</td>
+<td>跟踪日志，可用于跟踪系统问题，调试日志是经过精心设置的，会携带关键性信息</td>
+</tr>
+<tr>
+<td>SWOOLE_LOG_INFO</td>
+<td>普通信息，仅作为信息展示</td>
+</tr>
+<tr>
+<td>SWOOLE_LOG_NOTICE</td>
+<td>提示信息，系统可能存在某些行为，如重启、关闭</td>
+</tr>
+<tr>
+<td>SWOOLE_LOG_WARNING</td>
+<td>警告信息，系统可能存在某些问题</td>
+</tr>
+<tr>
+<td>SWOOLE_LOG_ERROR</td>
+<td>错误信息，系统发生了某些关键性的错误，需要即时解决</td>
+</tr>
+<tr>
+<td>SWOOLE_LOG_NONE</td>
+<td>相当于关闭日志信息，日志信息不会抛出</td>
+</tr>
+</tbody>
+</table>
+<p>!&gt; <code>SWOOLE_LOG_DEBUG</code>和<code>SWOOLE_LOG_TRACE</code>两种日志，必须在编译Swoole扩展时使用<a href="/environment?id=debug参数">--enable-debug-log</a>或<a href="/environment?id=debug参数">--enable-trace-log</a>后才可以使用。正常版本中即使设置了<code>log_level = SWOOLE_LOG_TRACE</code>也是无法打印此类日志的。
+<a name="跟踪标签"></a></p>
+<h2>跟踪标签</h2>
+<p>线上运行的服务，随时都有大量请求在处理，底层抛出的日志数量非常巨大。可使用<code>trace_flags</code>设置跟踪日志的标签，仅打印部分跟踪日志。<code>trace_flags</code>支持使用<code>|</code>或操作符设置多个跟踪项。</p>
+<pre><code class="language-php">$serv-&gt;set([
+    'log_level' =&gt; SWOOLE_LOG_TRACE,
+    'trace_flags' =&gt; SWOOLE_TRACE_SERVER | SWOOLE_TRACE_HTTP2,
+]);</code></pre>
+<p>底层支持以下跟踪项，可使用<code>SWOOLE_TRACE_ALL</code>表示跟踪所有项目：</p>
+<ul>
+<li><code>SWOOLE_TRACE_SERVER</code></li>
+<li><code>SWOOLE_TRACE_CLIENT</code></li>
+<li><code>SWOOLE_TRACE_BUFFER</code></li>
+<li><code>SWOOLE_TRACE_CONN</code></li>
+<li><code>SWOOLE_TRACE_EVENT</code></li>
+<li><code>SWOOLE_TRACE_WORKER</code></li>
+<li><code>SWOOLE_TRACE_REACTOR</code></li>
+<li><code>SWOOLE_TRACE_PHP</code></li>
+<li><code>SWOOLE_TRACE_HTTP2</code></li>
+<li><code>SWOOLE_TRACE_EOF_PROTOCOL</code></li>
+<li><code>SWOOLE_TRACE_LENGTH_PROTOCOL</code></li>
+<li><code>SWOOLE_TRACE_CLOSE</code></li>
+<li><code>SWOOLE_TRACE_HTTP_CLIENT</code></li>
+<li><code>SWOOLE_TRACE_COROUTINE</code></li>
+<li><code>SWOOLE_TRACE_REDIS_CLIENT</code></li>
+<li><code>SWOOLE_TRACE_MYSQL_CLIENT</code></li>
+<li><code>SWOOLE_TRACE_AIO</code></li>
+<li><code>SWOOLE_TRACE_ALL</code></li>
+</ul>
+</body>
+</html>

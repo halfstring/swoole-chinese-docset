@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>错误码</h1>
+<p>可使用<code>swoole_last_error()</code>获取当前的错误码；
+可使用<code>swoole_strerror(int $errno, 9);</code>将<code>Swoole</code>底层错误码转换成文字错误信息；</p>
+<pre><code class="language-php">echo swoole_strerror(swoole_last_error(), 9) . PHP_EOL;
+echo swoole_strerror(SWOOLE_ERROR_MALLOC_FAIL, 9) . PHP_EOL;</code></pre>
+<p><a name="Linux错误码列表 :id=linux"></a></p>
+<h2>Linux错误码列表 :id=linux</h2>
+<table>
+<thead>
+<tr>
+<th>C Name</th>
+<th>Value</th>
+<th>Description</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Success</td>
+<td>0</td>
+<td>Success</td>
+<td>成功</td>
+</tr>
+<tr>
+<td>EPERM</td>
+<td>1</td>
+<td>Operation not permitted</td>
+<td>操作不允许</td>
+</tr>
+<tr>
+<td>ENOENT</td>
+<td>2</td>
+<td>No such file or directory</td>
+<td>没有这样的文件或目录</td>
+</tr>
+<tr>
+<td>ESRCH</td>
+<td>3</td>
+<td>No such process</td>
+<td>没有这样的过程</td>
+</tr>
+<tr>
+<td>EINTR</td>
+<td>4</td>
+<td>Interrupted system call</td>
+<td>系统调用被中断</td>
+</tr>
+<tr>
+<td>EIO</td>
+<td>5</td>
+<td>I/O error</td>
+<td>I/O 错误</td>
+</tr>
+<tr>
+<td>ENXIO</td>
+<td>6</td>
+<td>No such device or address</td>
+<td>没有这样的设备或地址</td>
+</tr>
+<tr>
+<td>E2BIG</td>
+<td>7</td>
+<td>Arg list too long</td>
+<td>参数列表太长</td>
+</tr>
+<tr>
+<td>ENOEXEC</td>
+<td>8</td>
+<td>Exec format error</td>
+<td>执行格式错误</td>
+</tr>
+<tr>
+<td>EBADF</td>
+<td>9</td>
+<td>Bad file number</td>
+<td>坏的文件描述符</td>
+</tr>
+<tr>
+<td>ECHILD</td>
+<td>10</td>
+<td>No child processes</td>
+<td>没有子进程</td>
+</tr>
+<tr>
+<td>EAGAIN</td>
+<td>11</td>
+<td>Try again</td>
+<td>资源暂时不可用</td>
+</tr>
+<tr>
+<td>ENOMEM</td>
+<td>12</td>
+<td>Out of memory</td>
+<td>内存溢出</td>
+</tr>
+<tr>
+<td>EACCES</td>
+<td>13</td>
+<td>Permission denied</td>
+<td>拒绝许可</td>
+</tr>
+<tr>
+<td>EFAULT</td>
+<td>14</td>
+<td>Bad address</td>
+<td>错误的地址</td>
+</tr>
+<tr>
+<td>ENOTBLK</td>
+<td>15</td>
+<td>Block device required</td>
+<td>块设备请求</td>
+</tr>
+<tr>
+<td>EBUSY</td>
+<td>16</td>
+<td>Device or resource busy</td>
+<td>设备或资源忙</td>
+</tr>
+<tr>
+<td>EEXIST</td>
+<td>17</td>
+<td>File exists</td>
+<td>文件存在</td>
+</tr>
+<tr>
+<td>EXDEV</td>
+<td>18</td>
+<td>Cross-device link</td>
+<td>无效的交叉链接</td>
+</tr>
+<tr>
+<td>ENODEV</td>
+<td>19</td>
+<td>No such device</td>
+<td>设备不存在</td>
+</tr>
+<tr>
+<td>ENOTDIR</td>
+<td>20</td>
+<td>Not a directory</td>
+<td>不是一个目录</td>
+</tr>
+<tr>
+<td>EISDIR</td>
+<td>21</td>
+<td>Is a directory</td>
+<td>是一个目录</td>
+</tr>
+<tr>
+<td>EINVAL</td>
+<td>22</td>
+<td>Invalid argument</td>
+<td>无效的参数</td>
+</tr>
+<tr>
+<td>ENFILE</td>
+<td>23</td>
+<td>File table overflow</td>
+<td>打开太多的文件系统</td>
+</tr>
+<tr>
+<td>EMFILE</td>
+<td>24</td>
+<td>Too many open files</td>
+<td>打开的文件过多</td>
+</tr>
+<tr>
+<td>ENOTTY</td>
+<td>25</td>
+<td>Not a tty device</td>
+<td>不是 tty 设备</td>
+</tr>
+<tr>
+<td>ETXTBSY</td>
+<td>26</td>
+<td>Text file busy</td>
+<td>文本文件忙</td>
+</tr>
+<tr>
+<td>EFBIG</td>
+<td>27</td>
+<td>File too large</td>
+<td>文件太大</td>
+</tr>
+<tr>
+<td>ENOSPC</td>
+<td>28</td>
+<td>No space left on device</td>
+<td>设备上没有空间</td>
+</tr>
+<tr>
+<td>ESPIPE</td>
+<td>29</td>
+<td>Illegal seek</td>
+<td>非法移位</td>
+</tr>
+<tr>
+<td>EROFS</td>
+<td>30</td>
+<td>Read-only file system</td>
+<td>只读文件系统</td>
+</tr>
+<tr>
+<td>EMLINK</td>
+<td>31</td>
+<td>Too many links</td>
+<td>太多的链接</td>
+</tr>
+<tr>
+<td>EPIPE</td>
+<td>32</td>
+<td>Broken pipe</td>
+<td>管道破裂</td>
+</tr>
+<tr>
+<td>EDOM</td>
+<td>33</td>
+<td>Math argument out of domain</td>
+<td>数值结果超出范围</td>
+</tr>
+<tr>
+<td>ERANGE</td>
+<td>34</td>
+<td>Math result not representable</td>
+<td>数值结果不具代表性</td>
+</tr>
+<tr>
+<td>EDEADLK</td>
+<td>35</td>
+<td>Resource deadlock would occur</td>
+<td>资源死锁错误</td>
+</tr>
+<tr>
+<td>ENAMETOOLONG</td>
+<td>36</td>
+<td>Filename too long</td>
+<td>文件名太长</td>
+</tr>
+<tr>
+<td>ENOLCK</td>
+<td>37</td>
+<td>No record locks available</td>
+<td>没有可用锁</td>
+</tr>
+<tr>
+<td>ENOSYS</td>
+<td>38</td>
+<td>Function not implemented</td>
+<td>功能没有实现</td>
+</tr>
+<tr>
+<td>ENOTEMPTY</td>
+<td>39</td>
+<td>Directory not empty</td>
+<td>目录不空</td>
+</tr>
+<tr>
+<td>ELOOP</td>
+<td>40</td>
+<td>Too many symbolic links encountered</td>
+<td>符号链接层次太多</td>
+</tr>
+<tr>
+<td>EWOULDBLOCK</td>
+<td>41</td>
+<td>Same as EAGAIN</td>
+<td>和 EAGAIN 一样</td>
+</tr>
+<tr>
+<td>ENOMSG</td>
+<td>42</td>
+<td>No message of desired type</td>
+<td>没有期望类型的消息</td>
+</tr>
+<tr>
+<td>EIDRM</td>
+<td>43</td>
+<td>Identifier removed</td>
+<td>标识符删除</td>
+</tr>
+<tr>
+<td>ECHRNG</td>
+<td>44</td>
+<td>Channel number out of range</td>
+<td>频道数目超出范围</td>
+</tr>
+<tr>
+<td>EL2NSYNC</td>
+<td>45</td>
+<td>Level 2 not synchronized</td>
+<td>2 级不同步</td>
+</tr>
+<tr>
+<td>EL3HLT</td>
+<td>46</td>
+<td>Level 3 halted</td>
+<td>3 级中断</td>
+</tr>
+<tr>
+<td>EL3RST</td>
+<td>47</td>
+<td>Level 3 reset</td>
+<td>3 级复位</td>
+</tr>
+<tr>
+<td>ELNRNG</td>
+<td>48</td>
+<td>Link number out of range</td>
+<td>链接数超出范围</td>
+</tr>
+<tr>
+<td>EUNATCH</td>
+<td>49</td>
+<td>Protocol driver not attached</td>
+<td>协议驱动程序没有连接</td>
+</tr>
+<tr>
+<td>ENOCSI</td>
+<td>50</td>
+<td>No CSI structure available</td>
+<td>没有可用 CSI 结构</td>
+</tr>
+<tr>
+<td>EL2HLT</td>
+<td>51</td>
+<td>Level 2 halted</td>
+<td>2 级中断</td>
+</tr>
+<tr>
+<td>EBADE</td>
+<td>52</td>
+<td>Invalid exchange</td>
+<td>无效的交换</td>
+</tr>
+<tr>
+<td>EBADR</td>
+<td>53</td>
+<td>Invalid request descriptor</td>
+<td>请求描述符无效</td>
+</tr>
+<tr>
+<td>EXFULL</td>
+<td>54</td>
+<td>Exchange full</td>
+<td>交换全</td>
+</tr>
+<tr>
+<td>ENOANO</td>
+<td>55</td>
+<td>No anode</td>
+<td>没有阳极</td>
+</tr>
+<tr>
+<td>EBADRQC</td>
+<td>56</td>
+<td>Invalid request code</td>
+<td>无效的请求代码</td>
+</tr>
+<tr>
+<td>EBADSLT</td>
+<td>57</td>
+<td>Invalid slot</td>
+<td>无效的槽</td>
+</tr>
+<tr>
+<td>EDEADLOCK</td>
+<td>58</td>
+<td>Same as EDEADLK</td>
+<td>和 EDEADLK 一样</td>
+</tr>
+<tr>
+<td>EBFONT</td>
+<td>59</td>
+<td>Bad font file format</td>
+<td>错误的字体文件格式</td>
+</tr>
+<tr>
+<td>ENOSTR</td>
+<td>60</td>
+<td>Device not a stream</td>
+<td>设备不是字符流</td>
+</tr>
+<tr>
+<td>ENODATA</td>
+<td>61</td>
+<td>No data available</td>
+<td>无可用数据</td>
+</tr>
+<tr>
+<td>ETIME</td>
+<td>62</td>
+<td>Timer expired</td>
+<td>计时器过期</td>
+</tr>
+<tr>
+<td>ENOSR</td>
+<td>63</td>
+<td>Out of streams resources</td>
+<td>流资源溢出</td>
+</tr>
+<tr>
+<td>ENONET</td>
+<td>64</td>
+<td>Machine is not on the network</td>
+<td>机器不上网</td>
+</tr>
+<tr>
+<td>ENOPKG</td>
+<td>65</td>
+<td>Package not installed</td>
+<td>没有安装软件包</td>
+</tr>
+<tr>
+<td>EREMOTE</td>
+<td>66</td>
+<td>Object is remote</td>
+<td>对象是远程的</td>
+</tr>
+<tr>
+<td>ENOLINK</td>
+<td>67</td>
+<td>Link has been severed</td>
+<td>联系被切断</td>
+</tr>
+<tr>
+<td>EADV</td>
+<td>68</td>
+<td>Advertise error</td>
+<td>广告的错误</td>
+</tr>
+<tr>
+<td>ESRMNT</td>
+<td>69</td>
+<td>Srmount error</td>
+<td>srmount 错误</td>
+</tr>
+<tr>
+<td>ECOMM</td>
+<td>70</td>
+<td>Communication error on send</td>
+<td>发送时的通讯错误</td>
+</tr>
+<tr>
+<td>EPROTO</td>
+<td>71</td>
+<td>Protocol error</td>
+<td>协议错误</td>
+</tr>
+<tr>
+<td>EMULTIHOP</td>
+<td>72</td>
+<td>Multihop attempted</td>
+<td>多跳尝试</td>
+</tr>
+<tr>
+<td>EDOTDOT</td>
+<td>73</td>
+<td>RFS specific error</td>
+<td>RFS 特定的错误</td>
+</tr>
+<tr>
+<td>EBADMSG</td>
+<td>74</td>
+<td>Not a data message</td>
+<td>非数据消息</td>
+</tr>
+<tr>
+<td>EOVERFLOW</td>
+<td>75</td>
+<td>Value too large for defined data type</td>
+<td>值太大,对于定义数据类型</td>
+</tr>
+<tr>
+<td>ENOTUNIQ</td>
+<td>76</td>
+<td>Name not unique on network</td>
+<td>名不是唯一的网络</td>
+</tr>
+<tr>
+<td>EBADFD</td>
+<td>77</td>
+<td>File descriptor in bad state</td>
+<td>文件描述符在坏状态</td>
+</tr>
+<tr>
+<td>EREMCHG</td>
+<td>78</td>
+<td>Remote address changed</td>
+<td>远程地址改变了</td>
+</tr>
+<tr>
+<td>ELIBACC</td>
+<td>79</td>
+<td>Cannot access a needed shared library</td>
+<td>无法访问必要的共享库</td>
+</tr>
+<tr>
+<td>ELIBBAD</td>
+<td>80</td>
+<td>Accessing a corrupted shared library</td>
+<td>访问损坏的共享库</td>
+</tr>
+<tr>
+<td>ELIBSCN</td>
+<td>81</td>
+<td>A .lib section in an .out is corrupted</td>
+<td>库段. out 损坏</td>
+</tr>
+<tr>
+<td>ELIBMAX</td>
+<td>82</td>
+<td>Linking in too many shared libraries</td>
+<td>试图链接太多的共享库</td>
+</tr>
+<tr>
+<td>ELIBEXEC</td>
+<td>83</td>
+<td>Cannot exec a shared library directly</td>
+<td>不能直接执行一个共享库</td>
+</tr>
+<tr>
+<td>EILSEQ</td>
+<td>84</td>
+<td>Illegal byte sequence</td>
+<td>无效的或不完整的多字节或宽字符</td>
+</tr>
+<tr>
+<td>ERESTART</td>
+<td>85</td>
+<td>Interrupted system call should be restarted</td>
+<td>应该重新启动中断的系统调用</td>
+</tr>
+<tr>
+<td>ESTRPIPE</td>
+<td>86</td>
+<td>Streams pipe error</td>
+<td>流管错误</td>
+</tr>
+<tr>
+<td>EUSERS</td>
+<td>87</td>
+<td>Too many users</td>
+<td>用户太多</td>
+</tr>
+<tr>
+<td>ENOTSOCK</td>
+<td>88</td>
+<td>Socket operation on non-socket</td>
+<td>套接字操作在非套接字上</td>
+</tr>
+<tr>
+<td>EDESTADDRREQ</td>
+<td>89</td>
+<td>Destination address required</td>
+<td>需要目标地址</td>
+</tr>
+<tr>
+<td>EMSGSIZE</td>
+<td>90</td>
+<td>Message too long</td>
+<td>消息太长</td>
+</tr>
+<tr>
+<td>EPROTOTYPE</td>
+<td>91</td>
+<td>Protocol wrong type for socket</td>
+<td>socket 协议类型错误</td>
+</tr>
+<tr>
+<td>ENOPROTOOPT</td>
+<td>92</td>
+<td>Protocol not available</td>
+<td>协议不可用</td>
+</tr>
+<tr>
+<td>EPROTONOSUPPORT</td>
+<td>93</td>
+<td>Protocol not supported</td>
+<td>不支持的协议</td>
+</tr>
+<tr>
+<td>ESOCKTNOSUPPORT</td>
+<td>94</td>
+<td>Socket type not supported</td>
+<td>套接字类型不受支持</td>
+</tr>
+<tr>
+<td>EOPNOTSUPP</td>
+<td>95</td>
+<td>Operation not supported on transport</td>
+<td>不支持的操作</td>
+</tr>
+<tr>
+<td>EPFNOSUPPORT</td>
+<td>96</td>
+<td>Protocol family not supported</td>
+<td>不支持的协议族</td>
+</tr>
+<tr>
+<td>EAFNOSUPPORT</td>
+<td>97</td>
+<td>Address family not supported by protocol</td>
+<td>协议不支持的地址</td>
+</tr>
+<tr>
+<td>EADDRINUSE</td>
+<td>98</td>
+<td>Address already in use</td>
+<td>地址已在使用</td>
+</tr>
+<tr>
+<td>EADDRNOTAVAIL</td>
+<td>99</td>
+<td>Cannot assign requested address</td>
+<td>无法分配请求的地址</td>
+</tr>
+<tr>
+<td>ENETDOWN</td>
+<td>100</td>
+<td>Network is down</td>
+<td>网络瘫痪</td>
+</tr>
+<tr>
+<td>ENETUNREACH</td>
+<td>101</td>
+<td>Network is unreachable</td>
+<td>网络不可达</td>
+</tr>
+<tr>
+<td>ENETRESET</td>
+<td>102</td>
+<td>Network dropped</td>
+<td>网络连接丢失</td>
+</tr>
+<tr>
+<td>ECONNABORTED</td>
+<td>103</td>
+<td>Software caused connection</td>
+<td>软件导致连接中断</td>
+</tr>
+<tr>
+<td>ECONNRESET</td>
+<td>104</td>
+<td>Connection reset by</td>
+<td>连接被重置</td>
+</tr>
+<tr>
+<td>ENOBUFS</td>
+<td>105</td>
+<td>No buffer space available</td>
+<td>没有可用的缓冲空间</td>
+</tr>
+<tr>
+<td>EISCONN</td>
+<td>106</td>
+<td>Transport endpoint is already connected</td>
+<td>传输端点已经连接</td>
+</tr>
+<tr>
+<td>ENOTCONN</td>
+<td>107</td>
+<td>Transport endpoint is not connected</td>
+<td>传输终点没有连接</td>
+</tr>
+<tr>
+<td>ESHUTDOWN</td>
+<td>108</td>
+<td>Cannot send after transport endpoint shutdown</td>
+<td>传输后无法发送</td>
+</tr>
+<tr>
+<td>ETOOMANYREFS</td>
+<td>109</td>
+<td>Too many references: cannot splice</td>
+<td>太多的参考</td>
+</tr>
+<tr>
+<td>ETIMEDOUT</td>
+<td>110</td>
+<td>Connection timed</td>
+<td>连接超时</td>
+</tr>
+<tr>
+<td>ECONNREFUSED</td>
+<td>111</td>
+<td>Connection refused</td>
+<td>拒绝连接</td>
+</tr>
+<tr>
+<td>EHOSTDOWN</td>
+<td>112</td>
+<td>Host is down</td>
+<td>主机已关闭</td>
+</tr>
+<tr>
+<td>EHOSTUNREACH</td>
+<td>113</td>
+<td>No route to host</td>
+<td>没有主机的路由</td>
+</tr>
+<tr>
+<td>EALREADY</td>
+<td>114</td>
+<td>Operation already</td>
+<td>已运行</td>
+</tr>
+<tr>
+<td>EINPROGRESS</td>
+<td>115</td>
+<td>Operation now in</td>
+<td>正在运行</td>
+</tr>
+<tr>
+<td>ESTALE</td>
+<td>116</td>
+<td>Stale NFS file handle</td>
+<td>陈旧的 NFS 文件句柄</td>
+</tr>
+<tr>
+<td>EUCLEAN</td>
+<td>117</td>
+<td>Structure needs cleaning</td>
+<td>结构需要清洗</td>
+</tr>
+<tr>
+<td>ENOTNAM</td>
+<td>118</td>
+<td>Not a XENIX-named</td>
+<td>不是 XENIX 命名的</td>
+</tr>
+<tr>
+<td>ENAVAIL</td>
+<td>119</td>
+<td>No XENIX semaphores</td>
+<td>没有 XENIX 信号量</td>
+</tr>
+<tr>
+<td>EISNAM</td>
+<td>120</td>
+<td>Is a named type file</td>
+<td>是一个命名的文件类型</td>
+</tr>
+<tr>
+<td>EREMOTEIO</td>
+<td>121</td>
+<td>Remote I/O error</td>
+<td>远程输入/输出错误</td>
+</tr>
+<tr>
+<td>EDQUOT</td>
+<td>122</td>
+<td>Quota exceeded</td>
+<td>超出磁盘配额</td>
+</tr>
+<tr>
+<td>ENOMEDIUM</td>
+<td>123</td>
+<td>No medium found</td>
+<td>没有磁盘被发现</td>
+</tr>
+<tr>
+<td>EMEDIUMTYPE</td>
+<td>124</td>
+<td>Wrong medium type</td>
+<td>错误的媒体类型</td>
+</tr>
+<tr>
+<td>ECANCELED</td>
+<td>125</td>
+<td>Operation Canceled</td>
+<td>取消操作</td>
+</tr>
+<tr>
+<td>ENOKEY</td>
+<td>126</td>
+<td>Required key not available</td>
+<td>所需键不可用</td>
+</tr>
+<tr>
+<td>EKEYEXPIRED</td>
+<td>127</td>
+<td>Key has expired</td>
+<td>关键已过期</td>
+</tr>
+<tr>
+<td>EKEYREVOKED</td>
+<td>128</td>
+<td>Key has been revoked</td>
+<td>关键被撤销</td>
+</tr>
+<tr>
+<td>EKEYREJECTED</td>
+<td>129</td>
+<td>Key was rejected by service</td>
+<td>关键被拒绝服务</td>
+</tr>
+<tr>
+<td>EOWNERDEAD</td>
+<td>130</td>
+<td>Owner died</td>
+<td>所有者死亡</td>
+</tr>
+<tr>
+<td>ENOTRECOVERABLE</td>
+<td>131</td>
+<td>State not recoverable</td>
+<td>状态不可恢复</td>
+</tr>
+<tr>
+<td>ERFKILL</td>
+<td>132</td>
+<td>Operation not possible due to RF-kill</td>
+<td>由于 RF-kill 而无法操作</td>
+</tr>
+<tr>
+<td>EHWPOISON</td>
+<td>133</td>
+<td>Memory page has hardware error</td>
+<td>分页硬件错误</td>
+</tr>
+</tbody>
+</table>
+<p><a name="Swoole错误码列表 :id=swoole"></a></p>
+<h2>Swoole错误码列表 :id=swoole</h2>
+<table>
+<thead>
+<tr>
+<th>Constants Name</th>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SWOOLE_ERROR_MALLOC_FAIL</td>
+<td>501</td>
+<td>Malloc fail</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SYSTEM_CALL_FAIL</td>
+<td>502</td>
+<td>System call fail</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_PHP_FATAL_ERROR</td>
+<td>503</td>
+<td>PHP fatal error</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_NAME_TOO_LONG</td>
+<td>504</td>
+<td>Name too long</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_INVALID_PARAMS</td>
+<td>505</td>
+<td>Invalid params</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_QUEUE_FULL</td>
+<td>506</td>
+<td>Queue full</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_OPERATION_NOT_SUPPORT</td>
+<td>507</td>
+<td>Operation not support</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_PROTOCOL_ERROR</td>
+<td>508</td>
+<td>Protocol error</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_WRONG_OPERATION</td>
+<td>509</td>
+<td>Wrong operation</td>
+</tr>
+<tr>
+<td>-</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_FILE_NOT_EXIST</td>
+<td>700</td>
+<td>File not exist</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_FILE_TOO_LARGE</td>
+<td>701</td>
+<td>File too large</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_FILE_EMPTY</td>
+<td>702</td>
+<td>File empty</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_DNSLOOKUP_DUPLICATE_REQUEST</td>
+<td>710</td>
+<td>DNS Lookup duplicate request</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_DNSLOOKUP_RESOLVE_FAILED</td>
+<td>711</td>
+<td>DNS Lookup resolve failed</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_DNSLOOKUP_RESOLVE_TIMEOUT</td>
+<td>712</td>
+<td>DNS Lookup resolve timeout</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_DNSLOOKUP_UNSUPPORTED</td>
+<td>713</td>
+<td>DNS Lookup unsupported</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_DNSLOOKUP_NO_SERVER</td>
+<td>714</td>
+<td>DNS Lookup no server</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_BAD_IPV6_ADDRESS</td>
+<td>720</td>
+<td>Bad ipv6 address</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_UNREGISTERED_SIGNAL</td>
+<td>721</td>
+<td>Unregistered signal</td>
+</tr>
+<tr>
+<td>-</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_EVENT_SOCKET_REMOVED</td>
+<td>800</td>
+<td>Event socket removed</td>
+</tr>
+<tr>
+<td>-</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SESSION_CLOSED_BY_SERVER</td>
+<td>1001</td>
+<td>Session closed by server</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SESSION_CLOSED_BY_CLIENT</td>
+<td>1002</td>
+<td>Session closed by client</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SESSION_CLOSING</td>
+<td>1003</td>
+<td>Session closing</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SESSION_CLOSED</td>
+<td>1004</td>
+<td>Session closed</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SESSION_NOT_EXIST</td>
+<td>1005</td>
+<td>Session not exist</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SESSION_INVALID_ID</td>
+<td>1006</td>
+<td>Session invalid id</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SESSION_DISCARD_TIMEOUT_DATA</td>
+<td>1007</td>
+<td>Session discard timeout data</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SESSION_DISCARD_DATA</td>
+<td>1008</td>
+<td>Session discard data</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_OUTPUT_BUFFER_OVERFLOW</td>
+<td>1009</td>
+<td>Output buffer overflow</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_OUTPUT_SEND_YIELD</td>
+<td>1010</td>
+<td>Output send yield</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SSL_NOT_READY</td>
+<td>1011</td>
+<td>SSL not ready</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SSL_CANNOT_USE_SENFILE</td>
+<td>1012</td>
+<td>SSL cannot use senfile</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SSL_EMPTY_PEER_CERTIFICATE</td>
+<td>1013</td>
+<td>SSL empty peer certificate</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SSL_VERIFY_FAILED</td>
+<td>1014</td>
+<td>SSL verify failed</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SSL_BAD_CLIENT</td>
+<td>1015</td>
+<td>SSL bad client</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SSL_BAD_PROTOCOL</td>
+<td>1016</td>
+<td>SSL bad protocol</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SSL_RESET</td>
+<td>1017</td>
+<td>SSL reset</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SSL_HANDSHAKE_FAILED</td>
+<td>1018</td>
+<td>SSL handshake failed</td>
+</tr>
+<tr>
+<td>-</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_PACKAGE_LENGTH_TOO_LARGE</td>
+<td>1201</td>
+<td>Package length too large</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_PACKAGE_LENGTH_NOT_FOUND</td>
+<td>1202</td>
+<td>Package length not found</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_DATA_LENGTH_TOO_LARGE</td>
+<td>1203</td>
+<td>Data length too large</td>
+</tr>
+<tr>
+<td>-</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_TASK_PACKAGE_TOO_BIG</td>
+<td>2001</td>
+<td>Task package too big</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_TASK_DISPATCH_FAIL</td>
+<td>2002</td>
+<td>Task dispatch fail</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_TASK_TIMEOUT</td>
+<td>2003</td>
+<td>Task timeout</td>
+</tr>
+<tr>
+<td>-</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_HTTP2_STREAM_ID_TOO_BIG</td>
+<td>3001</td>
+<td>Http2 stream id too big</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_HTTP2_STREAM_NO_HEADER</td>
+<td>3002</td>
+<td>Http2 stream no header</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_HTTP2_STREAM_NOT_FOUND</td>
+<td>3003</td>
+<td>Http2 stream not found</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_HTTP2_STREAM_IGNORE</td>
+<td>3004</td>
+<td>Http2 stream ignore</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_HTTP2_SEND_CONTROL_FRAME_FAILED</td>
+<td>3005</td>
+<td>Http2 send control frame failed</td>
+</tr>
+<tr>
+<td>-</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_AIO_BAD_REQUEST</td>
+<td>4001</td>
+<td>Aio bad request</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_AIO_CANCELED</td>
+<td>4002</td>
+<td>Aio canceled</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_AIO_TIMEOUT</td>
+<td>4003</td>
+<td>Aio timeout</td>
+</tr>
+<tr>
+<td>-</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_CLIENT_NO_CONNECTION</td>
+<td>5001</td>
+<td>Client no connection</td>
+</tr>
+<tr>
+<td>-</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SOCKET_CLOSED</td>
+<td>6001</td>
+<td>Socket closed</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SOCKET_POLL_TIMEOUT</td>
+<td>6002</td>
+<td>Socket poll timeout</td>
+</tr>
+<tr>
+<td>-</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SOCKS5_UNSUPPORT_VERSION</td>
+<td>7001</td>
+<td>Socks5 unsupport version</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SOCKS5_UNSUPPORT_METHOD</td>
+<td>7002</td>
+<td>Socks5 unsupport method</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SOCKS5_AUTH_FAILED</td>
+<td>7003</td>
+<td>Socks5 auth failed</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SOCKS5_SERVER_ERROR</td>
+<td>7004</td>
+<td>Socks5 server error</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SOCKS5_HANDSHAKE_FAILED</td>
+<td>7005</td>
+<td>Socks5 handshake failed</td>
+</tr>
+<tr>
+<td>-</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_HTTP_PROXY_HANDSHAKE_ERROR</td>
+<td>7101</td>
+<td>Http proxy handshake error</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_HTTP_INVALID_PROTOCOL</td>
+<td>7102</td>
+<td>Http invalid protocol</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_HTTP_PROXY_HANDSHAKE_FAILED</td>
+<td>7103</td>
+<td>Http proxy handshake failed</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_HTTP_PROXY_BAD_RESPONSE</td>
+<td>7104</td>
+<td>Http proxy bad response</td>
+</tr>
+<tr>
+<td>-</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_WEBSOCKET_BAD_CLIENT</td>
+<td>8501</td>
+<td>Websocket bad client</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_WEBSOCKET_BAD_OPCODE</td>
+<td>8502</td>
+<td>Websocket bad opcode</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_WEBSOCKET_UNCONNECTED</td>
+<td>8503</td>
+<td>Websocket unconnected</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_WEBSOCKET_HANDSHAKE_FAILED</td>
+<td>8504</td>
+<td>Websocket handshake failed</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_WEBSOCKET_PACK_FAILED</td>
+<td>8505</td>
+<td>Websocket pack failed</td>
+</tr>
+<tr>
+<td>-</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SERVER_MUST_CREATED_BEFORE_CLIENT</td>
+<td>9001</td>
+<td>Server must created before client</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SERVER_TOO_MANY_SOCKET</td>
+<td>9002</td>
+<td>Server too many socket</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SERVER_WORKER_TERMINATED</td>
+<td>9003</td>
+<td>Server worker terminated</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SERVER_INVALID_LISTEN_PORT</td>
+<td>9004</td>
+<td>Server invalid listen port</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SERVER_TOO_MANY_LISTEN_PORT</td>
+<td>9005</td>
+<td>Server too many listen port</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SERVER_PIPE_BUFFER_FULL</td>
+<td>9006</td>
+<td>Server pipe buffer full</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SERVER_NO_IDLE_WORKER</td>
+<td>9007</td>
+<td>Server no idle worker</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SERVER_ONLY_START_ONE</td>
+<td>9008</td>
+<td>Server only start one</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SERVER_SEND_IN_MASTER</td>
+<td>9009</td>
+<td>Server send in master</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SERVER_INVALID_REQUEST</td>
+<td>9010</td>
+<td>Server invalid request</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SERVER_CONNECT_FAIL</td>
+<td>9011</td>
+<td>Server connect fail</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SERVER_INVALID_COMMAND</td>
+<td>9012</td>
+<td>Server invalid command</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SERVER_IS_NOT_REGULAR_FILE</td>
+<td>9013</td>
+<td>Server is not regular file</td>
+</tr>
+<tr>
+<td>-</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SERVER_WORKER_EXIT_TIMEOUT</td>
+<td>9101</td>
+<td>Server worker exit timeout</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SERVER_WORKER_ABNORMAL_PIPE_DATA</td>
+<td>9102</td>
+<td>Server worker abnormal pipe data</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_SERVER_WORKER_UNPROCESSED_DATA</td>
+<td>9103</td>
+<td>Server worker unprocessed data</td>
+</tr>
+<tr>
+<td>-</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_CO_OUT_OF_COROUTINE</td>
+<td>10001</td>
+<td>Coroutine out of coroutine</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_CO_HAS_BEEN_BOUND</td>
+<td>10002</td>
+<td>Coroutine has been bound</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_CO_HAS_BEEN_DISCARDED</td>
+<td>10003</td>
+<td>Coroutine has been discarded</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_CO_MUTEX_DOUBLE_UNLOCK</td>
+<td>10004</td>
+<td>Coroutine mutex double unlock</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_CO_BLOCK_OBJECT_LOCKED</td>
+<td>10005</td>
+<td>Coroutine block object locked</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_CO_BLOCK_OBJECT_WAITING</td>
+<td>10006</td>
+<td>Coroutine block object waiting</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_CO_YIELD_FAILED</td>
+<td>10007</td>
+<td>Coroutine yield failed</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_CO_GETCONTEXT_FAILED</td>
+<td>10008</td>
+<td>Coroutine getcontext failed</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_CO_SWAPCONTEXT_FAILED</td>
+<td>10009</td>
+<td>Coroutine swapcontext failed</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_CO_MAKECONTEXT_FAILED</td>
+<td>10010</td>
+<td>Coroutine makecontext failed</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_CO_IOCPINIT_FAILED</td>
+<td>10011</td>
+<td>Coroutine iocpinit failed</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_CO_PROTECT_STACK_FAILED</td>
+<td>10012</td>
+<td>Coroutine protect stack failed</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_CO_STD_THREAD_LINK_ERROR</td>
+<td>10013</td>
+<td>Coroutine std thread link error</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_CO_DISABLED_MULTI_THREAD</td>
+<td>10014</td>
+<td>Coroutine disabled multi thread</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_CO_CANNOT_CANCEL</td>
+<td>10015</td>
+<td>Coroutine cannot cancel</td>
+</tr>
+<tr>
+<td>SWOOLE_ERROR_CO_NOT_EXISTS</td>
+<td>10016</td>
+<td>Coroutine not exists</td>
+</tr>
+</tbody>
+</table>
+</body>
+</html>

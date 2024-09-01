@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>函数别名汇总</h1>
+<p><a name="协程短名称"></a></p>
+<h2>协程短名称</h2>
+<p>简化协程相关<code>API</code>的名称书写。可修改<code>php.ini</code>设置<code>swoole.use_shortname=On/Off</code>来开启/关闭短名，默认为开启。
+所有的 <code>Swoole\Coroutine</code> 前缀的类名映射为<code>Co</code>。此外还有下面的一些映射：
+<a name="创建协程"></a></p>
+<h3>创建协程</h3>
+<pre><code class="language-php">//Swoole\Coroutine::create等价于go函数
+go(function () {
+    Co::sleep(0.5);
+    echo 'hello';
+});
+go('test');
+go([$object, 'method']);</code></pre>
+<p><a name="通道操作"></a></p>
+<h3>通道操作</h3>
+<pre><code class="language-php">//Coroutine\Channel可以简写为chan
+$c = new chan(1);
+$c-&gt;push($data);
+$c-&gt;pop();</code></pre>
+<p><a name="延迟执行"></a></p>
+<h3>延迟执行</h3>
+<pre><code class="language-php">//Swoole\Coroutine::defer可以直接用defer
+defer(function () use ($db) {
+    $db-&gt;close();
+});</code></pre>
+<p><a name="短名称方法"></a></p>
+<h2>短名称方法</h2>
+<p>!&gt; 以下这种方式中<code>go</code>和<code>defer</code>，Swoole 版本 &gt;= <code>v4.6.3</code> 可用</p>
+<pre><code class="language-php">use function Swoole\Coroutine\go;
+use function Swoole\Coroutine\run;
+use function Swoole\Coroutine\defer;
+run(function () {
+    defer(function () {
+        echo "co1 end\n";
+    });
+    sleep(1);
+    go(function () {
+        usleep(100000);
+        defer(function () {
+            echo "co2 end\n";
+        });
+        echo "co2\n";
+    });
+    echo "co1\n";
+});</code></pre>
+<p><a name="协程System API"></a></p>
+<h2>协程System API</h2>
+<p>在<code>4.4.4</code>版本中系统操作相关的协程<code>API</code>从<code>Swoole\Coroutine</code>类中，迁移到了<code>Swoole\Coroutine\System</code>类中。独立为一个新模块。为了向下兼容，底层依然保留了在<code>Coroutine</code>类之上的别名方法。</p>
+<ul>
+<li>例如 <code>Swoole\Coroutine::sleep</code>对应<code>Swoole\Coroutine\System::sleep</code></li>
+<li>例如 <code>Swoole\Coroutine::fgets</code>对应<code>Swoole\Coroutine\System::fgets</code>
+<a name="类短别名映射关系"></a>
+<h2>类短别名映射关系</h2>
+<table>
+<thead>
+<tr>
+<th>!&gt; 推荐使用命名空间风格。</th>
+<th>下划线类名风格</th>
+<th>命名空间风格</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>swoole_server</td>
+<td>Swoole\Server</td>
+</tr>
+<tr>
+<td>swoole_client</td>
+<td>Swoole\Client</td>
+</tr>
+<tr>
+<td>swoole_process</td>
+<td>Swoole\Process</td>
+</tr>
+<tr>
+<td>swoole_timer</td>
+<td>Swoole\Timer</td>
+</tr>
+<tr>
+<td>swoole_table</td>
+<td>Swoole\Table</td>
+</tr>
+<tr>
+<td>swoole_lock</td>
+<td>Swoole\Lock</td>
+</tr>
+<tr>
+<td>swoole_atomic</td>
+<td>Swoole\Atomic</td>
+</tr>
+<tr>
+<td>swoole_atomic_long</td>
+<td>Swoole\Atomic\Long</td>
+</tr>
+<tr>
+<td>swoole_buffer</td>
+<td>Swoole\Buffer</td>
+</tr>
+<tr>
+<td>swoole_redis</td>
+<td>Swoole\Redis</td>
+</tr>
+<tr>
+<td>swoole_error</td>
+<td>Swoole\Error</td>
+</tr>
+<tr>
+<td>swoole_event</td>
+<td>Swoole\Event</td>
+</tr>
+<tr>
+<td>swoole_http_server</td>
+<td>Swoole\Http\Server</td>
+</tr>
+<tr>
+<td>swoole_http_client</td>
+<td>Swoole\Http\Client</td>
+</tr>
+<tr>
+<td>swoole_http_request</td>
+<td>Swoole\Http\Request</td>
+</tr>
+<tr>
+<td>swoole_http_response</td>
+<td>Swoole\Http\Response</td>
+</tr>
+<tr>
+<td>swoole_websocket_server</td>
+<td>Swoole\WebSocket\Server</td>
+</tr>
+<tr>
+<td>swoole_connection_iterator</td>
+<td>Swoole\Connection\Iterator</td>
+</tr>
+<tr>
+<td>swoole_exception</td>
+<td>Swoole\Exception</td>
+</tr>
+<tr>
+<td>swoole_http2_request</td>
+<td>Swoole\Http2\Request</td>
+</tr>
+<tr>
+<td>swoole_http2_response</td>
+<td>Swoole\Http2\Response</td>
+</tr>
+<tr>
+<td>swoole_process_pool</td>
+<td>Swoole\Process\Pool</td>
+</tr>
+<tr>
+<td>swoole_redis_server</td>
+<td>Swoole\Redis\Server</td>
+</tr>
+<tr>
+<td>swoole_runtime</td>
+<td>Swoole\Runtime</td>
+</tr>
+<tr>
+<td>swoole_server_port</td>
+<td>Swoole\Server\Port</td>
+</tr>
+<tr>
+<td>swoole_server_task</td>
+<td>Swoole\Server\Task</td>
+</tr>
+<tr>
+<td>swoole_table_row</td>
+<td>Swoole\Table\Row</td>
+</tr>
+<tr>
+<td>swoole_timer_iterator</td>
+<td>Swoole\Timer\Iterator</td>
+</tr>
+<tr>
+<td>swoole_websocket_closeframe</td>
+<td>Swoole\Websocket\Closeframe</td>
+</tr>
+<tr>
+<td>swoole_websocket_frame</td>
+<td>Swoole\Websocket\Frame</td>
+</tr>
+</tbody>
+</table></li>
+</ul>
+</body>
+</html>

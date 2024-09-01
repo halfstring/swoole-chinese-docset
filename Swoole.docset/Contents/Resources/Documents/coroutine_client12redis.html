@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>协程Redis客户端</h1>
+<p>!&gt; 本客户端不再推荐使用，推荐使用<code>Swoole\Runtime::enableCoroutine + phpredis</code> 或 <code>predis</code> 的方式，即<a href="/runtime">一键协程化</a>原生<code>PHP</code>的<code>redis</code>客户端使用。
+!&gt; <code>Swoole 6.0</code> 之后，该协程Redis客户端已被移除。
+<a name="使用示例"></a></p>
+<h2>使用示例</h2>
+<pre><code class="language-php">use Swoole\Coroutine\Redis;
+use function Swoole\Coroutine\run;
+run(function () {
+    $redis = new Redis();
+    $redis-&gt;connect('127.0.0.1', 6379);
+    $val = $redis-&gt;get('key');
+});</code></pre>
+<p>!&gt; <code>subscribe</code> <code>pSubscribe</code>无法用于<code>defer(true)</code>的情况。
+<a name="方法"></a></p>
+<h2>方法</h2>
+<p>!&gt; 方法的使用基本与 <a href="https://github.com/phpredis/phpredis">phpredis</a> 保持一致。
+以下说明不同于<a href="https://github.com/phpredis/phpredis">phpredis</a>的实现：
+1、尚未实现的Redis命令：<code>scan object sort migrate hscan sscan zscan</code>；
+2、<code>subscribe pSubscribe</code>的使用方式，无需设置回调函数；
+3、序列化PHP变量的支持，在<code>connect()</code>方法的第三个参数设置为<code>true</code>时，开启序列化<code>PHP</code>变量特性，默认为<code>false</code>
+<a name="__construct"></a></p>
+<h3>__construct()</h3>
+<p>Redis协程客户端构造方法，可以设置<code>Redis</code>连接的配置选项，和<code>setOptions()</code>方法参数一致。</p>
+<pre><code class="language-php">Swoole\Coroutine\Redis::__construct(array $options = null);</code></pre>
+<p><a name="setOptions"></a></p>
+<h3>setOptions()</h3>
+<p>4.2.10版本后新增了该方法, 用于在构造和连接后设置<code>Redis</code>客户端的一些配置
+该函数是Swoole风格的, 需通过<code>Key-Value</code>键值对数组来配置</p>
+<pre><code class="language-php">Swoole\Coroutine\Redis-&gt;setOptions(array $options): void</code></pre>
+<ul>
+<li>
+<table>
+<thead>
+<tr>
+<th><strong>可配置选项</strong>
+key</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>connect_timeout</code></td>
+<td>连接的超时时间, 默认为全局的协程<code>socket_connect_timeout</code>(1秒)</td>
+</tr>
+<tr>
+<td><code>timeout</code></td>
+<td>超时时间, 默认为全局的协程<code>socket_timeout</code>，参考<a href="/coroutine_client/init?id=超时规则">客户端超时规则</a></td>
+</tr>
+<tr>
+<td><code>serialize</code></td>
+<td>自动序列化, 默认关闭</td>
+</tr>
+<tr>
+<td><code>reconnect</code></td>
+<td>自动连接尝试次数, 如果连接由于超时等原因被<code>close</code>正常断开, 下一次发起请求时, 会自动尝试连接然后再发送请求, 默认为<code>1</code>次(<code>true</code>), 一旦失败指定次数后不会再继续尝试, 需手动重连. 该机制仅用于连接保活, 不会重发请求导致不幂等接口出错等问题</td>
+</tr>
+<tr>
+<td><code>compatibility_mode</code></td>
+<td><code>hmGet/hGetAll/zRange/zRevRange/zRangeByScore/zRevRangeByScore</code> 函数返回结果与<code>php-redis</code>不一致的兼容解决方案，开启之后 <code>Co\Redis</code> 和 <code>php-redis</code> 返回结果一致，默认关闭 【此配置项在<code>v4.4.0</code>或更高版本可用】</td>
+</tr>
+</tbody>
+</table>
+<p><a name="set"></a></p>
+<h3>set()</h3>
+<p>存数据。</p>
+<pre><code class="language-php">Swoole\Coroutine\Redis-&gt;set(string $key, mixed $value, array|int $option): bool</code></pre>
+</li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>string $key</code></strong>
+<ul>
+<li><strong>功能</strong>：数据的key</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>string $value</code></strong>
+<ul>
+<li><strong>功能</strong>：数据内容【非字符串类型会自动序列化】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>string $options</code></strong>
+<ul>
+<li><strong>功能</strong>：选项</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无
+!&gt; <code>$option</code> 说明：<br />
+<code>整型</code>：设置过期时间，如<code>3600</code><br />
+<code>数组</code>：高级过期设置，如<code>['nx', 'ex' =&gt; 10]</code> 、<code>['xx', 'px' =&gt; 1000]</code>
+!&gt; <code>px</code>: 表示毫秒级过期时间<br />
+<code>ex</code>: 表示秒级过期时间<br />
+<code>nx</code>: 表示不存在时设置超时<br />
+<code>xx</code>: 表示存在时设置超时
+<a name="request"></a>
+<h3>request()</h3>
+<p>向Redis服务器发送一个自定义的指令。类似于phpredis的rawCommand。</p>
+<pre><code class="language-php">Swoole\Coroutine\Redis-&gt;request(array $args): void</code></pre></li>
+</ul></li>
+</ul></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>array $args</code></strong>
+<ul>
+<li><strong>功能</strong>：参数列表，必须为数组格式参数。【第一个元素必须为<code>Redis</code>指令，其他的元素是指令的参数，底层会自动打包为<code>Redis</code>协议请求进行发送。】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+</ul></li>
+<li><strong>返回值</strong>
+取决于<code>Redis</code>服务器对指令的处理方式，可能会返回数字、布尔型、字符串、数组等类型。</li>
+<li><strong>使用示例</strong> 
+<pre><code class="language-php">use Swoole\Coroutine\Redis;
+use function Swoole\Coroutine\run;
+run(function () {
+$redis = new Redis();
+$redis-&gt;connect('127.0.0.1', 6379); // 若是本地UNIXSocket则host参数应以形如`unix://tmp/your_file.sock`的格式填写
+$res = $redis-&gt;request(['object', 'encoding', 'key1']);
+var_dump($res);
+});</code></pre>
+<p><a name="属性"></a></p>
+<h2>属性</h2>
+<p><a name="errCode"></a></p>
+<h3>errCode</h3>
+<table>
+<thead>
+<tr>
+<th>错误代码。
+错误代码</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Error in read or write</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Everything else...</td>
+</tr>
+<tr>
+<td>3</td>
+<td>End of file</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Protocol error</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Out of memory</td>
+</tr>
+</tbody>
+</table>
+<p><a name="errMsg"></a></p>
+<h3>errMsg</h3>
+<p>错误消息。
+<a name="connected"></a></p>
+<h3>connected</h3>
+<p>判断当前<code>Redis</code>客户端是否连接到了服务器。
+<a name="常量"></a></p>
+<h2>常量</h2>
+<p>用于<code>multi($mode)</code>方法，默认为<code>SWOOLE_REDIS_MODE_MULTI</code>模式：</p>
+<ul>
+<li>SWOOLE_REDIS_MODE_MULTI</li>
+<li>SWOOLE_REDIS_MODE_PIPELINE
+用于判断<code>type()</code>命令的返回值：</li>
+<li>SWOOLE_REDIS_TYPE_NOT_FOUND</li>
+<li>SWOOLE_REDIS_TYPE_STRING</li>
+<li>SWOOLE_REDIS_TYPE_SET</li>
+<li>SWOOLE_REDIS_TYPE_LIST</li>
+<li>SWOOLE_REDIS_TYPE_ZSET</li>
+<li>SWOOLE_REDIS_TYPE_HASH
+<a name="事务模式"></a>
+<h2>事务模式</h2>
+<p>可使用<code>multi</code>和<code>exec</code>实现<code>Redis</code>的事务模式。</p></li>
+</ul></li>
+<li><strong>提示</strong>
+<ul>
+<li>使用<code>mutli</code>指令启动事务，之后所有指令将被加入到队列中等待执行</li>
+<li>使用<code>exec</code>指令执行事务中的所有操作，并一次性返回所有结果</li>
+</ul></li>
+<li><strong>使用示例</strong>
+<pre><code class="language-php">use Swoole\Coroutine\Redis;
+use function Swoole\Coroutine\run;
+run(function () {
+$redis = new Redis();
+$redis-&gt;connect('127.0.0.1', 6379);
+$redis-&gt;multi();
+$redis-&gt;set('key3', 'rango');
+$redis-&gt;get('key1');
+$redis-&gt;get('key2');
+$redis-&gt;get('key3');
+$result = $redis-&gt;exec();
+var_dump($result);
+});</code></pre>
+<p><a name="订阅模式"></a></p>
+<h2>订阅模式</h2>
+<p>!&gt; Swoole版本 &gt;= v4.2.13 可用，<strong>4.2.12及以下版本订阅模式存在BUG</strong>
+<a name="订阅"></a></p>
+<h3>订阅</h3>
+<p>与<code>phpredis</code>不同，<code>subscribe/psubscribe</code>为协程风格。</p>
+<pre><code class="language-php">use Swoole\Coroutine\Redis;
+use function Swoole\Coroutine\run;
+run(function () {
+$redis = new Redis();
+$redis-&gt;connect('127.0.0.1', 6379);
+if ($redis-&gt;subscribe(['channel1', 'channel2', 'channel3'])) // 或者使用psubscribe
+{
+    while ($msg = $redis-&gt;recv()) {
+        // msg是一个数组, 包含以下信息
+        // $type # 返回值的类型：显示订阅成功
+        // $name # 订阅的频道名字 或 来源频道名字
+        // $info  # 目前已订阅的频道数量 或 信息内容
+        list($type, $name, $info) = $msg;
+        if ($type == 'subscribe') { // 或psubscribe
+            // 频道订阅成功消息，订阅几个频道就有几条
+        } else if ($type == 'unsubscribe' &amp;&amp; $info == 0){ // 或punsubscribe
+            break; // 收到取消订阅消息，并且剩余订阅的频道数为0，不再接收，结束循环
+        } else if ($type == 'message') {  // 若为psubscribe，此处为pmessage
+            var_dump($name); // 打印来源频道名字
+            var_dump($info); // 打印消息
+            // balabalaba.... // 处理消息
+            if ($need_unsubscribe) { // 某个情况下需要退订
+                $redis-&gt;unsubscribe(); // 继续recv等待退订完成
+            }
+        }
+    }
+}
+});</code></pre>
+<p><a name="退订"></a></p>
+<h3>退订</h3>
+<p>退订使用<code>unsubscribe/punsubscribe</code>，<code>$redis-&gt;unsubscribe(['channel1'])</code>
+此时<code>$redis-&gt;recv()</code>将会接收到一条取消订阅消息，若取消订阅多个频道，则会收到多条。</p></li>
+</ul>
+<p>!&gt; 注意：退订后务必继续<code>recv()</code>到收到最后一条取消订阅消息（<code>$msg[2] == 0</code>），收到此条消息后，才会退出订阅模式</p>
+<pre><code class="language-php">use Swoole\Coroutine\Redis;
+use function Swoole\Coroutine\run;
+run(function () {
+    $redis = new Redis();
+    $redis-&gt;connect('127.0.0.1', 6379);
+    if ($redis-&gt;subscribe(['channel1', 'channel2', 'channel3'])) // or use psubscribe
+    {
+        while ($msg = $redis-&gt;recv()) {
+            // msg is an array containing the following information
+            // $type # return type: show subscription success
+            // $name # subscribed channel name or source channel name
+            // $info  # the number of channels or information content currently subscribed
+            list($type, $name, $info) = $msg;
+            if ($type == 'subscribe') // or psubscribe
+            {
+                // channel subscription success message
+            }
+            else if ($type == 'unsubscribe' &amp;&amp; $info == 0) // or punsubscribe
+            {
+                break; // received the unsubscribe message, and the number of channels remaining for the subscription is 0, no longer received, break the loop
+            }
+            else if ($type == 'message') // if it's psubscribe，here is pmessage
+            {
+                // print source channel name
+                var_dump($name);
+                // print message
+                var_dump($info);
+                // handle messsage
+                if ($need_unsubscribe) // in some cases, you need to unsubscribe
+                {
+                    $redis-&gt;unsubscribe(); // continue recv to wait unsubscribe finished
+                }
+            }
+        }
+    }
+});</code></pre>
+<p><a name="兼容模式"></a></p>
+<h2>兼容模式</h2>
+<p><code>Co\Redis</code> 的 <code>hmGet/hGetAll/zrange/zrevrange/zrangebyscore/zrevrangebyscore</code>指令返回结果与<code>phpredis</code>扩展返回值格式不一致的问题，已经得到解决 <a href="https://github.com/swoole/swoole-src/pull/2529">#2529</a>。
+为了兼容老版本，在加上 <code>$redis-&gt;setOptions(['compatibility_mode' =&gt; true]);</code> 配置后，即可保证 <code>Co\Redis</code> 和 <code>phpredis</code> 返回结果一致。
+!&gt; Swoole版本 &gt;= <code>v4.4.0</code> 可用</p>
+<pre><code class="language-php">use Swoole\Coroutine\Redis;
+use function Swoole\Coroutine\run;
+run(function () {
+    $redis = new Redis();
+    $redis-&gt;setOptions(['compatibility_mode' =&gt; true]);
+    $redis-&gt;connect('127.0.0.1', 6379);
+    $co_get_val = $redis-&gt;get('novalue');
+    $co_zrank_val = $redis-&gt;zRank('novalue', 1);
+    $co_hgetall_val = $redis-&gt;hGetAll('hkey');
+    $co_hmget_val = $redis-&gt;hmGet('hkey', array(3, 5));
+    $co_zrange_val = $redis-&gt;zRange('zkey', 0, 99, true);
+    $co_zrevrange_val = $redis-&gt;zRevRange('zkey', 0, 99, true);
+    $co_zrangebyscore_val = $redis-&gt;zRangeByScore('zkey', 0, 99, ['withscores' =&gt; true]);
+    $co_zrevrangebyscore_val = $redis-&gt;zRevRangeByScore('zkey', 99, 0, ['withscores' =&gt; true]);
+});</code></pre>
+</body>
+</html>

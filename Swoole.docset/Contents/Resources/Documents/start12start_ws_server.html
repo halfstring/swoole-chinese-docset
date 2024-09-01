@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>WebSocket服务器</h1>
+<p><a name="程序代码"></a></p>
+<h2>程序代码</h2>
+<p>请将以下代码写入websocketServer.php。</p>
+<pre><code class="language-php">//创建WebSocket Server对象，监听0.0.0.0:9502端口。
+$ws = new Swoole\WebSocket\Server('0.0.0.0', 9502);
+//监听WebSocket连接打开事件。
+$ws-&gt;on('Open', function ($ws, $request) {
+    $ws-&gt;push($request-&gt;fd, "hello, welcome\n");
+});
+//监听WebSocket消息事件。
+$ws-&gt;on('Message', function ($ws, $frame) {
+    echo "Message: {$frame-&gt;data}\n";
+    $ws-&gt;push($frame-&gt;fd, "server: {$frame-&gt;data}");
+});
+//监听WebSocket连接关闭事件。
+$ws-&gt;on('Close', function ($ws, $fd) {
+    echo "client-{$fd} is closed\n";
+});
+$ws-&gt;start();</code></pre>
+<ul>
+<li>客户端向服务器端发送信息时，服务器端触发<code>onMessage</code>事件回调。</li>
+<li>服务器端可以调用<code>$server-&gt;push()</code>向某个客户端（使用$fd标识符）发送消息。
+<a name="运行程序"></a>
+<h2>运行程序</h2>
+<pre><code class="language-shell">php websocketServer.php</code></pre>
+<p>可以使用Chrome浏览器进行测试，JS代码为：</p>
+<pre><code class="language-javascript">var wsServer = 'ws://127.0.0.1:9502';
+var websocket = new WebSocket(wsServer);
+websocket.onopen = function (evt) {
+console.log("Connected to WebSocket server.");
+};
+websocket.onclose = function (evt) {
+console.log("Disconnected");
+};
+websocket.onmessage = function (evt) {
+console.log('Retrieved data from server: ' + evt.data);
+};
+websocket.onerror = function (evt, e) {
+console.log('Error occured: ' + evt.data);
+};</code></pre>
+<p><a name="Comet"></a></p>
+<h2>Comet</h2>
+<p>WebSocket服务器除了提供WebSocket功能之外，实际上也可以处理HTTP长连接。只需要增加<a href="/http_server?id=on">onRequest</a>事件监听即可实现Comet方案HTTP长轮询。
+!&gt; 详细使用方法参考<a href="/websocket_server">Swoole\WebSocket</a>。</p></li>
+</ul>
+</body>
+</html>

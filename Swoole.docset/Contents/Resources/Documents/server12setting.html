@@ -1,0 +1,1472 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>配置</h1>
+<p><a href="/server/methods?id=set">Swoole\Server-&gt;set()</a> 函数用于设置<code>Server</code>运行时的各项参数。本节所有的子页面均为配置数组的元素。
+!&gt; 从 <a href="/version/log?id=v455">v4.5.5</a> 版本起，底层会检测设置的配置项是否正确，如果设置了不是<code>Swoole</code>提供的配置项，则会产生一个Warning。</p>
+<pre><code class="language-shell">PHP Warning:  unsupported option [foo] in @swoole-src/library/core/Server/Helper.php </code></pre>
+<p><a name="debug_mode"></a></p>
+<h3>debug_mode</h3>
+<p>?&gt; 设置日志模式为<code>debug</code>调试模式，只有编译时开启了<code>--enable-debug</code>才有作用。</p>
+<pre><code class="language-php">$server-&gt;set([
+  'debug_mode' =&gt; true
+])</code></pre>
+<p><a name="trace_flags"></a></p>
+<h3>trace_flags</h3>
+<p>?&gt; 设置跟踪日志的标签，仅打印部分跟踪日志。<code>trace_flags</code> 支持使用 <code>|</code> 或操作符设置多个跟踪项。，只有编译时开启了<code>--enable-trace-log</code>才有作用。
+底层支持以下跟踪项，可使用<code>SWOOLE_TRACE_ALL</code>表示跟踪所有项目：</p>
+<ul>
+<li><code>SWOOLE_TRACE_SERVER</code></li>
+<li><code>SWOOLE_TRACE_CLIENT</code></li>
+<li><code>SWOOLE_TRACE_BUFFER</code></li>
+<li><code>SWOOLE_TRACE_CONN</code></li>
+<li><code>SWOOLE_TRACE_EVENT</code></li>
+<li><code>SWOOLE_TRACE_WORKER</code></li>
+<li><code>SWOOLE_TRACE_REACTOR</code></li>
+<li><code>SWOOLE_TRACE_PHP</code></li>
+<li><code>SWOOLE_TRACE_HTTP2</code></li>
+<li><code>SWOOLE_TRACE_EOF_PROTOCOL</code></li>
+<li><code>SWOOLE_TRACE_LENGTH_PROTOCOL</code></li>
+<li><code>SWOOLE_TRACE_CLOSE</code></li>
+<li><code>SWOOLE_TRACE_HTTP_CLIENT</code></li>
+<li><code>SWOOLE_TRACE_COROUTINE</code></li>
+<li><code>SWOOLE_TRACE_REDIS_CLIENT</code></li>
+<li><code>SWOOLE_TRACE_MYSQL_CLIENT</code></li>
+<li><code>SWOOLE_TRACE_AIO</code></li>
+<li><code>SWOOLE_TRACE_ALL</code>
+<a name="log_file"></a>
+<h3>log_file</h3>
+<p>?&gt; <strong>指定<code>Swoole</code>错误日志文件</strong>
+?&gt; 在<code>Swoole</code>运行期发生的异常信息会记录到这个文件中，默认会打印到屏幕。<br />
+开启守护进程模式后<code>(daemonize =&gt; true)</code>，标准输出将会被重定向到<code>log_file</code>。在PHP代码中<code>echo/var_dump/print</code>等打印到屏幕的内容会写入到<code>log_file</code>文件。</p>
+<ul>
+<li><strong>提示</strong></li>
+<li><code>log_file</code>中的日志仅仅是做运行时错误记录，没有长久存储的必要。</li>
+<li><strong>日志标号</strong>
+?&gt; 在日志信息中，进程ID前会加一些标号，表示日志产生的线程/进程类型。
+<ul>
+<li><code>#</code> Master进程</li>
+<li><code>$</code> Manager进程</li>
+<li><code>*</code> Worker进程</li>
+<li><code>^</code> Task进程</li>
+</ul></li>
+<li><strong>重新打开日志文件</strong>
+?&gt; 在服务器程序运行期间日志文件被<code>mv</code>移动或<code>unlink</code>删除后，日志信息将无法正常写入，这时可以向<code>Server</code>发送<code>SIGRTMIN</code>信号实现重新打开日志文件。
+<ul>
+<li>仅支持<code>Linux</code>平台</li>
+<li>不支持<a href="/server/methods?id=addProcess">UserProcess</a>进程</li>
+</ul></li>
+<li><strong>注意</strong>
+!&gt; <code>log_file</code>不会自动切分文件，所以需要定期清理此文件。观察<code>log_file</code>的输出，可以得到服务器的各类异常信息和警告。
+<a name="log_level"></a>
+<h3>log_level</h3>
+<p>?&gt; <strong>设置<code>Server</code>错误日志打印的等级，范围是<code>0-6</code>。低于<code>log_level</code>设置的日志信息不会抛出。</strong>【默认值：<code>SWOOLE_LOG_INFO</code>】
+对应级别常量参考<a href="/consts?id=日志等级">日志等级</a></p></li>
+<li><strong>注意</strong>
+!&gt; <code>SWOOLE_LOG_DEBUG</code>和<code>SWOOLE_LOG_TRACE</code>仅在编译为<a href="/environment?id=debug参数">--enable-debug-log</a>和<a href="/environment?id=debug参数">--enable-trace-log</a>版本时可用；<br />
+在开启<code>daemonize</code>守护进程时，底层将把程序中的所有打印屏幕的输出内容写入到<a href="/server/setting?id=log_file">log_file</a>，这部分内容不受<code>log_level</code>控制。
+<a name="log_date_format"></a>
+<h3>log_date_format</h3>
+<p>?&gt; <strong>设置<code>Server</code>日志时间格式</strong>，格式参考 <a href="https://www.php.net/manual/zh/function.strftime.php">strftime</a> 的<code>format</code></p>
+<pre><code class="language-php">$server-&gt;set([
+'log_date_format' =&gt; '%Y-%m-%d %H:%M:%S',
+]);</code></pre>
+<p><a name="log_date_with_microseconds"></a></p>
+<h3>log_date_with_microseconds</h3>
+<p>?&gt; <strong>设置<code>Server</code>日志精度，是否带微秒</strong>【默认值：<code>false</code>】
+<a name="log_rotation"></a></p>
+<h3>log_rotation</h3>
+<table>
+<thead>
+<tr>
+<th>?&gt; <strong>设置<code>Server</code>日志分割</strong>【默认值：<code>SWOOLE_LOG_ROTATION_SINGLE</code>】</th>
+<th>常量</th>
+<th>说明</th>
+<th>版本信息</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SWOOLE_LOG_ROTATION_SINGLE</td>
+<td>不启用</td>
+<td>-</td>
+</tr>
+<tr>
+<td>SWOOLE_LOG_ROTATION_MONTHLY</td>
+<td>每月</td>
+<td>v4.5.8</td>
+</tr>
+<tr>
+<td>SWOOLE_LOG_ROTATION_DAILY</td>
+<td>每日</td>
+<td>v4.5.2</td>
+</tr>
+<tr>
+<td>SWOOLE_LOG_ROTATION_HOURLY</td>
+<td>每小时</td>
+<td>v4.5.8</td>
+</tr>
+<tr>
+<td>SWOOLE_LOG_ROTATION_EVERY_MINUTE</td>
+<td>每分钟</td>
+<td>v4.5.8</td>
+</tr>
+</tbody>
+</table>
+<p><a name="display_errors"></a></p>
+<h3>display_errors</h3>
+<p>?&gt; 开启 / 关闭 <code>Swoole</code> 错误信息。</p>
+<pre><code class="language-php">$server-&gt;set([
+'display_errors' =&gt; true
+])</code></pre>
+<p><a name="dns_server"></a></p>
+<h3>dns_server</h3>
+<p>?&gt; 设置<code>dns</code>查询的<code>ip</code>地址。
+<a name="socket_dns_timeout"></a></p>
+<h3>socket_dns_timeout</h3>
+<p>?&gt; 域名解析超时时间，如果在服务端启用协程客户端，该参数可以控制客户端的域名解析超时时间，单位为秒。
+<a name="socket_connect_timeout"></a></p>
+<h3>socket_connect_timeout</h3>
+<p>?&gt; 客户端连接超时时间，如果在服务端启用协程客户端，该参数可以控制客户端的连接超时时间，单位为秒。
+<a name="socket_write_timeout / socket_send_timeout"></a></p>
+<h3>socket_write_timeout / socket_send_timeout</h3>
+<p>?&gt; 客户端写超时时间，如果在服务端启用协程客户端，该参数可以控制客户端的写超时时间，单位为秒。<br />
+该配置也能用于控制<code>协程化</code>之后的<code>shell_exec</code>或者<a href="/coroutine/system?id=exec">Swoole\Coroutine\System::exec()</a>的执行超时时间。<br />
+<a name="socket_read_timeout / socket_recv_timeout"></a></p>
+<h3>socket_read_timeout / socket_recv_timeout</h3>
+<p>?&gt; 客户端读超时时间，如果在服务端启用协程客户端，该参数可以控制客户端的读超时时间，单位为秒。
+<a name="max_coroutine / max_coro_num :id=max_coroutine"></a></p>
+<h3>max_coroutine / max_coro_num :id=max_coroutine</h3>
+<p>?&gt; <strong>设置当前工作进程最大协程数量。</strong>【默认值：<code>100000</code>，Swoole版本小于<code>v4.4.0-beta</code> 时默认值为<code>3000</code>】
+?&gt; 超过<code>max_coroutine</code>底层将无法创建新的协程，服务端的Swoole会抛出<code>exceed max number of coroutine</code>错误，<code>TCP Server</code>会直接关闭连接，<code>Http Server</code>会返回Http的503状态码。
+?&gt; 在<code>Server</code>程序中实际最大可创建协程数量等于 <code>worker_num * max_coroutine</code>，task进程和UserProcess进程的协程数量单独计算。</p>
+<pre><code class="language-php">$server-&gt;set(array(
+'max_coroutine' =&gt; 3000,
+));</code></pre>
+<p><a name="enable_deadlock_check"></a></p>
+<h3>enable_deadlock_check</h3>
+<p>?&gt; 打开协程死锁检测。</p>
+<pre><code class="language-php">$server-&gt;set([
+'enable_deadlock_check' =&gt; true
+]);</code></pre>
+<p><a name="hook_flags"></a></p>
+<h3>hook_flags</h3>
+<p>?&gt; <strong>设置<code>一键协程化</code>Hook的函数范围。</strong>【默认值：不hook】
+!&gt; Swoole版本为 <code>v4.5+</code> 或 <a href="https://github.com/swoole/swoole-src/tree/v4.4.x">4.4LTS</a> 可用，详情参考<a href="/runtime">一键协程化</a></p>
+<pre><code class="language-php">$server-&gt;set([
+'hook_flags' =&gt; SWOOLE_HOOK_SLEEP,
+]);</code></pre>
+<p>底层支持以下协程化项，可使用<code>SWOOLE_HOOK_ALL</code>表示协程化全部：</p></li>
+</ul></li>
+<li><code>SWOOLE_HOOK_TCP</code></li>
+<li><code>SWOOLE_HOOK_UNIX</code></li>
+<li><code>SWOOLE_HOOK_UDP</code></li>
+<li><code>SWOOLE_HOOK_UDG</code></li>
+<li><code>SWOOLE_HOOK_SSL</code></li>
+<li><code>SWOOLE_HOOK_TLS</code></li>
+<li><code>SWOOLE_HOOK_SLEEP</code></li>
+<li><code>SWOOLE_HOOK_FILE</code></li>
+<li><code>SWOOLE_HOOK_STREAM_FUNCTION</code></li>
+<li><code>SWOOLE_HOOK_BLOCKING_FUNCTION</code></li>
+<li><code>SWOOLE_HOOK_PROC</code></li>
+<li><code>SWOOLE_HOOK_CURL</code></li>
+<li><code>SWOOLE_HOOK_NATIVE_CURL</code></li>
+<li><code>SWOOLE_HOOK_SOCKETS</code></li>
+<li><code>SWOOLE_HOOK_STDIO</code></li>
+<li><code>SWOOLE_HOOK_PDO_PGSQL</code></li>
+<li><code>SWOOLE_HOOK_PDO_ODBC</code></li>
+<li><code>SWOOLE_HOOK_PDO_ORACLE</code></li>
+<li><code>SWOOLE_HOOK_PDO_SQLITE</code></li>
+<li><code>SWOOLE_HOOK_ALL</code>
+<a name="enable_preemptive_scheduler"></a>
+<h3>enable_preemptive_scheduler</h3>
+<p>?&gt; 设置打开协程抢占式调度，避免其中一个协程执行时间过长导致其他协程饿死，协程最大执行时间为<code>10ms</code>。</p>
+<pre><code class="language-php">$server-&gt;set([
+'enable_preemptive_scheduler' =&gt; true
+]);</code></pre>
+<p><a name="c_stack_size / stack_size"></a></p>
+<h3>c_stack_size / stack_size</h3>
+<p>?&gt; 设置单个协程初始 C 栈的内存尺寸，默认为 2M。
+<a name="aio_core_worker_num"></a></p>
+<h3>aio_core_worker_num</h3>
+<p>?&gt; 设置<code>AIO</code>最小工作线程数，默认值为<code>cpu</code>核数。
+<a name="aio_worker_num"></a></p>
+<h3>aio_worker_num</h3>
+<p>?&gt; 设置<code>AIO</code>最大工作线程数，默认值为<code>cpu</code>核数 * 8。
+<a name="aio_max_wait_time"></a></p>
+<h3>aio_max_wait_time</h3>
+<p>?&gt; 工作线程等待任务最大时间，单位为秒。
+<a name="aio_max_idle_time"></a></p>
+<h3>aio_max_idle_time</h3>
+<p>?&gt; 工作线程最大空闲时间，单位为秒。
+<a name="reactor_num"></a></p>
+<h3>reactor_num</h3>
+<p>?&gt; <strong>设置启动的 <a href="/learn?id=reactor线程">Reactor</a> 线程数。</strong>【默认值：<code>CPU</code>核数】
+?&gt; 通过此参数来调节主进程内事件处理线程的数量，以充分利用多核。默认会启用<code>CPU</code>核数相同的数量。<br />
+<code>Reactor</code>线程是可以利用多核，如：机器有<code>128</code>核，那么底层会启动<code>128</code>线程。<br />
+每个线程能都会维持一个<a href="/learn?id=什么是eventloop">EventLoop</a>。线程之间是无锁的，指令可以被<code>128</code>核<code>CPU</code>并行执行。<br />
+考虑到操作系统调度存在一定程度的性能损失，可以设置为CPU核数*2，以便最大化利用CPU的每一个核。</p>
+<ul>
+<li><strong>提示</strong></li>
+<li><code>reactor_num</code>建议设置为<code>CPU</code>核数的<code>1-4</code>倍</li>
+<li><code>reactor_num</code>最大不得超过 <a href="/functions?id=swoole_cpu_num">swoole_cpu_num()</a> * 4</li>
+<li><strong>注意</strong>
+!&gt; -<code>reactor_num</code>必须小于或等于<code>worker_num</code> ；<br />
+-如果设置的<code>reactor_num</code>大于<code>worker_num</code>，会自动调整使<code>reactor_num</code>等于<code>worker_num</code> ；<br />
+-在超过<code>8</code>核的机器上<code>reactor_num</code>默认设置为<code>8</code>。</li>
+</ul></li>
+</ul>
+<p><a name="worker_num"></a></p>
+<h3>worker_num</h3>
+<p>?&gt; <strong>设置启动的<code>Worker</code>进程数。</strong>【默认值：<code>CPU</code>核数】
+?&gt; 如<code>1</code>个请求耗时<code>100ms</code>，要提供<code>1000QPS</code>的处理能力，那必须配置<code>100</code>个进程或更多。<br />
+但开的进程越多，占用的内存就会大大增加，而且进程间切换的开销就会越来越大。所以这里适当即可。不要配置过大。</p>
+<ul>
+<li><strong>提示</strong>
+<ul>
+<li>如果业务代码是全<a href="/learn?id=同步io异步io">异步IO</a>的，这里设置为<code>CPU</code>核数的<code>1-4</code>倍最合理</li>
+<li>如果业务代码为<a href="/learn?id=同步io异步io">同步IO</a>，需要根据请求响应时间和系统负载来调整，例如：<code>100-500</code></li>
+<li>默认设置为<a href="/functions?id=swoole_cpu_num">swoole_cpu_num()</a>，最大不得超过<a href="/functions?id=swoole_cpu_num">swoole_cpu_num()</a> * 1000</li>
+<li>假设每个进程占用<code>40M</code>内存，<code>100</code>个进程就需要占用<code>4G</code>内存，如何正确查看进程的内存占用请参考<a href="https://course.swoole-cloud.com/course-video/85">Swoole官方视频教程</a>
+<a name="max_request"></a>
+<h3>max_request</h3>
+<p>?&gt; <strong>设置<code>worker</code>进程的最大任务数。</strong>【默认值：<code>0</code> 即不会退出进程】
+?&gt; 一个<code>worker</code>进程在处理完超过此数值的任务后将自动退出，进程退出后会释放所有内存和资源
+!&gt; 这个参数的主要作用是解决由于程序编码不规范导致的PHP进程内存泄露问题。PHP应用程序有缓慢的内存泄漏，但无法定位到具体原因、无法解决，可以通过设置<code>max_request</code>临时解决，需要找到内存泄漏的代码并修复，而不是通过此方案，可以使用 <a href="https://course.swoole-cloud.com/course-video/92">Swoole Tracker</a> 发现泄漏的代码。</p></li>
+</ul></li>
+<li><strong>提示</strong>
+<ul>
+<li>达到max_request不一定马上关闭进程，参考<a href="/server/setting?id=max_wait_time">max_wait_time</a>。</li>
+<li><a href="/learn?id=swoole_base">SWOOLE_BASE</a>下，达到max_request重启进程会导致客户端连接断开。
+!&gt; 当<code>worker</code>进程内发生致命错误或者人工执行<code>exit</code>时，进程会自动退出。<code>master</code>进程会重新启动一个新的<code>worker</code>进程来继续处理请求
+<a name="max_conn / max_connection"></a>
+<h3>max_conn / max_connection</h3>
+<p>?&gt; <strong>服务器程序，最大允许的连接数。</strong>【默认值：<code>ulimit -n</code>】
+?&gt; 如<code>max_connection =&gt; 10000</code>, 此参数用来设置<code>Server</code>最大允许维持多少个<code>TCP</code>连接。超过此数量后，新进入的连接将被拒绝。</p></li>
+</ul></li>
+<li>
+<p><strong>提示</strong></p>
+<ul>
+<li><strong>默认设置</strong>
+<ul>
+<li>应用层未设置<code>max_connection</code>，底层将使用<code>ulimit -n</code>的值作为缺省设置</li>
+<li>在<code>4.2.9</code>或更高版本，当底层检测到<code>ulimit -n</code>超过<code>100000</code>时将默认设置为<code>100000</code>，原因是某些系统设置了<code>ulimit -n</code>为<code>100万</code>，需要分配大量内存，导致启动失败</li>
+</ul></li>
+<li><strong>最大上限</strong>
+<ul>
+<li>请勿设置<code>max_connection</code>超过<code>1M</code></li>
+</ul></li>
+<li>
+<p><strong>最小设置</strong></p>
+<ul>
+<li>此选项设置过小底层会抛出错误，并设置为<code>ulimit -n</code>的值。</li>
+<li>最小值为<code>(worker_num + task_worker_num) * 2 + 32</code>
+<pre><code class="language-shell">serv-&gt;max_connection is too small.</code></pre></li>
+</ul>
+</li>
+<li><strong>内存占用</strong>
+<ul>
+<li><code>max_connection</code>参数不要调整的过大，根据机器内存的实际情况来设置。<code>Swoole</code>会根据此数值一次性分配一块大内存来保存<code>Connection</code>信息，一个<code>TCP</code>连接的<code>Connection</code>信息，需要占用<code>224</code>字节。</li>
+</ul></li>
+</ul>
+</li>
+<li><strong>注意</strong>
+!&gt; <code>max_connection</code>最大不得超过操作系统<code>ulimit -n</code>的值，否则会报一条警告信息，并重置为<code>ulimit -n</code>的值
+<pre><code class="language-shell">WARN swServer_start_check: serv-&gt;max_conn is exceed the maximum value[100000].
+WARNING set_max_connection: max_connection is exceed the maximum value, it's reset to 10240</code></pre>
+<p><a name="task_worker_num"></a></p>
+<h3>task_worker_num</h3>
+<p>?&gt; <strong>配置 <a href="/learn?id=taskworker进程">Task进程</a>的数量。</strong>
+?&gt; 配置此参数后将会启用<code>task</code>功能。所以<code>Server</code>务必要注册<a href="/server/events?id=ontask">onTask</a>、<a href="/server/events?id=onfinish">onFinish</a> 2 个事件回调函数。如果没有注册，服务器程序将无法启动。</p></li>
+<li>
+<p><strong>提示</strong></p>
+<ul>
+<li>
+<p><a href="/learn?id=taskworker进程">Task进程</a>是同步阻塞的</p>
+</li>
+<li>
+<p>最大值不得超过<a href="/functions?id=swoole_cpu_num">swoole_cpu_num()</a> * 1000</p>
+</li>
+<li>
+<p><strong>计算方法</strong></p>
+<ul>
+<li>单个<code>task</code>的处理耗时，如<code>100ms</code>，那一个进程1秒就可以处理<code>1/0.1=10</code>个task</li>
+<li><code>task</code>投递的速度，如每秒产生<code>2000</code>个<code>task</code></li>
+<li><code>2000/10=200</code>，需要设置<code>task_worker_num =&gt; 200</code>，启用<code>200</code>个Task进程</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><strong>注意</strong>
+!&gt; - <a href="/learn?id=taskworker进程">Task进程</a>内不能使用<code>Swoole\Server-&gt;task</code>方法
+<a name="task_ipc_mode"></a>
+<h3>task_ipc_mode</h3>
+<p>?&gt; <strong>设置 <a href="/learn?id=taskworker进程">Task进程</a>与<code>Worker</code>进程之间通信的方式。</strong>【默认值：<code>1</code>】 </p></li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>?&gt; 请先阅读<a href="/learn?id=什么是IPC">Swoole下的IPC通讯</a>。
+模式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>使用<code>Unix Socket</code>通信【默认模式】</td>
+</tr>
+<tr>
+<td>2</td>
+<td>使用<code>sysvmsg</code>消息队列通信</td>
+</tr>
+<tr>
+<td>3</td>
+<td>使用<code>sysvmsg</code>消息队列通信，并设置为争抢模式</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>提示</strong>
+<ul>
+<li><strong>模式<code>1</code></strong>
+<ul>
+<li>使用模式<code>1</code>时，支持定向投递，可在<a href="/server/methods?id=task">task</a>和<a href="/server/methods?id=taskwait">taskwait</a>方法中使用<code>dst_worker_id</code>，指定目标 <code>Task进程</code>。</li>
+<li><code>dst_worker_id</code>设置为<code>-1</code>时，底层会判断每个 <a href="/learn?id=taskworker进程">Task进程</a>的状态，向当前状态为空闲的进程投递任务。</li>
+</ul></li>
+<li><strong>模式<code>2</code>、<code>3</code></strong>
+<ul>
+<li>消息队列模式使用操作系统提供的内存队列存储数据，未指定 <code>mssage_queue_key</code> 消息队列<code>Key</code>，将使用私有队列，在<code>Server</code>程序终止后会删除消息队列。</li>
+<li>指定消息队列<code>Key</code>后<code>Server</code>程序终止后，消息队列中的数据不会删除，因此进程重启后仍然能取到数据</li>
+<li>可使用<code>ipcrm -q</code>消息队列<code>ID</code>手动删除消息队列数据</li>
+<li><code>模式2</code>和<code>模式3</code>的不同之处是，<code>模式2</code>支持定向投递，<code>$serv-&gt;task($data, $task_worker_id)</code> 可以指定投递到哪个 <a href="/learn?id=taskworker进程">task进程</a>。<code>模式3</code>是完全争抢模式， <a href="/learn?id=taskworker进程">task进程</a>会争抢队列，将无法使用定向投递，<code>task/taskwait</code>将无法指定目标进程<code>ID</code>，即使指定了<code>$task_worker_id</code>，在<code>模式3</code>下也是无效的。</li>
+</ul></li>
+</ul></li>
+<li><strong>注意</strong>
+!&gt; -<code>模式3</code>会影响<a href="/server/methods?id=sendMessage">sendMessage</a>方法，使<a href="/server/methods?id=sendMessage">sendMessage</a>发送的消息会随机被某一个 <a href="/learn?id=taskworker进程">task进程</a>获取。<br />
+-使用消息队列通信，如果 <code>Task进程</code> 处理能力低于投递速度，可能会引起<code>Worker</code>进程阻塞。<br />
+-使用消息队列通信后task进程无法支持协程(开启<a href="/server/setting?id=task_enable_coroutine">task_enable_coroutine</a>)。<br />
+<a name="task_max_request"></a>
+<h3>task_max_request</h3>
+<p>?&gt; <strong>设置 <a href="/learn?id=taskworker进程">task进程</a>的最大任务数。</strong>【默认值：<code>0</code>】
+设置task进程的最大任务数。一个task进程在处理完超过此数值的任务后将自动退出。这个参数是为了防止PHP进程内存溢出。如果不希望进程自动退出可以设置为0。
+<a name="task_tmpdir"></a></p>
+<h3>task_tmpdir</h3>
+<p>?&gt; <strong>设置task的数据临时目录。</strong>【默认值：Linux <code>/tmp</code> 目录】
+?&gt; 在<code>Server</code>中，如果投递的数据超过<code>8180</code>字节，将启用临时文件来保存数据。这里的<code>task_tmpdir</code>就是用来设置临时文件保存的位置。</p></li>
+<li><strong>提示</strong>
+<ul>
+<li>底层默认会使用<code>/tmp</code>目录存储<code>task</code>数据，如果你的<code>Linux</code>内核版本过低，<code>/tmp</code>目录不是内存文件系统，可以设置为 <code>/dev/shm/</code></li>
+<li><code>task_tmpdir</code>目录不存在，底层会尝试自动创建</li>
+</ul></li>
+<li><strong>注意</strong>
+!&gt; -创建失败时，<code>Server-&gt;start</code>会失败
+<a name="task_enable_coroutine"></a>
+<h3>task_enable_coroutine</h3>
+<p>?&gt; <strong>开启 <code>Task</code> 协程支持。</strong>【默认值：<code>false</code>】，v4.2.12起支持
+?&gt; 开启后自动在<a href="/server/events?id=ontask">onTask</a>回调中创建协程和<a href="/coroutine/scheduler">协程容器</a>，<code>PHP</code>代码可以直接使用协程<code>API</code>。</p></li>
+<li><strong>示例</strong>
+<pre><code class="language-php">$server-&gt;on('Task', function ($serv, Swoole\Server\Task $task) {
+//来自哪个 Worker 进程
+$task-&gt;worker_id;
+//任务的编号
+$task-&gt;id;
+//任务的类型，taskwait, task, taskCo, taskWaitMulti 可能使用不同的 flags
+$task-&gt;flags;
+//任务的数据
+$task-&gt;data;
+//投递时间，v4.6.0版本增加
+$task-&gt;dispatch_time;
+//协程 API
+co::sleep(0.2);
+//完成任务，结束并返回数据
+$task-&gt;finish([123, 'hello']);
+});</code></pre></li>
+<li><strong>注意</strong>
+!&gt; -<code>task_enable_coroutine</code>必须在<a href="/server/setting?id=enable_coroutine">enable_coroutine</a>为<code>true</code>时才可以使用<br />
+-开启<code>task_enable_coroutine</code>，<code>Task</code>工作进程支持协程<br />
+-未开启<code>task_enable_coroutine</code>，仅支持同步阻塞
+<a name="task_use_object/task_object :id=task_use_object"></a>
+<h3>task_use_object/task_object :id=task_use_object</h3>
+<p>?&gt; <strong>使用面向对象风格的Task回调格式。</strong>【默认值：<code>false</code>】
+?&gt; 设置为<code>true</code>时，<a href="/server/events?id=ontask">onTask</a>回调将变成对象模式。</p></li>
+<li><strong>示例</strong>
+<pre><code class="language-php">&lt;?php
+$server = new Swoole\Server('127.0.0.1', 9501);
+$server-&gt;set([
+'worker_num'      =&gt; 1,
+'task_worker_num' =&gt; 3,
+'task_use_object' =&gt; true,
+//    'task_object' =&gt; true, // v4.6.0版本增加的别名
+]);
+$server-&gt;on('receive', function (Swoole\Server $server, $fd, $tid, $data) {
+$server-&gt;task(['fd' =&gt; $fd,]);
+});
+$server-&gt;on('Task', function (Swoole\Server $server, Swoole\Server\Task $task) {
+//此处$task是Swoole\Server\Task对象
+$server-&gt;send($task-&gt;data['fd'], json_encode($server-&gt;stats()));
+});
+$server-&gt;start();</code></pre>
+<p><a name="dispatch_mode"></a></p>
+<h3>dispatch_mode</h3>
+<table>
+<thead>
+<tr>
+<th>?&gt; <strong>数据包分发策略。</strong>【默认值：<code>2</code>】
+模式值</th>
+<th>模式</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>轮循模式</td>
+<td>收到会轮循分配给每一个<code>Worker</code>进程</td>
+</tr>
+<tr>
+<td>2</td>
+<td>固定模式</td>
+<td>根据连接的文件描述符分配<code>Worker</code>。这样可以保证同一个连接发来的数据只会被同一个<code>Worker</code>处理</td>
+</tr>
+<tr>
+<td>3</td>
+<td>抢占模式</td>
+<td>主进程会根据<code>Worker</code>的忙闲状态选择投递，只会投递给处于闲置状态的<code>Worker</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td>IP分配</td>
+<td>根据客户端<code>IP</code>进行取模<code>hash</code>，分配给一个固定的<code>Worker</code>进程。<br>可以保证同一个来源IP的连接数据总会被分配到同一个<code>Worker</code>进程。算法为 <code>inet_addr_mod(ClientIP, worker_num)</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td>UID分配</td>
+<td>需要用户代码中调用 <a href="/server/methods?id=bind">Server-&gt;bind()</a> 将一个连接绑定<code>1</code>个<code>uid</code>。然后底层根据<code>UID</code>的值分配到不同的<code>Worker</code>进程。<br>算法为 <code>UID % worker_num</code>，如果需要使用字符串作为<code>UID</code>，可以使用<code>crc32(UID_STRING)</code></td>
+</tr>
+<tr>
+<td>7</td>
+<td>stream模式</td>
+<td>空闲的<code>Worker</code>会<code>accept</code>连接，并接受<a href="/learn?id=reactor线程">Reactor</a>的新请求</td>
+</tr>
+</tbody>
+</table></li>
+<li>
+<p><strong>提示</strong></p>
+<ul>
+<li>
+<p><strong>使用建议</strong></p>
+<ul>
+<li>无状态<code>Server</code>可以使用<code>1</code>或<code>3</code>，同步阻塞<code>Server</code>使用<code>3</code>，异步非阻塞<code>Server</code>使用<code>1</code></li>
+<li>有状态使用<code>2</code>、<code>4</code>、<code>5</code></li>
+</ul>
+</li>
+<li>
+<p><strong>UDP协议</strong></p>
+<ul>
+<li><code>dispatch_mode=2/4/5</code>时为固定分配，底层使用客户端<code>IP</code>取模散列到不同的<code>Worker</code>进程</li>
+<li><code>dispatch_mode=1/3</code>时随机分配到不同的<code>Worker</code>进程</li>
+<li><code>inet_addr_mod</code>函数
+<pre><code>
+function inet_addr_mod($ip, $worker_num) {
+$ip_parts = explode('.', $ip);
+if (count($ip_parts) != 4) {
+return false;
+}
+$ip_parts = array_reverse($ip_parts);</code></pre></li>
+</ul>
+<p>$ip_long = 0;
+foreach ($ip_parts as $part) {
+$ip_long &lt;&lt;= 8;
+$ip_long |= (int) $part;
+}</p>
+<p>return $ip_long % $worker_num;
+}</p>
+<pre><code></code></pre>
+</li>
+</ul>
+</li>
+<li><strong>Base模式</strong>
+<ul>
+<li><code>dispatch_mode</code>配置在 <a href="/learn?id=swoole_base">SWOOLE_BASE</a> 模式是无效的，因为<code>BASE</code>不存在投递任务，当收到客户端发来的数据后会立即在当前线程/进程回调<a href="/server/events?id=onreceive">onReceive</a>，不需要投递<code>Worker</code>进程。</li>
+</ul></li>
+<li><strong>注意</strong>
+!&gt; -<code>dispatch_mode=1/3</code>时，底层会屏蔽<code>onConnect/onClose</code>事件，原因是这2种模式下无法保证<code>onConnect/onClose/onReceive</code>的顺序；<br />
+-非请求响应式的服务器程序，请不要使用模式<code>1</code>或<code>3</code>。例如：http服务就是响应式的，可以使用<code>1</code>或<code>3</code>，有TCP长连接状态的就不能使用<code>1</code>或<code>3</code>。
+<a name="dispatch_func"></a>
+<h3>dispatch_func</h3>
+<p>?&gt; 设置<code>dispatch</code>函数，<code>Swoole</code>底层内置了<code>6</code>种<a href="/server/setting?id=dispatch_mode">dispatch_mode</a>，如果仍然无法满足需求。可以使用编写<code>C++</code>函数或<code>PHP</code>函数，实现<code>dispatch</code>逻辑。</p></li>
+<li><strong>使用方法</strong>
+<pre><code class="language-php">$server-&gt;set(array(
+'dispatch_func' =&gt; 'my_dispatch_function',
+));</code></pre></li>
+<li><strong>提示</strong>
+<ul>
+<li>设置<code>dispatch_func</code>后底层会自动忽略<code>dispatch_mode</code>配置</li>
+<li><code>dispatch_func</code>对应的函数不存在，底层将抛出致命错误</li>
+<li>如果需要<code>dispatch</code>一个超过8K的包，<code>dispatch_func</code>只能获取到 <code>0-8180</code> 字节的内容</li>
+</ul></li>
+<li><strong>编写PHP函数</strong>
+?&gt; 由于<code>ZendVM</code>无法支持多线程环境，即使设置了多个<a href="/learn?id=reactor线程">Reactor</a>线程，同一时间只能执行一个<code>dispatch_func</code>。因此底层在执行此PHP函数时会进行加锁操作，可能会存在锁的争抢问题。请勿在<code>dispatch_func</code>中执行任何阻塞操作，否则会导致<code>Reactor</code>线程组停止工作。
+<pre><code class="language-php">$server-&gt;set(array(
+    'dispatch_func' =&gt; function ($server, $fd, $type, $data) {
+        var_dump($fd, $type, $data);
+        return intval($data[0]);
+    },
+));</code></pre>
+<ul>
+<li><code>$fd</code>为客户端连接的唯一标识符，可使用<code>Server::getClientInfo</code>获取连接信息</li>
+<li><code>$type</code>数据的类型，<code>0</code>表示来自客户端的数据发送，<code>4</code>表示客户端连接建立，<code>3</code>表示客户端连接关闭</li>
+<li><code>$data</code>数据内容，需要注意：如果启用了<code>HTTP</code>、<code>EOF</code>、<code>Length</code>等协议处理参数后，底层会进行包的拼接。但在<code>dispatch_func</code>函数中只能传入数据包的前8K内容，不能得到完整的包内容。</li>
+<li><strong>必须</strong>返回一个<code>0 - (server-&gt;worker_num - 1)</code>的数字，表示数据包投递的目标工作进程<code>ID</code></li>
+<li>小于<code>0</code>或大于等于<code>server-&gt;worker_num</code>为异常目标<code>ID</code>，<code>dispatch</code>的数据将会被丢弃</li>
+</ul></li>
+<li><strong>编写C++函数</strong>
+<strong>在其他PHP扩展中，使用swoole_add_function注册长度函数到Swoole引擎中。</strong>
+?&gt; C++函数调用时底层不会加锁，需要调用方自行保证线程安全性
+<pre><code class="language-c++">int dispatch_function(swServer *serv, swConnection *conn, swEventData *data);
+int dispatch_function(swServer *serv, swConnection *conn, swEventData *data)
+{
+    printf("cpp, type=%d, size=%d\n", data-&gt;info.type, data-&gt;info.len);
+    return data-&gt;info.len % serv-&gt;worker_num;
+}
+int register_dispatch_function(swModule *module)
+{
+    swoole_add_function("my_dispatch_function", (void *) dispatch_function);
+}</code></pre>
+<ul>
+<li><code>dispatch</code>函数必须返回投递的目标<code>worker</code>进程<code>id</code></li>
+<li>返回的<code>worker_id</code>不得超过<code>server-&gt;worker_num</code>，否则底层会抛出段错误</li>
+<li>返回负数<code>（return -1）</code>表示丢弃此数据包</li>
+<li><code>data</code>可以读取到事件的类型和长度</li>
+<li><code>conn</code>是连接的信息，如果是<code>UDP</code>数据包，<code>conn</code>为<code>NULL</code></li>
+</ul></li>
+<li><strong>注意</strong>
+!&gt; -<code>dispatch_func</code>仅在<a href="/learn?id=swoole_process">SWOOLE_PROCESS</a>模式下有效，<a href="/server/methods?id=__construct">UDP/TCP/UnixSocket</a>类型的服务器均有效<br />
+-返回的<code>worker_id</code>不得超过<code>server-&gt;worker_num</code>，否则底层会抛出段错误
+<a name="message_queue_key"></a>
+<h3>message_queue_key</h3>
+<p>?&gt; <strong>设置消息队列的<code>KEY</code>。</strong>【默认值：<code>ftok($php_script_file, 1)</code>】
+?&gt; 仅在<a href="/server/setting?id=task_ipc_mode">task_ipc_mode</a> = 2/3时使用。设置的<code>Key</code>仅作为<code>Task</code>任务队列的<code>KEY</code>，参考<a href="/learn?id=什么是IPC">Swoole下的IPC通讯</a>。
+?&gt; <code>task</code>队列在<code>server</code>结束后不会销毁，重新启动程序后， <a href="/learn?id=taskworker进程">task进程</a>仍然会接着处理队列中的任务。如果不希望程序重新启动后执行旧的<code>Task</code>任务。可以手动删除此消息队列。</p>
+<pre><code class="language-shell">ipcs -q 
+ipcrm -Q [msgkey]</code></pre>
+<p><a name="daemonize"></a></p>
+<h3>daemonize</h3>
+<p>?&gt; <strong>守护进程化</strong>【默认值：<code>false</code>】
+?&gt; 设置<code>daemonize =&gt; true</code>时，程序将转入后台作为守护进程运行。长时间运行的服务器端程序必须启用此项。<br />
+如果不启用守护进程，当ssh终端退出后，程序将被终止运行。</p></li>
+<li><strong>提示</strong>
+<ul>
+<li>启用守护进程后，标准输入和输出会被重定向到 <code>log_file</code></li>
+<li>如果未设置<code>log_file</code>，将重定向到 <code>/dev/null</code>，所有打印屏幕的信息都会被丢弃</li>
+<li>启用守护进程后，<code>CWD</code>（当前目录）环境变量的值会发生变更，相对路径的文件读写会出错。<code>PHP</code>程序中必须使用绝对路径</li>
+<li><strong>systemd</strong>
+<ul>
+<li>使用<code>systemd</code>或者<code>supervisord</code>管理<code>Swoole</code>服务时，请勿设置<code>daemonize =&gt; true</code>。主要原因是<code>systemd</code>的机制与<code>init</code>不同。<code>init</code>进程的<code>PID</code>为<code>1</code>，程序使用<code>daemonize</code>后，会脱离终端，最终被<code>init</code>进程托管，与<code>init</code>关系变为父子进程关系。</li>
+<li>但<code>systemd</code>是启动了一个单独的后台进程，自行<code>fork</code>管理其他服务进程，因此不需要<code>daemonize</code>，反而使用了<code>daemonize =&gt; true</code>会使得<code>Swoole</code>程序与该管理进程失去父子进程关系。
+<a name="backlog"></a>
+<h3>backlog</h3>
+<p>?&gt; <strong>设置<code>Listen</code>队列长度</strong>
+?&gt; 如<code>backlog =&gt; 128</code>，此参数将决定最多同时有多少个等待<code>accept</code>的连接。</p></li>
+</ul></li>
+</ul></li>
+<li><strong>关于<code>TCP</code>的<code>backlog</code></strong>
+?&gt; <code>TCP</code>有三次握手的过程，客户端 <code>syn=&gt;服务端</code> <code>syn+ack=&gt;客户端</code> <code>ack</code>，当服务器收到客户端的<code>ack</code>后会将连接放到一个叫做<code>accept queue</code>的队列里面（注1），<br />
+队列的大小由<code>backlog</code>参数和配置<code>somaxconn</code> 的最小值决定，可以通过<code>ss -lt</code>命令查看最终的<code>accept queue</code>队列大小，<code>Swoole</code>的主进程调用<code>accept</code>（注2）<br />
+从<code>accept queue</code>里面取走。 当<code>accept queue</code>满了之后连接有可能成功（注4），<br />
+也有可能失败，失败后客户端的表现就是连接被重置（注3）<br />
+或者连接超时，而服务端会记录失败的记录，可以通过 <code>netstat -s|grep 'times the listen queue of a socket overflowed</code> 来查看日志。如果出现了上述现象，你就应该调大该值了。 幸运的是<code>Swoole</code>的SWOOLE_PROCESS模式与<code>PHP-FPM/Apache</code>等软件不同，并不依赖<code>backlog</code>来解决连接排队的问题。所以基本不会遇到上述现象。
+<ul>
+<li>注1:<code>linux2.2</code>之后握手过程分为<code>syn queue</code>和<code>accept queue</code>两个队列, <code>syn queue</code>长度由<code>tcp_max_syn_backlog</code>决定。</li>
+<li>注2:高版本内核调用的是<code>accept4</code>，为了节省一次<code>set no block</code>系统调用。</li>
+<li>注3:客户端收到<code>syn+ack</code>包就认为连接成功了，实际上服务端还处于半连接状态，有可能发送<code>rst</code>包给客户端，客户端的表现就是<code>Connection reset by peer</code>。</li>
+<li>注4:成功是通过TCP的重传机制，相关的配置有<code>tcp_synack_retries</code>和<code>tcp_abort_on_overflow</code>。想深入学习底层TCP机制可以看<a href="https://course.swoole-cloud.com/course-video/3">Swoole官方视频教程</a>。
+<a name="open_tcp_keepalive"></a>
+<h3>open_tcp_keepalive</h3>
+<p>?&gt; 在<code>TCP</code>中有一个<code>Keep-Alive</code>的机制可以检测死连接，应用层如果对于死链接周期不敏感或者没有实现心跳机制，可以使用操作系统提供的<code>keepalive</code>机制来踢掉死链接。
+在 <a href="/server/methods?id=set">Server-&gt;set()</a> 配置中增加<code>open_tcp_keepalive =&gt; true</code>表示启用<code>TCP keepalive</code>。
+另外，有<code>3</code>个选项可以对<code>keepalive</code>的细节进行调整，参考<a href="https://course.swoole-cloud.com/course-video/10">Swoole官方视频教程</a>。</p></li>
+</ul></li>
+<li><strong>选项</strong>
+<ul>
+<li><strong>tcp_keepidle</strong>
+单位秒，连接在<code>n</code>秒内没有数据请求，将开始对此连接进行探测。</li>
+<li><strong>tcp_keepcount</strong>
+探测的次数，超过次数后将<code>close</code>此连接。</li>
+<li><strong>tcp_keepinterval</strong>
+探测的间隔时间，单位秒。</li>
+</ul></li>
+<li><strong>示例</strong>
+<pre><code class="language-php">$serv = new Swoole\Server("192.168.2.194", 6666, SWOOLE_PROCESS);
+$serv-&gt;set(array(
+'worker_num' =&gt; 1,
+'open_tcp_keepalive' =&gt; true,
+'tcp_keepidle' =&gt; 4, //4s没有数据传输就进行检测
+'tcp_keepinterval' =&gt; 1, //1s探测一次
+'tcp_keepcount' =&gt; 5, //探测的次数，超过5次后还没回包close此连接
+));
+$serv-&gt;on('connect', function ($serv, $fd) {
+var_dump("Client:Connect $fd");
+});
+$serv-&gt;on('receive', function ($serv, $fd, $reactor_id, $data) {
+var_dump($data);
+});
+$serv-&gt;on('close', function ($serv, $fd) {
+var_dump("close fd $fd");
+});
+$serv-&gt;start();</code></pre>
+<p><a name="heartbeat_check_interval"></a></p>
+<h3>heartbeat_check_interval</h3>
+<p>?&gt; <strong>启用心跳检测</strong>【默认值：<code>false</code>】
+?&gt; 此选项表示每隔多久轮循一次，单位为秒。如 <code>heartbeat_check_interval =&gt; 60</code>，表示每<code>60</code>秒，遍历所有连接，如果该连接在<code>120</code>秒内（<code>heartbeat_idle_time</code>未设置时默认为<code>interval</code>的两倍），没有向服务器发送任何数据，此连接将被强制关闭。若未配置，则不会启用心跳, 该配置默认关闭，参考<a href="https://course.swoole-cloud.com/course-video/10">Swoole官方视频教程</a>。</p></li>
+<li><strong>提示</strong>
+<ul>
+<li><code>Server</code>并不会主动向客户端发送心跳包，而是被动等待客户端发送心跳。服务器端的<code>heartbeat_check</code>仅仅是检测连接上一次发送数据的时间，如果超过限制，将切断连接。</li>
+<li>被心跳检测切断的连接依然会触发<a href="/server/events?id=onclose">onClose</a>事件回调</li>
+</ul></li>
+<li><strong>注意</strong>
+!&gt; <code>heartbeat_check</code>仅支持<code>TCP</code>连接
+<a name="heartbeat_idle_time"></a>
+<h3>heartbeat_idle_time</h3>
+<p>?&gt; <strong>连接最大允许空闲的时间</strong>
+?&gt; 需要与<code>heartbeat_check_interval</code>配合使用</p>
+<pre><code class="language-php">array(
+'heartbeat_idle_time'      =&gt; 600, // 表示一个连接如果600秒内未向服务器发送任何数据，此连接将被强制关闭
+'heartbeat_check_interval' =&gt; 60,  // 表示每60秒遍历一次
+);</code></pre></li>
+<li><strong>提示</strong>
+<ul>
+<li>启用<code>heartbeat_idle_time</code>后，服务器并不会主动向客户端发送数据包</li>
+<li>如果只设置了<code>heartbeat_idle_time</code>未设置<code>heartbeat_check_interval</code>底层将不会创建心跳检测线程，<code>PHP</code>代码中可以调用<code>heartbeat</code>方法手动处理超时的连接
+<a name="open_eof_check"></a>
+<h3>open_eof_check</h3>
+<p>?&gt; <strong>打开<code>EOF</code>检测</strong>【默认值：<code>false</code>】，参考<a href="/learn?id=tcp数据包边界问题">TCP数据包边界问题</a>
+?&gt; 此选项将检测客户端连接发来的数据，当数据包结尾是指定的字符串时才会投递给<code>Worker</code>进程。否则会一直拼接数据包，直到超过缓存区或者超时才会中止。当出错时底层会认为是恶意连接，丢弃数据并强制关闭连接。<br />
+常见的<code>Memcache/SMTP/POP</code>等协议都是以<code>\r\n</code>结束的，就可以使用此配置。开启后可以保证<code>Worker</code>进程一次性总是收到一个或者多个完整的数据包。</p>
+<pre><code class="language-php">array(
+'open_eof_check' =&gt; true,   //打开EOF检测
+'package_eof'    =&gt; "\r\n", //设置EOF
+)</code></pre></li>
+</ul></li>
+<li><strong>注意</strong>
+!&gt; 此配置仅对<code>STREAM</code>(流式的)类型的<code>Socket</code>有效，如 <a href="/server/methods?id=__construct">TCP 、Unix Socket Stream</a><br />
+<code>EOF</code>检测不会从数据中间查找<code>eof</code>字符串，所以<code>Worker</code>进程可能会同时收到多个数据包，需要在应用层代码中自行<code>explode("\r\n", $data)</code> 来拆分数据包
+<a name="open_eof_split"></a>
+<h3>open_eof_split</h3>
+<p>?&gt; <strong>启用<code>EOF</code>自动分包</strong>
+?&gt; 当设置<code>open_eof_check</code>后，可能会产生多条数据合并在一个包内 , <code>open_eof_split</code>参数可以解决这个问题，参考<a href="/learn?id=tcp数据包边界问题">TCP数据包边界问题</a>。
+?&gt; 设置此参数需要遍历整个数据包的内容，查找<code>EOF</code>，因此会消耗大量<code>CPU</code>资源。假设每个数据包为<code>2M</code>，每秒<code>10000</code>个请求，这可能会产生<code>20G</code>条<code>CPU</code>字符匹配指令。</p>
+<pre><code class="language-php">array(
+'open_eof_split' =&gt; true,   //打开EOF_SPLIT检测
+'package_eof'    =&gt; "\r\n", //设置EOF
+)</code></pre></li>
+<li>
+<p><strong>提示</strong></p>
+<ul>
+<li>启用<code>open_eof_split</code>参数后，底层会从数据包中间查找<code>EOF</code>，并拆分数据包。<a href="/server/events?id=onreceive">onReceive</a>每次仅收到一个以<code>EOF</code>字串结尾的数据包。</li>
+<li>启用<code>open_eof_split</code>参数后，无论参数<code>open_eof_check</code>是否设置，<code>open_eof_split</code>都将生效。</li>
+<li>
+<p><strong>与 <code>open_eof_check</code> 的差异</strong></p>
+<ul>
+<li><code>open_eof_check</code> 只检查接收数据的末尾是否为 <code>EOF</code>，因此它的性能最好，几乎没有消耗</li>
+<li><code>open_eof_check</code> 无法解决多个数据包合并的问题，比如同时发送两条带有 <code>EOF</code> 的数据，底层可能会一次全部返回</li>
+<li><code>open_eof_split</code> 会从左到右对数据进行逐字节对比，查找数据中的 <code>EOF</code> 进行分包，性能较差。但是每次只会返回一个数据包
+<a name="package_eof"></a>
+<h3>package_eof</h3>
+<p>?&gt; <strong>设置<code>EOF</code>字符串。</strong> 参考<a href="/learn?id=tcp数据包边界问题">TCP数据包边界问题</a>
+?&gt; 需要与 <code>open_eof_check</code> 或者 <code>open_eof_split</code> 配合使用。</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><strong>注意</strong>
+!&gt; <code>package_eof</code>最大只允许传入<code>8</code>个字节的字符串
+<a name="open_length_check"></a>
+<h3>open_length_check</h3>
+<p>?&gt; <strong>打开包长检测特性</strong>【默认值：<code>false</code>】，参考<a href="/learn?id=tcp数据包边界问题">TCP数据包边界问题</a>
+?&gt; 包长检测提供了固定包头+包体这种格式协议的解析。启用后，可以保证<code>Worker</code>进程<a href="/server/events?id=onreceive">onReceive</a>每次都会收到一个完整的数据包。<br />
+长度检测协议，只需要计算一次长度，数据处理仅进行指针偏移，性能非常高，<strong>推荐使用</strong>。</p></li>
+<li>
+<p><strong>提示</strong></p>
+<ul>
+<li><strong>长度协议提供了3个选项来控制协议细节。</strong>
+?&gt; 此配置仅对<code>STREAM</code>类型的<code>Socket</code>有效，如<a href="/server/methods?id=__construct">TCP、Unix Socket Stream</a>
+<ul>
+<li><strong>package_length_type</strong>
+?&gt; 包头中某个字段作为包长度的值，底层支持了10种长度类型。请参考 <a href="/server/setting?id=package_length_type">package_length_type</a></li>
+<li><strong>package_body_offset</strong>
+?&gt; 从第几个字节开始计算长度，一般有2种情况：</li>
+<li><code>length</code>的值包含了整个包（包头+包体），<code>package_body_offset</code> 为<code>0</code></li>
+<li>包头长度为<code>N</code>字节，<code>length</code>的值不包含包头，仅包含包体，<code>package_body_offset</code>设置为<code>N</code></li>
+<li><strong>package_length_offset</strong>
+?&gt; <code>length</code>长度值在包头的第几个字节。</li>
+<li>示例：
+<pre><code class="language-c">struct
+{
+uint32_t type;
+uint32_t uid;
+uint32_t length;
+uint32_t serid;
+char body[0];
+}</code></pre></li>
+</ul></li>
+</ul>
+<p>?&gt; 以上通信协议的设计中，包头长度为<code>4</code>个整型，<code>16</code>字节，<code>length</code>长度值在第<code>3</code>个整型处。因此<code>package_length_offset</code>设置为<code>8</code>，<code>0-3</code>字节为<code>type</code>，<code>4-7</code>字节为<code>uid</code>，<code>8-11</code>字节为<code>length</code>，<code>12-15</code>字节为<code>serid</code>。</p>
+<pre><code class="language-php">$server-&gt;set(array(
+  'open_length_check'     =&gt; true,
+  'package_max_length'    =&gt; 81920,
+  'package_length_type'   =&gt; 'N',
+  'package_length_offset' =&gt; 8,
+  'package_body_offset'   =&gt; 16,
+));</code></pre>
+<p><a name="package_length_type"></a></p>
+<h3>package_length_type</h3>
+<table>
+<thead>
+<tr>
+<th>?&gt; <strong>长度值的类型</strong>，接受一个字符参数，与<code>PHP</code>的 <a href="http://php.net/manual/zh/function.pack.php">pack</a> 函数一致。
+目前<code>Swoole</code>支持<code>10</code>种类型：
+字符参数</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>c</td>
+<td>有符号、1字节</td>
+</tr>
+<tr>
+<td>C</td>
+<td>无符号、1字节</td>
+</tr>
+<tr>
+<td>s</td>
+<td>有符号、主机字节序、2字节</td>
+</tr>
+<tr>
+<td>S</td>
+<td>无符号、主机字节序、2字节</td>
+</tr>
+<tr>
+<td>n</td>
+<td>无符号、网络字节序、2字节</td>
+</tr>
+<tr>
+<td>N</td>
+<td>无符号、网络字节序、4字节</td>
+</tr>
+<tr>
+<td>l</td>
+<td>有符号、主机字节序、4字节（小写L）</td>
+</tr>
+<tr>
+<td>L</td>
+<td>无符号、主机字节序、4字节（大写L）</td>
+</tr>
+<tr>
+<td>v</td>
+<td>无符号、小端字节序、2字节</td>
+</tr>
+<tr>
+<td>V</td>
+<td>无符号、小端字节序、4字节</td>
+</tr>
+</tbody>
+</table>
+<p><a name="package_length_func"></a></p>
+<h3>package_length_func</h3>
+<table>
+<thead>
+<tr>
+<th>?&gt; <strong>设置长度解析函数</strong>
+?&gt; 支持<code>C++</code>或<code>PHP</code>的<code>2</code>种类型的函数。长度函数必须返回一个整数。
+返回数</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>返回0</td>
+<td>长度数据不足，需要接收更多数据</td>
+</tr>
+<tr>
+<td>返回-1</td>
+<td>数据错误，底层会自动关闭连接</td>
+</tr>
+<tr>
+<td>返回包长度值（包括包头和包体的总长度）</td>
+<td>底层会自动将包拼好后返回给回调函数</td>
+</tr>
+</tbody>
+</table>
+</li>
+<li>
+<p><strong>提示</strong></p>
+<ul>
+<li><strong>使用方法</strong>
+?&gt; 实现原理是先读取一小部分数据，在这段数据内包含了一个长度值。然后将这个长度返回给底层。然后由底层完成剩余数据的接收并组合成一个包进行<code>dispatch</code>。</li>
+<li><strong>PHP长度解析函数</strong>
+?&gt; 由于<code>ZendVM</code>不支持运行在多线程环境，因此底层会自动使用<code>Mutex</code>互斥锁对<code>PHP</code>长度函数进行加锁，避免并发执行<code>PHP</code>函数。在<code>1.9.3</code>或更高版本可用。
+!&gt; 请勿在长度解析函数中执行阻塞<code>IO</code>操作，可能导致所有<a href="/learn?id=reactor线程">Reactor</a>线程发生阻塞
+<pre><code class="language-php">
+$server = new Swoole\Server("127.0.0.1", 9501);</code></pre></li>
+</ul>
+<p>$server-&gt;set(array(
+'open_length_check'   =&gt; true,
+'dispatch_mode'       =&gt; 1,
+'package_length_func' =&gt; function ($data) {
+if (strlen($data) &lt; 8) {
+return 0;
+}
+$length = intval(trim(substr($data, 0, 8)));
+if ($length &lt;= 0) {
+return -1;
+}
+return $length + 8;
+},
+'package_max_length'  =&gt; 2000000,  //协议最大长度
+));</p>
+<p>$server-&gt;on('receive', function (Swoole\Server $server, $fd, $reactor_id, $data) {
+var_dump($data);
+echo &quot;#{$server-&gt;worker_id}&gt;&gt; received length=&quot; . strlen($data) . &quot;\n&quot;;
+});</p>
+<p>$server-&gt;start();</p>
+<pre><code>* **C++长度解析函数**
+?&gt; 在其他PHP扩展中，使用`swoole_add_function`注册长度函数到`Swoole`引擎中。
+
+!&gt; C++长度函数调用时底层不会加锁，需要调用方自行保证线程安全性
+
+```c++
+#include &lt;string&gt;
+#include &lt;iostream&gt;
+#include "swoole.h"
+
+using namespace std;
+
+int test_get_length(swProtocol *protocol, swConnection *conn, char *data, uint32_t length);
+
+void register_length_function(void)
+{
+    swoole_add_function((char *) "test_get_length", (void *) test_get_length);
+    return SW_OK;
+}
+
+int test_get_length(swProtocol *protocol, swConnection *conn, char *data, uint32_t length)
+{
+    printf("cpp, size=%d\n", length);
+    return 100;
+}</code></pre>
+<p><a name="package_max_length"></a></p>
+<h3>package_max_length</h3>
+<p>?&gt; <strong>设置最大数据包尺寸，单位为字节。</strong>【默认值：<code>2M</code> 即 <code>2 * 1024 * 1024</code>，最小值为<code>64K</code>】
+?&gt; 开启<a href="/server/setting?id=open_length_check">open_length_check</a>/<a href="/server/setting?id=open_eof_check">open_eof_check</a>/<a href="/server/setting?id=open_eof_split">open_eof_split</a>/<a href="/server/setting?id=open_http_protocol">open_http_protocol</a>/<a href="/http_server?id=open_http2_protocol">open_http2_protocol</a>/<a href="/server/setting?id=open_websocket_protocol">open_websocket_protocol</a>/<a href="/server/setting?id=open_mqtt_protocol">open_mqtt_protocol</a>等协议解析后，<code>Swoole</code>底层会进行数据包拼接，这时在数据包未收取完整时，所有数据都是保存在内存中的。<br />
+所以需要设定<code>package_max_length</code>，一个数据包最大允许占用的内存尺寸。如果同时有1万个<code>TCP</code>连接在发送数据，每个数据包<code>2M</code>，那么最极限的情况下，就会占用<code>20G</code>的内存空间。</p>
+</li>
+<li><strong>提示</strong>
+<ul>
+<li><code>open_length_check</code>：当发现包长度超过<code>package_max_length</code>，将直接丢弃此数据，并关闭连接，不会占用任何内存；</li>
+<li><code>open_eof_check</code>：因为无法事先得知数据包长度，所以收到的数据还是会保存到内存中，持续增长。当发现内存占用已超过<code>package_max_length</code>时，将直接丢弃此数据，并关闭连接；</li>
+<li><code>open_http_protocol</code>：<code>GET</code>请求最大允许<code>8K</code>，而且无法修改配置。<code>POST</code>请求会检测<code>Content-Length</code>，如果<code>Content-Length</code>超过<code>package_max_length</code>，将直接丢弃此数据，发送<code>http 400</code>错误，并关闭连接；</li>
+</ul></li>
+<li><strong>注意</strong>
+!&gt; 此参数不宜设置过大，否则会占用很大的内存
+<a name="open_http_protocol"></a>
+<h3>open_http_protocol</h3>
+<p>?&gt; <strong>启用<code>HTTP</code>协议处理。</strong>【默认值：<code>false</code>】
+?&gt; 启用<code>HTTP</code>协议处理，<a href="/http_server">Swoole\Http\Server</a>会自动启用此选项。设置为<code>false</code>表示关闭<code>HTTP</code>协议处理。
+<a name="open_mqtt_protocol"></a></p>
+<h3>open_mqtt_protocol</h3>
+<p>?&gt; <strong>启用<code>MQTT</code>协议处理。</strong>【默认值：<code>false</code>】
+?&gt; 启用后会解析<code>MQTT</code>包头，<code>worker</code>进程<a href="/server/events?id=onreceive">onReceive</a>每次会返回一个完整的<code>MQTT</code>数据包。</p>
+<pre><code class="language-php">$server-&gt;set(array(
+'open_mqtt_protocol' =&gt; true
+));</code></pre>
+<p><a name="open_redis_protocol"></a></p>
+<h3>open_redis_protocol</h3>
+<p>?&gt; <strong>启用<code>Redis</code>协议处理。</strong>【默认值：<code>false</code>】
+?&gt; 启用后会解析<code>Redis</code>协议，<code>worker</code>进程<a href="/server/events?id=onreceive">onReceive</a>每次会返回一个完整的<code>Redis</code>数据包。建议直接使用<a href="/redis_server">Redis\Server</a></p>
+<pre><code class="language-php">$server-&gt;set(array(
+'open_redis_protocol' =&gt; true
+));</code></pre>
+<p><a name="open_websocket_protocol"></a></p>
+<h3>open_websocket_protocol</h3>
+<p>?&gt; <strong>启用<code>WebSocket</code>协议处理。</strong>【默认值：<code>false</code>】
+?&gt; 启用<code>WebSocket</code>协议处理，<a href="websocket_server">Swoole\WebSocket\Server</a>会自动启用此选项。设置为<code>false</code>表示关闭<code>websocket</code>协议处理。<br />
+设置<code>open_websocket_protocol</code>选项为<code>true</code>后，会自动设置<code>open_http_protocol</code>协议也为<code>true</code>。
+<a name="open_websocket_close_frame"></a></p>
+<h3>open_websocket_close_frame</h3>
+<p>?&gt; <strong>启用websocket协议中关闭帧。</strong>【默认值：<code>false</code>】
+?&gt; （<code>opcode</code>为<code>0x08</code>的帧）在<code>onMessage</code>回调中接收
+?&gt; 开启后，可在<code>WebSocketServer</code>中的<code>onMessage</code>回调中接收到客户端或服务端发送的关闭帧，开发者可自行对其进行处理。</p>
+<pre><code class="language-php">$server = new Swoole\WebSocket\Server("0.0.0.0", 9501);
+$server-&gt;set(array("open_websocket_close_frame" =&gt; true));
+$server-&gt;on('open', function (Swoole\WebSocket\Server $server, $request) {});
+$server-&gt;on('message', function (Swoole\WebSocket\Server $server, $frame) {
+if ($frame-&gt;opcode == 0x08) {
+    echo "Close frame received: Code {$frame-&gt;code} Reason {$frame-&gt;reason}\n";
+} else {
+    echo "Message received: {$frame-&gt;data}\n";
+}
+});
+$server-&gt;on('close', function ($server, $fd) {});
+$server-&gt;start();</code></pre>
+<p><a name="open_tcp_nodelay"></a></p>
+<h3>open_tcp_nodelay</h3>
+<p>?&gt; <strong>启用<code>open_tcp_nodelay</code>。</strong>【默认值：<code>false</code>】
+?&gt; 开启后<code>TCP</code>连接发送数据时会关闭<code>Nagle</code>合并算法，立即发往对端TCP连接。在某些场景下，如命令行终端，敲一个命令就需要立马发到服务器，可以提升响应速度，请自行Google Nagle算法。
+<a name="open_cpu_affinity"></a></p>
+<h3>open_cpu_affinity</h3>
+<p>?&gt; <strong>启用CPU亲和性设置。</strong> 【默认 <code>false</code>】
+?&gt; 在多核的硬件平台中，启用此特性会将<code>Swoole</code>的<code>reactor线程</code>/<code>worker进程</code>绑定到固定的一个核上。可以避免进程/线程的运行时在多个核之间互相切换，提高<code>CPU</code> <code>Cache</code>的命中率。</p></li>
+<li><strong>提示</strong>
+<ul>
+<li><strong>使用taskset命令查看进程的CPU亲和设置：</strong>
+<pre><code class="language-bash">taskset -p 进程ID
+pid 24666's current affinity mask: f
+pid 24901's current affinity mask: 8</code></pre>
+<blockquote>
+<p>mask是一个掩码数字，按<code>bit</code>计算每<code>bit</code>对应一个<code>CPU</code>核，如果某一位为<code>0</code>表示绑定此核，进程会被调度到此<code>CPU</code>上，为<code>0</code>表示进程不会被调度到此<code>CPU</code>。示例中<code>pid</code>为<code>24666</code>的进程<code>mask = f</code> 表示未绑定到<code>CPU</code>，操作系统会将此进程调度到任意一个<code>CPU</code>核上。 <code>pid</code>为<code>24901</code>的进程<code>mask = 8</code>，<code>8</code>转为二进制是 <code>1000</code>，表示此进程绑定在第<code>4</code>个<code>CPU</code>核上。
+<a name="cpu_affinity_ignore"></a></p>
+<h3>cpu_affinity_ignore</h3>
+<p>?&gt; <strong>IO密集型程序中，所有网络中断都是用CPU0来处理，如果网络IO很重，CPU0负载过高会导致网络中断无法及时处理，那网络收发包的能力就会下降。</strong>
+?&gt; 如果不设置此选项，swoole将会使用全部CPU核，底层根据reactor_id或worker_id与CPU核数取模来设置CPU绑定。<br />
+如果内核与网卡有多队列特性，网络中断会分布到多核，可以缓解网络中断的压力</p>
+<pre><code class="language-php">array('cpu_affinity_ignore' =&gt; array(0, 1)) // 接受一个数组作为参数，array(0, 1) 表示不使用CPU0,CPU1，专门空出来处理网络中断。</code></pre>
+</blockquote></li>
+</ul></li>
+<li><strong>提示</strong>
+<ul>
+<li><strong>查看网络中断</strong>
+<pre><code class="language-shell">[~]$ cat /proc/interrupts 
+   CPU0       CPU1       CPU2       CPU3       
+0: 1383283707          0          0          0    IO-APIC-edge  timer
+1:          3          0          0          0    IO-APIC-edge  i8042
+3:         11          0          0          0    IO-APIC-edge  serial
+8:          1          0          0          0    IO-APIC-edge  rtc
+9:          0          0          0          0   IO-APIC-level  acpi
+12:          4          0          0          0    IO-APIC-edge  i8042
+14:         25          0          0          0    IO-APIC-edge  ide0
+82:         85          0          0          0   IO-APIC-level  uhci_hcd:usb5
+90:         96          0          0          0   IO-APIC-level  uhci_hcd:usb6
+114:    1067499          0          0          0       PCI-MSI-X  cciss0
+130:   96508322          0          0          0         PCI-MSI  eth0
+138:     384295          0          0          0         PCI-MSI  eth1
+169:          0          0          0          0   IO-APIC-level  ehci_hcd:usb1, uhci_hcd:usb2
+177:          0          0          0          0   IO-APIC-level  uhci_hcd:usb3
+185:          0          0          0          0   IO-APIC-level  uhci_hcd:usb4
+NMI:      11370       6399       6845       6300 
+LOC: 1383174675 1383278112 1383174810 1383277705 
+ERR:          0
+MIS:          0</code></pre>
+<p><code>eth0/eth1</code>就是网络中断的次数，如果<code>CPU0 - CPU3</code> 是平均分布的，证明网卡有多队列特性。如果全部集中于某一个核，说明网络中断全部由此<code>CPU</code>进行处理，一旦此<code>CPU</code>超过<code>100%</code>，系统将无法处理网络请求。这时就需要使用 <code>cpu_affinity_ignore</code> 设置将此<code>CPU</code>空出，专门用于处理网络中断。
+如图上的情况，应当设置 <code>cpu_affinity_ignore =&gt; array(0)</code>
+?&gt; 可以使用<code>top</code>指令 <code>-&gt;</code> 输入 <code>1</code>，查看到每个核的使用率</p></li>
+</ul></li>
+<li><strong>注意</strong>
+!&gt; 此选项必须与<code>open_cpu_affinity</code>同时设置才会生效
+<a name="tcp_defer_accept"></a>
+<h3>tcp_defer_accept</h3>
+<p>?&gt; <strong>启用<code>tcp_defer_accept</code>特性</strong>【默认值：<code>false</code>】
+?&gt; 可以设置为一个数值，表示当一个<code>TCP</code>连接有数据发送时才触发<code>accept</code>。</p>
+<pre><code class="language-php">$server-&gt;set(array(
+'tcp_defer_accept' =&gt; 5
+));</code></pre></li>
+<li><strong>提示</strong>
+<ul>
+<li><strong>启用<code>tcp_defer_accept</code>特性后，<code>accept</code>和<a href="/server/events?id=onconnect">onConnect</a>对应的时间会发生变化。如果设置为<code>5</code>秒：</strong>
+<ul>
+<li>客户端连接到服务器后不会立即触发<code>accept</code></li>
+<li>在<code>5</code>秒内客户端发送数据，此时会同时顺序触发<code>accept/onConnect/onReceive</code></li>
+<li>在<code>5</code>秒内客户端没有发送任何数据，此时会触发<code>accept/onConnect</code>
+<a name="ssl_cert_file / ssl_key_file :id=ssl_cert_file"></a>
+<h3>ssl_cert_file / ssl_key_file :id=ssl_cert_file</h3>
+<p>?&gt; <strong>设置SSL隧道加密。</strong>
+?&gt; 设置值为一个文件名字符串，指定cert证书和key私钥的路径。</p></li>
+</ul></li>
+</ul></li>
+<li><strong>提示</strong>
+<ul>
+<li><strong><code>PEM</code>转<code>DER</code>格式</strong>
+<pre><code class="language-shell">openssl x509 -in cert.crt -outform der -out cert.der</code></pre></li>
+<li><strong><code>DER</code>转<code>PEM</code>格式</strong>
+<pre><code class="language-shell">openssl x509 -in cert.crt -inform der -outform pem -out cert.pem</code></pre></li>
+</ul></li>
+<li><strong>注意</strong>
+!&gt; -<code>HTTPS</code>应用浏览器必须信任证书才能浏览网页；<br />
+-<code>wss</code>应用中，发起<code>WebSocket</code>连接的页面必须使用 <code>HTTPS</code> ；<br />
+-浏览器不信任<code>SSL</code>证书将无法使用 <code>wss</code> ；<br />
+-文件必须为<code>PEM</code>格式，不支持<code>DER</code>格式，可使用<code>openssl</code>工具进行转换。
+!&gt; 使用<code>SSL</code>必须在编译<code>Swoole</code>时加入<a href="/environment?id=编译选项">--enable-openssl</a>选项
+<pre><code class="language-php">$server = new Swoole\Server('0.0.0.0', 9501, SWOOLE_PROCESS, SWOOLE_SOCK_TCP | SWOOLE_SSL);
+$server-&gt;set(array(
+    'ssl_cert_file' =&gt; __DIR__.'/config/ssl.crt',
+    'ssl_key_file' =&gt; __DIR__.'/config/ssl.key',
+));</code></pre>
+<p><a name="ssl_method"></a></p>
+<h3>ssl_method</h3>
+<p>!&gt; 此参数已在 <a href="/version/bc?id=_454">v4.5.4</a> 版本移除，请使用<code>ssl_protocols</code>
+?&gt; <strong>设置OpenSSL隧道加密的算法。</strong>【默认值：<code>SWOOLE_SSLv23_METHOD</code>】，支持的类型请参考<a href="/consts?id=ssl-加密方法">SSL 加密方法</a>
+?&gt; <code>Server</code>与<code>Client</code>使用的算法必须一致，否则<code>SSL/TLS</code>握手会失败，连接会被切断</p>
+<pre><code class="language-php">$server-&gt;set(array(
+'ssl_method' =&gt; SWOOLE_SSLv3_CLIENT_METHOD,
+));</code></pre>
+<p><a name="ssl_protocols"></a></p>
+<h3>ssl_protocols</h3>
+<p>?&gt; <strong>设置OpenSSL隧道加密的协议。</strong>【默认值：<code>0</code>，支持全部协议】，支持的类型请参考<a href="/consts?id=ssl-协议">SSL 协议</a>
+!&gt; Swoole版本 &gt;= <code>v4.5.4</code> 可用</p>
+<pre><code class="language-php">$server-&gt;set(array(
+'ssl_protocols' =&gt; 0,
+));</code></pre>
+<p><a name="ssl_sni_certs"></a></p>
+<h3>ssl_sni_certs</h3>
+<p>?&gt; <strong>设置 SNI (Server Name Identification) 证书</strong>
+!&gt; Swoole版本 &gt;= <code>v4.6.0</code> 可用</p>
+<pre><code class="language-php">$server-&gt;set([
+'ssl_cert_file' =&gt; __DIR__ . '/server.crt',
+'ssl_key_file' =&gt; __DIR__ . '/server.key',
+'ssl_protocols' =&gt; SWOOLE_SSL_TLSv1_2 | SWOOLE_SSL_TLSv1_3 | SWOOLE_SSL_TLSv1_1 | SWOOLE_SSL_SSLv2,
+'ssl_sni_certs' =&gt; [
+    'cs.php.net' =&gt; [
+        'ssl_cert_file' =&gt; __DIR__ . '/sni_server_cs_cert.pem',
+        'ssl_key_file' =&gt; __DIR__ . '/sni_server_cs_key.pem',
+    ],
+    'uk.php.net' =&gt; [
+        'ssl_cert_file' =&gt;  __DIR__ . '/sni_server_uk_cert.pem',
+        'ssl_key_file' =&gt; __DIR__ . '/sni_server_uk_key.pem',
+    ],
+    'us.php.net' =&gt; [
+        'ssl_cert_file' =&gt; __DIR__ . '/sni_server_us_cert.pem',
+        'ssl_key_file' =&gt; __DIR__ . '/sni_server_us_key.pem',
+    ],
+]
+]);</code></pre>
+<p><a name="ssl_ciphers"></a></p>
+<h3>ssl_ciphers</h3>
+<p>?&gt; <strong>设置 openssl 加密算法。</strong>【默认值：<code>EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH</code>】</p>
+<pre><code class="language-php">$server-&gt;set(array(
+'ssl_ciphers' =&gt; 'ALL:!ADH:!EXPORT56:RC4+RSA:+HIGH:+MEDIUM:+LOW:+SSLv2:+EXP',
+));</code></pre></li>
+<li><strong>提示</strong>
+<ul>
+<li><code>ssl_ciphers</code> 设置为空字符串时，由<code>openssl</code>自行选择加密算法
+<a name="ssl_verify_peer"></a>
+<h3>ssl_verify_peer</h3>
+<p>?&gt; <strong>服务SSL设置验证对端证书。</strong>【默认值：<code>false</code>】
+?&gt; 默认关闭，即不验证客户端证书。若开启，必须同时设置 <code>ssl_client_cert_file</code> 选项
+<a name="ssl_allow_self_signed"></a></p>
+<h3>ssl_allow_self_signed</h3>
+<p>?&gt; <strong>允许自签名证书。</strong>【默认值：<code>false</code>】
+<a name="ssl_client_cert_file"></a></p>
+<h3>ssl_client_cert_file</h3>
+<p>?&gt; <strong>根证书，用于验证客户端证书。</strong></p>
+<pre><code class="language-php">$server = new Swoole\Server('0.0.0.0', 9501, SWOOLE_PROCESS, SWOOLE_SOCK_TCP | SWOOLE_SSL);
+$server-&gt;set(array(
+'ssl_cert_file'         =&gt; __DIR__ . '/config/ssl.crt',
+'ssl_key_file'          =&gt; __DIR__ . '/config/ssl.key',
+'ssl_verify_peer'       =&gt; true,
+'ssl_allow_self_signed' =&gt; true,
+'ssl_client_cert_file'  =&gt; __DIR__ . '/config/ca.crt',
+));</code></pre>
+<p>!&gt; <code>TCP</code>服务若验证失败，会底层会主动关闭连接。
+<a name="ssl_compress"></a></p>
+<h3>ssl_compress</h3>
+<p>?&gt; <strong>设置是否启用<code>SSL/TLS</code>压缩。</strong> 在<a href="/coroutine_client/client">Co\Client</a>使用时，它有一个别名<code>ssl_disable_compression</code>
+<a name="ssl_verify_depth"></a></p>
+<h3>ssl_verify_depth</h3>
+<p>?&gt; <strong>如果证书链条层次太深，超过了本选项的设定值，则终止验证。</strong>
+<a name="ssl_prefer_server_ciphers"></a></p>
+<h3>ssl_prefer_server_ciphers</h3>
+<p>?&gt; <strong>启用服务器端保护, 防止 BEAST 攻击。</strong>
+<a name="ssl_dhparam"></a></p>
+<h3>ssl_dhparam</h3>
+<p>?&gt; <strong>指定DHE密码器的<code>Diffie-Hellman</code>参数。</strong>
+<a name="ssl_ecdh_curve"></a></p>
+<h3>ssl_ecdh_curve</h3>
+<p>?&gt; <strong>指定用在ECDH密钥交换中的<code>curve</code>。</strong></p>
+<pre><code class="language-php">$server = new Swoole\Server('0.0.0.0', 9501, SWOOLE_PROCESS, SWOOLE_SOCK_TCP | SWOOLE_SSL);
+$server-&gt;set([
+'ssl_compress'                =&gt; true,
+'ssl_verify_depth'            =&gt; 10,
+'ssl_prefer_server_ciphers'   =&gt; true,
+'ssl_dhparam'                 =&gt; '',
+'ssl_ecdh_curve'              =&gt; '',
+]);</code></pre>
+<p><a name="user"></a></p>
+<h3>user</h3>
+<p>?&gt; <strong>设置<code>Worker/TaskWorker</code>子进程的所属用户。</strong>【默认值：执行脚本用户】
+?&gt; 服务器如果需要监听<code>1024</code>以下的端口，必须有<code>root</code>权限。但程序运行在<code>root</code>用户下，代码中一旦有漏洞，攻击者就可以以<code>root</code>的方式执行远程指令，风险很大。配置了<code>user</code>项之后，可以让主进程运行在<code>root</code>权限下，子进程运行在普通用户权限下。</p>
+<pre><code class="language-php">$server-&gt;set(array(
+'user' =&gt; 'Apache'
+));</code></pre></li>
+</ul></li>
+<li><strong>注意</strong>
+!&gt; -仅在使用<code>root</code>用户启动时有效<br />
+-使用<code>user/group</code>配置项将工作进程设置为普通用户后，将无法在工作进程调用<code>shutdown</code>/<a href="/server/methods?id=reload">reload</a>方法关闭或重启服务。只能使用<code>root</code>账户在<code>shell</code>终端执行<code>kill</code>命令。
+<a name="group"></a>
+<h3>group</h3>
+<p>?&gt; <strong>设置<code>Worker/TaskWorker</code>子进程的进程用户组。</strong>【默认值：执行脚本用户组】
+?&gt; 与<code>user</code>配置相同，此配置是修改进程所属用户组，提升服务器程序的安全性。</p>
+<pre><code class="language-php">$server-&gt;set(array(
+'group' =&gt; 'www-data'
+));</code></pre></li>
+<li><strong>注意</strong>
+!&gt; 仅在使用<code>root</code>用户启动时有效
+<a name="chroot"></a>
+<h3>chroot</h3>
+<p>?&gt; <strong>重定向<code>Worker</code>进程的文件系统根目录。</strong>
+?&gt; 此设置可以使进程对文件系统的读写与实际的操作系统文件系统隔离。提升安全性。</p>
+<pre><code class="language-php">$server-&gt;set(array(
+'chroot' =&gt; '/data/server/'
+));</code></pre>
+<p><a name="pid_file"></a></p>
+<h3>pid_file</h3>
+<p>?&gt; <strong>设置 pid 文件地址。</strong>
+?&gt; 在<code>Server</code>启动时自动将<code>master</code>进程的<code>PID</code>写入到文件，在<code>Server</code>关闭时自动删除<code>PID</code>文件。</p>
+<pre><code class="language-php">$server-&gt;set(array(
+'pid_file' =&gt; __DIR__.'/server.pid',
+));</code></pre></li>
+<li><strong>注意</strong>
+!&gt; 使用时需要注意如果<code>Server</code>非正常结束，<code>PID</code>文件不会删除，需要使用<a href="/process/process?id=kill">Swoole\Process::kill($pid, 0)</a>来侦测进程是否真的存在
+<a name="buffer_input_size / input_buffer_size :id=buffer_input_size"></a>
+<h3>buffer_input_size / input_buffer_size :id=buffer_input_size</h3>
+<p>?&gt; <strong>配置接收输入缓存区内存尺寸。</strong>【默认值：<code>2M</code>】</p>
+<pre><code class="language-php">$server-&gt;set([
+'buffer_input_size' =&gt; 2 * 1024 * 1024,
+]);</code></pre>
+<p><a name="buffer_output_size / output_buffer_size :id=buffer_output_size"></a></p>
+<h3>buffer_output_size / output_buffer_size :id=buffer_output_size</h3>
+<p>?&gt; <strong>配置发送输出缓存区内存尺寸。</strong>【默认值：<code>2M</code>】</p>
+<pre><code class="language-php">$server-&gt;set([
+'buffer_output_size' =&gt; 32 * 1024 * 1024, //必须为数字
+]);</code></pre></li>
+<li>
+<p><strong>提示</strong>
+!&gt; Swoole 版本 &gt;= <code>v4.6.7</code> 时，默认值为无符号INT最大值<code>UINT_MAX</code></p>
+<ul>
+<li>
+<p>单位为字节，默认为<code>2M</code>，如设置<code>32 * 1024 * 1024</code>表示，单次<code>Server-&gt;send</code>最大允许发送<code>32M</code>字节的数据</p>
+</li>
+<li>
+<p>调用<code>Server-&gt;send</code>，<code>Http\Server-&gt;end/write</code>，<code>WebSocket\Server-&gt;push</code>等发送数据指令时，<code>单次</code>最大发送的数据不得超过<code>buffer_output_size</code>配置。
+!&gt; 此参数只针对<a href="/learn?id=swoole_process">SWOOLE_PROCESS</a>模式生效，因为PROCESS模式下Worker进程的数据要发送给主进程再发送给客户端，所以每个Worker进程会和主进程开辟一块缓冲区。<a href="/learn?id=reactor线程">参考</a>
+<a name="socket_buffer_size"></a></p>
+<h3>socket_buffer_size</h3>
+<p>?&gt; <strong>配置客户端连接的缓存区长度。</strong>【默认值：<code>2M</code>】
+?&gt; 不同于 <code>buffer_output_size</code>，<code>buffer_output_size</code> 是 worker 进程<code>单次</code>send 的大小限制，<code>socket_buffer_size</code>是用于设置<code>Worker</code>和<code>Master</code>进程间通讯 buffer 总的大小，参考<a href="/learn?id=swoole_process">SWOOLE_PROCESS</a>模式。</p>
+<pre><code class="language-php">$server-&gt;set([
+'socket_buffer_size' =&gt; 128 * 1024 *1024, //必须为数字，单位为字节，如128 * 1024 *1024表示每个TCP客户端连接最大允许有128M待发送的数据
+]);</code></pre>
+</li>
+<li>
+<p><strong>数据发送缓存区</strong></p>
+</li>
+<li>
+<p>Master 进程向客户端发送大量数据时，并不能立即发出。这时发送的数据会存放在服务器端的内存缓存区内。此参数可以调整内存缓存区的大小。</p>
+</li>
+<li>
+<p>如果发送数据过多，数据占满缓存区后<code>Server</code>会报如下错误信息：</p>
+</li>
+</ul>
+<pre><code class="language-bash">swFactoryProcess_finish: send failed, session#1 output buffer has been overflowed.</code></pre>
+<p>?&gt;发送缓冲区塞满导致<code>send</code>失败，只会影响当前的客户端，其他客户端不受影响
+服务器有大量<code>TCP</code>连接时，最差的情况下将会占用<code>serv-&gt;max_connection * socket_buffer_size</code>字节的内存</p>
+<ul>
+<li>
+<p>尤其是外往通信的服务器程序，网络通信较慢，如果持续连续发送数据，缓冲区很快就会塞满。发送的数据会全部堆积在<code>Server</code>的内存里。因此此类应用应当从设计上考虑到网络的传输能力，先将消息存入磁盘，等客户端通知服务器已接受完毕后，再发送新的数据。</p>
+</li>
+<li>
+<p>如视频直播服务，<code>A</code>用户带宽是 <code>100M</code>，<code>1</code>秒内发送<code>10M</code>的数据是完全可以的。<code>B</code>用户带宽只有<code>1M</code>，如果<code>1</code>秒内发送<code>10M</code>的数据，<code>B</code>用户可能需要<code>100</code>秒才能接收完毕。这时数据会全部堆积在服务器内存中。</p>
+</li>
+<li>
+<p>可以根据数据内容的类型，进行不同的处理。如果是可丢弃的内容，如视频直播等业务，网络差的情况下丢弃一些数据帧完全可以接受。如果内容是不可丢失的，如微信消息，可以先存储到服务器的磁盘中，按照<code>100</code>条消息为一组。当用户接受完这一组消息后，再从磁盘中取出下一组消息发送到客户端。
+<a name="enable_unsafe_event"></a></p>
+<h3>enable_unsafe_event</h3>
+<p>?&gt; <strong>启用<code>onConnect/onClose</code>事件。</strong>【默认值：<code>false</code>】
+?&gt; <code>Swoole</code>在配置 <a href="/server/setting?id=dispatch_mode">dispatch_mode</a>=1 或<code>3</code>后，因为系统无法保证<code>onConnect/onReceive/onClose</code>的顺序，默认关闭了<code>onConnect/onClose</code>事件；<br />
+如果应用程序需要<code>onConnect/onClose</code>事件，并且能接受顺序问题可能带来的安全风险，可以通过设置<code>enable_unsafe_event</code>为<code>true</code>，启用<code>onConnect/onClose</code>事件。
+<a name="discard_timeout_request"></a></p>
+<h3>discard_timeout_request</h3>
+<p>?&gt; <strong>丢弃已关闭链接的数据请求。</strong>【默认值：<code>true</code>】
+?&gt; <code>Swoole</code>在配置<a href="/server/setting?id=dispatch_mode">dispatch_mode</a>=<code>1</code>或<code>3</code>后，系统无法保证<code>onConnect/onReceive/onClose</code>的顺序，因此可能会有一些请求数据在连接关闭后，才能到达<code>Worker</code>进程。</p>
+</li>
+</ul>
+</li>
+<li><strong>提示</strong>
+<ul>
+<li><code>discard_timeout_request</code>配置默认为<code>true</code>，表示如果<code>worker</code>进程收到了已关闭连接的数据请求，将自动丢弃。</li>
+<li><code>discard_timeout_request</code>如果设置为<code>false</code>，表示无论连接是否关闭<code>Worker</code>进程都会处理数据请求。
+<a name="enable_reuse_port"></a>
+<h3>enable_reuse_port</h3>
+<p>?&gt; <strong>设置端口重用。</strong>【默认值：<code>false</code>】
+?&gt; 启用端口重用后，可以重复启动监听同一个端口的 Server 程序</p></li>
+</ul></li>
+<li><strong>提示</strong>
+<ul>
+<li><code>enable_reuse_port = true</code> 打开端口重用</li>
+<li><code>enable_reuse_port = false</code> 关闭端口重用
+!&gt; 仅在<code>Linux-3.9.0</code>以上版本的内核可用 <code>Swoole4.5</code>以上版本可用
+<a name="enable_delay_receive"></a>
+<h3>enable_delay_receive</h3>
+<p>?&gt; <strong>设置<code>accept</code>客户端连接后将不会自动加入<a href="/learn?id=什么是eventloop">EventLoop</a>。</strong>【默认值：<code>false</code>】
+?&gt; 设置此选项为<code>true</code>后，<code>accept</code>客户端连接后将不会自动加入<a href="/learn?id=什么是eventloop">EventLoop</a>，仅触发<a href="/server/events?id=onconnect">onConnect</a>回调。<code>worker</code>进程可以调用 <a href="/server/methods?id=confirm">$server-&gt;confirm($fd)</a>对连接进行确认，此时才会将<code>fd</code>加入<a href="/learn?id=什么是eventloop">EventLoop</a>开始进行数据收发，也可以调用<code>$server-&gt;close($fd)</code>关闭此连接。</p>
+<pre><code class="language-php">//开启enable_delay_receive选项
+$server-&gt;set(array(
+'enable_delay_receive' =&gt; true,
+));
+$server-&gt;on("Connect", function ($server, $fd, $reactorId) {
+$server-&gt;after(2000, function() use ($server, $fd) {
+//确认连接，开始接收数据
+$server-&gt;confirm($fd);
+});
+});</code></pre>
+<p><a name="reload_async"></a></p>
+<h3>reload_async</h3>
+<p>?&gt; <strong>设置异步重启开关。</strong>【默认值：<code>true</code>】
+?&gt; 设置异步重启开关。设置为<code>true</code>时，将启用异步安全重启特性，<code>Worker</code>进程会等待异步事件完成后再退出。详细信息请参见 <a href="/question/use?id=swoole如何正确的重启服务">如何正确的重启服务</a>
+?&gt; <code>reload_async</code> 开启的主要目的是为了保证服务重载时，协程或异步任务能正常结束。 </p>
+<pre><code class="language-php">$server-&gt;set([
+'reload_async' =&gt; true
+]);</code></pre></li>
+</ul></li>
+<li><strong>协程模式</strong>
+<ul>
+<li>在<code>4.x</code>版本中开启 <a href="/server/setting?id=enable_coroutine">enable_coroutine</a>时，底层会额外增加一个协程数量的检测，当前无任何协程时进程才会退出，开启时即使<code>reload_async =&gt; false</code>也会强制打开<code>reload_async</code>。
+<a name="max_wait_time"></a>
+<h3>max_wait_time</h3>
+<p>?&gt; <strong>设置 <code>Worker</code> 进程收到停止服务通知后最大等待时间</strong>【默认值：<code>3</code>】
+?&gt; 经常会碰到由于<code>worker</code>阻塞卡顿导致<code>worker</code>无法正常<code>reload</code>, 无法满足一些生产场景，例如发布代码热更新需要<code>reload</code>进程。所以，Swoole 加入了进程重启超时时间的选项。详细信息请参见 <a href="/question/use?id=swoole如何正确的重启服务">如何正确的重启服务</a></p></li>
+</ul></li>
+<li><strong>提示</strong>
+<ul>
+<li><strong>管理进程收到重启、关闭信号后或者达到<code>max_request</code>时，管理进程会重起该<code>worker</code>进程。分以下几个步骤：</strong>
+<ul>
+<li>底层会增加一个(<code>max_wait_time</code>)秒的定时器，触发定时器后，检查进程是否依然存在，如果是，会强制杀掉，重新拉一个进程。</li>
+<li>需要在<code>onWorkerStop</code>回调里面做收尾工作，需要在<code>max_wait_time</code>秒内做完收尾。</li>
+<li>依次向目标进程发送<code>SIGTERM</code>信号，杀掉进程。</li>
+</ul></li>
+</ul></li>
+<li><strong>注意</strong>
+!&gt; <code>v4.4.x</code>以前默认为<code>30</code>秒
+<a name="tcp_fastopen"></a>
+<h3>tcp_fastopen</h3>
+<p>?&gt; <strong>开启TCP快速握手特性。</strong>【默认值：<code>false</code>】
+?&gt; 此项特性，可以提升<code>TCP</code>短连接的响应速度，在客户端完成握手的第三步，发送<code>SYN</code>包时携带数据。</p>
+<pre><code class="language-php">$server-&gt;set([
+'tcp_fastopen' =&gt; true
+]);</code></pre></li>
+<li><strong>提示</strong>
+<ul>
+<li>此参数可以设置到监听端口上，想深入理解的同学可以查看<a href="http://conferences.sigcomm.org/co-next/2011/papers/1569470463.pdf">google论文</a>
+<a name="request_slowlog_file"></a>
+<h3>request_slowlog_file</h3>
+<p>?&gt; <strong>开启请求慢日志。</strong> 从<code>v4.4.8</code>版本开始<a href="https://github.com/swoole/swoole-src/commit/b1a400f6cb2fba25efd2bd5142f403d0ae303366">已移除</a>
+!&gt; 由于这个慢日志的方案只能在同步阻塞的进程里面生效，不能在协程环境用，而Swoole4默认就是开启协程的，除非关闭<code>enable_coroutine</code>，所以不要使用了，使用 <a href="https://business.swoole.com/tracker/index">Swoole Tracker</a> 的阻塞检测工具。
+?&gt; 启用后<code>Manager</code>进程会设置一个时钟信号，定时侦测所有<code>Task</code>和<code>Worker</code>进程，一旦进程阻塞导致请求超过规定的时间，将自动打印进程的<code>PHP</code>函数调用栈。
+?&gt; 底层基于<code>ptrace</code>系统调用实现，某些系统可能关闭了<code>ptrace</code>，无法跟踪慢请求。请确认<code>kernel.yama.ptrace_scope</code>内核参数是否<code>0</code>。</p>
+<pre><code class="language-php">$server-&gt;set([
+'request_slowlog_file' =&gt; '/tmp/trace.log',
+]);</code></pre></li>
+</ul></li>
+<li><strong>超时时间</strong>
+<pre><code class="language-php">$server-&gt;set([
+'request_slowlog_timeout' =&gt; 2, // 设置请求超时时间为2秒
+'request_slowlog_file' =&gt; '/tmp/trace.log',
+]);</code></pre>
+<p>!&gt; 必须是具有可写权限的文件，否则创建文件失败底层会抛出致命错误</p></li>
+</ul>
+<p><a name="enable_coroutine"></a></p>
+<h3>enable_coroutine</h3>
+<p>?&gt; <strong>是否启用异步风格服务器的协程支持</strong>
+?&gt; <code>enable_coroutine</code> 关闭时在<a href="/server/events">事件回调函数</a>中不再自动创建协程，如果不需要用协程关闭这个会提高一些性能。参考<a href="/coroutine">什么是Swoole协程</a>。</p>
+<ul>
+<li>
+<p><strong>配置方法</strong></p>
+<ul>
+<li>在<code>php.ini</code>配置 <code>swoole.enable_coroutine = 'Off'</code> (可见 <a href="/other/config.md">ini配置文档</a> )</li>
+<li><code>$server-&gt;set(['enable_coroutine' =&gt; false]);</code>优先级高于ini</li>
+</ul>
+</li>
+<li><strong><code>enable_coroutine</code>选项影响范围</strong>
+<ul>
+<li>onWorkerStart</li>
+<li>onConnect</li>
+<li>onOpen</li>
+<li>onReceive</li>
+<li><a href="/redis_server?id=sethandler">setHandler</a></li>
+<li>onPacket</li>
+<li>onRequest</li>
+<li>onMessage</li>
+<li>onPipeMessage</li>
+<li>onFinish</li>
+<li>onClose</li>
+<li>tick/after 定时器
+!&gt; 开启<code>enable_coroutine</code>后在上述回调函数会自动创建协程
+<ul>
+<li>当<code>enable_coroutine</code>设置为<code>true</code>时，底层自动在<a href="/http_server?id=on">onRequest</a>回调中创建协程，开发者无需自行使用<code>go</code>函数<a href="/coroutine/coroutine?id=create">创建协程</a></li>
+<li>当<code>enable_coroutine</code>设置为<code>false</code>时，底层不会自动创建协程，开发者如果要使用协程，必须使用<code>go</code>自行创建协程，如果不需要使用协程特性，则处理方式与<code>Swoole1.x</code>是100%一致的</li>
+<li>注意，这个开启只是说明Swoole会通过协程去处理请求，如果事件中含有阻塞函数，那需要提前开启<a href="/runtime">一键协程化</a>，将<code>sleep</code>，<code>mysqlnd</code>这些阻塞的函数或者扩展开启协程化
+<pre><code class="language-php">$server = new Swoole\Http\Server("127.0.0.1", 9501);
+$server-&gt;set([
+//关闭内置协程
+'enable_coroutine' =&gt; false,
+]);
+$server-&gt;on("request", function ($request, $response) {
+if ($request-&gt;server['request_uri'] == '/coro') {
+go(function () use ($response) {
+co::sleep(0.2);
+$response-&gt;header("Content-Type", "text/plain");
+$response-&gt;end("Hello World\n");
+});
+} else {
+$response-&gt;header("Content-Type", "text/plain");
+$response-&gt;end("Hello World\n");
+}
+});
+$server-&gt;start();</code></pre>
+<p><a name="send_yield"></a></p>
+<h3>send_yield</h3>
+<p>?&gt; <strong>当发送数据时缓冲区内存不足时，直接在当前协程内<a href="/coroutine?id=协程调度">yield</a>，等待数据发送完成，缓存区清空时，自动<a href="/coroutine?id=协程调度">resume</a>当前协程，继续<code>send</code>数据。</strong>【默认值：在<a href="/server/setting?id=dispatch_mode">dispatch_mod</a> 2/4时候可用，并默认开启】</p></li>
+<li><code>Server/Client-&gt;send</code>返回<code>false</code>并且错误码为<code>SW_ERROR_OUTPUT_BUFFER_OVERFLOW</code>时，不返回<code>false</code>到<code>PHP</code>层，而是<a href="/coroutine?id=协程调度">yield</a>挂起当前协程</li>
+<li><code>Server/Client</code>监听缓冲区是否清空的事件，在该事件触发后，缓存区内的数据已被发送完毕，这时<a href="/coroutine?id=协程调度">resume</a>对应的协程</li>
+<li>协程恢复后，继续调用<code>Server/Client-&gt;send</code>向缓存区内写入数据，这时因为缓存区已空，发送必然是成功的
+改进前
+<pre><code class="language-php">for ($i = 0; $i &lt; 100; $i++) {
+//在缓存区塞满时会直接返回 false，并报错 output buffer overflow
+$server-&gt;send($fd, $data_2m);
+}</code></pre>
+<p>改进后</p>
+<pre><code class="language-php">for ($i = 0; $i &lt; 100; $i++) {
+//在缓存区塞满时会 yield 当前协程，发送完成后 resume 继续向下执行
+$server-&gt;send($fd, $data_2m);
+}</code></pre>
+<p>!&gt; 此项特性会改变底层的默认行为，可以手动关闭</p>
+<pre><code class="language-php">$server-&gt;set([
+'send_yield' =&gt; false,
+]);</code></pre></li>
+</ul></li>
+</ul></li>
+<li><strong>影响范围</strong>
+<ul>
+<li><a href="/server/methods?id=send">Swoole\Server::send</a></li>
+<li><a href="/http_server?id=write">Swoole\Http\Response::write</a></li>
+<li><a href="/websocket_server?id=push">Swoole\WebSocket\Server::push</a></li>
+<li><a href="/coroutine_client/client?id=send">Swoole\Coroutine\Client::send</a></li>
+<li><a href="/coroutine_client/http_client?id=push">Swoole\Coroutine\Http\Client::push</a>
+<a name="send_timeout"></a>
+<h3>send_timeout</h3>
+<p>设置发送超时，与<code>send_yield</code>配合使用，当在规定的时间内，数据未能发送到缓存区，底层返回<code>false</code>，并设置错误码为<code>ETIMEDOUT</code>，可以使用 <a href="/server/methods?id=getlasterror">getLastError()</a> 方法获取错误码。</p>
+<blockquote>
+<p>类型为浮点型，单位为秒，最小粒度为毫秒</p>
+<pre><code class="language-php">$server-&gt;set([
+'send_yield' =&gt; true,
+'send_timeout' =&gt; 1.5, // 1.5秒
+]);
+for ($i = 0; $i &lt; 100; $i++) {
+if ($server-&gt;send($fd, $data_2m) === false and $server-&gt;getLastError() == SOCKET_ETIMEDOUT) {
+echo "发送超时\n";
+}
+}</code></pre>
+<p><a name="hook_flags"></a></p>
+<h3>hook_flags</h3>
+<p>?&gt; <strong>设置<code>一键协程化</code>Hook的函数范围。</strong>【默认值：不hook】
+!&gt; Swoole版本为 <code>v4.5+</code> 或 <a href="https://github.com/swoole/swoole-src/tree/v4.4.x">4.4LTS</a> 可用，详情参考<a href="/runtime">一键协程化</a></p>
+<pre><code class="language-php">$server-&gt;set([
+'hook_flags' =&gt; SWOOLE_HOOK_SLEEP,
+]);</code></pre>
+<p><a name="buffer_high_watermark"></a></p>
+<h3>buffer_high_watermark</h3>
+<p>?&gt; <strong>设置缓存区高水位线，单位为字节。</strong></p>
+<pre><code class="language-php">$server-&gt;set([
+'buffer_high_watermark' =&gt; 8 * 1024 * 1024,
+]);</code></pre>
+<p><a name="buffer_low_watermark"></a></p>
+<h3>buffer_low_watermark</h3>
+<p>?&gt; <strong>设置缓存区低水位线，单位为字节。</strong></p>
+<pre><code class="language-php">$server-&gt;set([
+'buffer_low_watermark' =&gt; 1 * 1024 * 1024,
+]);</code></pre>
+<p><a name="tcp_user_timeout"></a></p>
+<h3>tcp_user_timeout</h3>
+<p>?&gt; TCP_USER_TIMEOUT选项是TCP层的socket选项，值为数据包被发送后未接收到ACK确认的最大时长，以毫秒为单位。具体请查看man文档</p>
+<pre><code class="language-php">$server-&gt;set([
+'tcp_user_timeout' =&gt; 10 * 1000, // 10秒
+]);</code></pre>
+<p>!&gt; Swoole版本 &gt;= <code>v4.5.3-alpha</code> 可用
+<a name="stats_file"></a></p>
+<h3>stats_file</h3>
+<p>?&gt; <strong>指定<a href="/server/methods?id=stats">stats()</a>内容写入的文件路径。设置后会自动在<a href="/server/events?id=onworkerstart">onWorkerStart</a>时设置一个定时器，定时将<a href="/server/methods?id=stats">stats()</a>的内容写入指定文件中</strong></p>
+<pre><code class="language-php">$server-&gt;set([
+'stats_file' =&gt; __DIR__ . '/stats.log',
+]);</code></pre>
+<p>!&gt; Swoole版本 &gt;= <code>v4.5.5</code> 可用
+<a name="event_object"></a></p>
+<h3>event_object</h3>
+<p>?&gt; <strong>设置此选项后，事件回调将使用<a href="/server/events?id=回调对象">对象风格</a>。</strong>【默认值：<code>false</code>】</p>
+<pre><code class="language-php">$server-&gt;set([
+'event_object' =&gt; true,
+]);</code></pre>
+<p>!&gt; Swoole版本 &gt;= <code>v4.6.0</code> 可用
+<a name="start_session_id"></a></p>
+<h3>start_session_id</h3>
+<p>?&gt; <strong>设置起始 session ID</strong></p>
+<pre><code class="language-php">$server-&gt;set([
+'start_session_id' =&gt; 10,
+]);</code></pre>
+<p>!&gt; Swoole版本 &gt;= <code>v4.6.0</code> 可用
+<a name="single_thread"></a></p>
+<h3>single_thread</h3>
+<p>?&gt; <strong>设置为单一线程。</strong> 启用后 Reactor 线程将会和 Master 进程中的 Master 线程合并，由 Master 线程处理逻辑，在PHP ZTS下，如果使用<code>SWOOLE_PROCESS</code>模式，一定要设置该值为<code>true</code>。</p>
+<pre><code class="language-php">$server-&gt;set([
+'single_thread' =&gt; true,
+]);</code></pre>
+<p>!&gt; Swoole版本 &gt;= <code>v4.2.13</code> 可用
+<a name="max_queued_bytes"></a></p>
+<h3>max_queued_bytes</h3>
+<p>?&gt; <strong>设置接收缓冲区的最大队列长度。</strong> 如果超出，则停止接收。</p>
+<pre><code class="language-php">$server-&gt;set([
+'max_queued_bytes' =&gt; 1024 * 1024,
+]);</code></pre>
+<p>!&gt; Swoole版本 &gt;= <code>v4.5.0</code> 可用
+<a name="admin_server"></a></p>
+<h3>admin_server</h3>
+<p>?&gt; <strong>设置admin_server服务，用于在 <a href="http://dashboard.swoole.com/">Swoole Dashboard</a> 中查看服务信息等。</strong></p>
+<pre><code class="language-php">$server-&gt;set([
+'admin_server' =&gt; '0.0.0.0:9502',
+]);</code></pre>
+<p>!&gt; Swoole版本 &gt;= <code>v4.8.0</code> 可用
+<a name="bootstrap"></a></p>
+<h3>bootstrap</h3>
+<p>?&gt; <strong>多线程模式下的程序入口文件，默认是当前执行的脚本文件名。</strong>
+!&gt; Swoole版本 &gt;= <code>v6.0</code> ， <code>PHP</code>为<code>ZTS</code>模式，编译<code>Swoole</code>时开启了<code>--enable-swoole-thread</code>可用</p>
+<pre><code class="language-php">$server-&gt;set([
+'bootstrap' =&gt; __FILE__,
+]);</code></pre>
+<p><a name="init_arguments"></a></p>
+<h3>init_arguments</h3>
+<p>?&gt; <strong>设置多线程的数据共享数据，该配置需要一个回调函数，服务器启动时会自动执行该函数</strong>
+!&gt; Swoole内置了许多线程安全容器，<a href="/thread/map">并发Map</a>，<a href="/thread/arraylist">并发List</a>，<a href="/thread/queue">并发队列</a>，不要在函数中返回不安全的变量。
+!&gt; Swoole版本 &gt;= <code>v6.0</code> ， <code>PHP</code>为<code>ZTS</code>模式，编译<code>Swoole</code>时开启了<code>--enable-swoole-thread</code>可用</p>
+<pre><code class="language-php">$server-&gt;set([
+'init_arguments' =&gt; function() { return new Swoole\Thread\Map(); },
+]);
+$server-&gt;on('request', function($request, $response) {
+$map = Swoole\Thread::getArguments();
+});</code></pre>
+</blockquote></li>
+</ul></li>
+</ul>
+</body>
+</html>

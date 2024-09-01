@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>Coroutine\Http2\Client</h1>
+<p>协程Http2客户端
+<a name="使用示例"></a></p>
+<h2>使用示例</h2>
+<pre><code class="language-php">use Swoole\Http2\Request;
+use Swoole\Coroutine\Http2\Client;
+use function Swoole\Coroutine\run;
+run(function () {
+    $domain = 'www.zhihu.com';
+    $cli = new Client($domain, 443, true);
+    $cli-&gt;set([
+        'timeout' =&gt; -1,
+        'ssl_host_name' =&gt; $domain
+    ]);
+    $cli-&gt;connect();
+    $req = new Request();
+    $req-&gt;method = 'POST';
+    $req-&gt;path = '/api/v4/answers/300000000/voters';
+    $req-&gt;headers = [
+        'host' =&gt; $domain,
+        'user-agent' =&gt; 'Chrome/49.0.2587.3',
+        'accept' =&gt; 'text/html,application/xhtml+xml,application/xml',
+        'accept-encoding' =&gt; 'gzip'
+    ];
+    $req-&gt;data = '{"type":"up"}';
+    $cli-&gt;send($req);
+    $response = $cli-&gt;recv();
+    var_dump(assert(json_decode($response-&gt;data)-&gt;error-&gt;code === 10002));
+});</code></pre>
+<p><a name="方法"></a></p>
+<h2>方法</h2>
+<p><a name="__construct"></a></p>
+<h3>__construct()</h3>
+<p>构造方法。</p>
+<pre><code class="language-php">Swoole\Coroutine\Http2\Client::__construct(string $host, int $port, bool $open_ssl = false): void</code></pre>
+<ul>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>string $host</code></strong>
+<ul>
+<li><strong>功能</strong>：目标主机的IP地址【<code>$host</code>如果为域名底层需要进行一次<code>DNS</code>查询】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>int $port</code></strong>
+<ul>
+<li><strong>功能</strong>：目标端口【<code>Http</code>一般为<code>80</code>端口，<code>Https</code>一般为<code>443</code>端口】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>bool $open_ssl</code></strong>
+<ul>
+<li><strong>功能</strong>：是否开启<code>TLS/SSL</code>隧道加密 【<code>https</code>网站必须设置为<code>true</code>】</li>
+<li><strong>默认值</strong>：<code>false</code></li>
+<li><strong>其它值</strong>：<code>true</code></li>
+</ul></li>
+</ul></li>
+<li><strong>注意</strong>
+!&gt; -如果你需要请求外网URL请修改<code>timeout</code>为更大的数值，参考<a href="/coroutine_client/init?id=超时规则">客户端超时规则</a><br />
+-<code>$ssl</code>需要依赖<code>openssl</code>，必须在编译<code>Swoole</code>时启用<a href="/environment?id=编译选项">--enable-openssl</a>
+<a name="set"></a>
+<h3>set()</h3>
+<p>设置客户端参数，其它详细配置项请参考 <a href="/client?id=配置">Swoole\Client::set</a> 配置选项</p>
+<pre><code class="language-php">Swoole\Coroutine\Http2\Client-&gt;set(array $options): void</code></pre>
+<p><a name="connect"></a></p>
+<h3>connect()</h3>
+<p>连接到目标服务器。此方法没有任何参数。
+!&gt; 发起<code>connect</code>后，底层会自动进行<a href="/coroutine?id=协程调度">协程调度</a>，当连接成功或失败时<code>connect</code>会返回。连接建立后可以调用<code>send</code>方法向服务器发送请求。</p>
+<pre><code class="language-php">Swoole\Coroutine\Http2\Client-&gt;connect(): bool</code></pre></li>
+<li><strong>返回值</strong>
+<ul>
+<li>连接成功，返回<code>true</code></li>
+<li>连接失败，返回<code>false</code>，请检查<code>errCode</code>属性获取错误码
+<a name="stats"></a>
+<h3>stats()</h3>
+<p>获取流状态。</p>
+<pre><code class="language-php">Swoole\Coroutine\Http2\Client-&gt;stats([$key]): array|bool</code></pre></li>
+</ul></li>
+<li><strong>示例</strong>
+<pre><code class="language-php">var_dump($client-&gt;stats(), $client-&gt;stats()['local_settings'], $client-&gt;stats('local_settings'));</code></pre>
+<p><a name="isStreamExist"></a></p>
+<h3>isStreamExist()</h3>
+<p>判断指定的流是否存在。</p>
+<pre><code class="language-php">Swoole\Coroutine\Http2\Client-&gt;isStreamExist(int $stream_id): bool</code></pre>
+<p><a name="send"></a></p>
+<h3>send()</h3>
+<p>向服务器发送请求，底层会自动建立一个<code>Http2</code>的<code>stream</code>。可以同时发起多个请求。</p>
+<pre><code class="language-php">Swoole\Coroutine\Http2\Client-&gt;send(Swoole\Http2\Request $request): int|false</code></pre></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>Swoole\Http2\Request $request</code></strong>
+<ul>
+<li><strong>功能</strong>：发送 Swoole\Http2\Request 对象</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+</ul></li>
+<li><strong>返回值</strong>
+<ul>
+<li>成功返回流的编号，编号为从<code>1</code>开始自增的奇数</li>
+<li>失败返回<code>false</code></li>
+</ul></li>
+<li><strong>提示</strong>
+<ul>
+<li><strong>Request对象</strong>
+!&gt; <code>Swoole\Http2\Request</code> 对象没有任何方法，通过设置对象属性来写入请求相关的信息。
+<ul>
+<li><code>headers</code> 数组，<code>HTTP</code>头</li>
+<li><code>method</code> 字符串，设置请求方法，如<code>GET</code>、<code>POST</code></li>
+<li><code>path</code> 字符串，设置<code>URL</code>路径，如<code>/index.php?a=1&amp;b=2</code>，必须以/作为开始</li>
+<li><code>cookies</code> 数组，设置<code>COOKIES</code></li>
+<li><code>data</code> 设置请求的<code>body</code>，如果为字符串时将直接作为<code>RAW form-data</code>进行发送</li>
+<li><code>data</code> 为数组时，底层自动会打包为<code>x-www-form-urlencoded</code>格式的<code>POST</code>内容，并设置<code>Content-Type为application/x-www-form-urlencoded</code></li>
+<li><code>pipeline</code> 布尔型，如果设置为<code>true</code>，发送完<code>$request</code>后，不关闭<code>stream</code>，可以继续写入数据内容</li>
+</ul></li>
+<li><strong>pipeline</strong>
+<ul>
+<li>默认<code>send</code>方法在发送请求之后，会结束当前的<code>Http2 Stream</code>，启用<code>pipeline</code>后，底层会保持<code>stream</code>流，可以多次调用<code>write</code>方法，向服务器发送数据帧，请参考<code>write</code>方法。
+<a name="write"></a>
+<h3>write()</h3>
+<p>向服务器发送更多数据帧，可以多次调用write向同一个stream写入数据帧。</p>
+<pre><code class="language-php">Swoole\Coroutine\Http2\Client-&gt;write(int $streamId, mixed $data, bool $end = false): bool</code></pre></li>
+</ul></li>
+</ul></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>int $streamId</code></strong>
+<ul>
+<li><strong>功能</strong>：流编号，由<code>send</code>方法返回</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>mixed $data</code></strong>
+<ul>
+<li><strong>功能</strong>：数据帧的内容，可以为字符串或数组</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>bool $end</code></strong>
+<ul>
+<li><strong>功能</strong>：是否关闭流</li>
+<li><strong>默认值</strong>：<code>false</code></li>
+<li><strong>其它值</strong>：<code>true</code></li>
+</ul></li>
+</ul></li>
+<li><strong>使用示例</strong>
+<pre><code class="language-php">use Swoole\Http2\Request;
+use Swoole\Coroutine\Http2\Client;
+use function Swoole\Coroutine\run;
+run(function () {
+$cli = new Client('127.0.0.1', 9518);
+$cli-&gt;set(['timeout' =&gt; 1]);
+var_dump($cli-&gt;connect());
+$req3 = new Request();
+$req3-&gt;path = "/index.php";
+$req3-&gt;headers = [
+    'host' =&gt; "localhost",
+    "user-agent" =&gt; 'Chrome/49.0.2587.3',
+    'accept' =&gt; 'text/html,application/xhtml+xml,application/xml',
+    'accept-encoding' =&gt; 'gzip',
+];
+$req3-&gt;pipeline = true;
+$req3-&gt;method = "POST";
+$streamId = $cli-&gt;send($req3);
+$cli-&gt;write($streamId, ['int' =&gt; rand(1000, 9999)]);
+$cli-&gt;write($streamId, ['int' =&gt; rand(1000, 9999)]);
+//end stream
+$cli-&gt;write($streamId, ['int' =&gt; rand(1000, 9999), 'end' =&gt; true], true);
+var_dump($cli-&gt;recv());
+$cli-&gt;close();
+});</code></pre>
+<p>!&gt; 如果要使用<code>write</code>分段发送数据帧，必须在<code>send</code>请求时将<code>$request-&gt;pipeline</code>设置为<code>true</code><br />
+当发送<code>end</code>为<code>true</code>的数据帧之后，流将关闭，之后不能再调用<code>write</code>向此<code>stream</code>发送数据。
+<a name="recv"></a></p>
+<h3>recv()</h3>
+<p>接收请求。
+!&gt; 调用此方法时会产生<a href="/coroutine?id=协程调度">协程调度</a></p>
+<pre><code class="language-php">Swoole\Coroutine\Http2\Client-&gt;recv(float $timeout): Swoole\Http2\Response;</code></pre></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>float $timeout</code></strong>
+<ul>
+<li><strong>功能</strong>：设置超时时间，参考<a href="/coroutine_client/init?id=超时规则">客户端超时规则</a></li>
+<li><strong>值单位</strong>：秒【支持浮点型，如<code>1.5</code>表示<code>1s</code>+<code>500ms</code>】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+</ul></li>
+<li><strong>返回值</strong>
+成功后返回 Swoole\Http2\Response 对象
+<pre><code class="language-php">/**@var $resp Swoole\Http2\Response */
+var_dump($resp-&gt;statusCode); // 服务器发送的Http状态码，如200、502等
+var_dump($resp-&gt;headers); // 服务器发送的Header信息
+var_dump($resp-&gt;cookies); // 服务器设置的COOKIE信息
+var_dump($resp-&gt;set_cookie_headers); // 服务器端返回的原始COOKIE信息，包括了domain和path项
+var_dump($resp-&gt;data); // 服务器发送的响应包体</code></pre>
+<p>!&gt; Swoole版本 &lt; <a href="/version/bc?id=_404">v4.0.4</a> 时，<code>data</code>属性是<code>body</code>属性；Swoole版本 &lt; <a href="/version/bc?id=_403">v4.0.3</a> 时，<code>headers</code>和<code>cookies</code>为单数形式。
+<a name="read"></a></p>
+<h3>read()</h3>
+<p>和<code>recv()</code>基本一致, 区别在于对于<code>pipeline</code>类型的响应, <code>read</code>可以分多次读取, 每次读取到部分的内容以节省内存或是尽快地接收到推送信息，而<code>recv</code>总是将所有帧拼接成一个完整响应后才会返回。
+!&gt; 调用此方法时会产生<a href="/coroutine?id=协程调度">协程调度</a></p>
+<pre><code class="language-php">Swoole\Coroutine\Http2\Client-&gt;read(float $timeout): Swoole\Http2\Response;</code></pre></li>
+<li><strong>参数</strong> 
+<ul>
+<li><strong><code>float $timeout</code></strong>
+<ul>
+<li><strong>功能</strong>：设置超时时间，参考<a href="/coroutine_client/init?id=超时规则">客户端超时规则</a></li>
+<li><strong>值单位</strong>：秒【支持浮点型，如<code>1.5</code>表示<code>1s</code>+<code>500ms</code>】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+</ul></li>
+<li><strong>返回值</strong>
+成功后返回 Swoole\Http2\Response 对象
+<a name="goaway"></a>
+<h3>goaway()</h3>
+<p>GOAWAY帧用于启动连接关闭或发出严重错误状态信号。</p>
+<pre><code class="language-php">Swoole\Coroutine\Http2\Client-&gt;goaway(int $error_code = SWOOLE_HTTP2_ERROR_NO_ERROR, string $debug_data): bool</code></pre>
+<p><a name="ping"></a></p>
+<h3>ping()</h3>
+<p>PING帧是一种机制，用于测量来自发送方的最小往返时间，以及确定空闲连接是否仍然有效。</p>
+<pre><code class="language-php">Swoole\Coroutine\Http2\Client-&gt;ping(): bool</code></pre>
+<p><a name="close"></a></p>
+<h3>close()</h3>
+<p>关闭连接。</p>
+<pre><code class="language-php">Swoole\Coroutine\Http2\Client-&gt;close(): bool</code></pre></li>
+</ul>
+</body>
+</html>

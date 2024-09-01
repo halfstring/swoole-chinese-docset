@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>进程/线程间锁 Lock</h1>
+<ul>
+<li><code>PHP</code>代码中可以很方便地创建一个锁<code>Swoole\Lock</code>，用来实现数据同步。<code>Lock</code>类支持<code>5</code>种锁的类型。</li>
+<li>
+<table>
+<thead>
+<tr>
+<th>多线程模式需要使用<code>Swoole\Thread\Lock</code>，除了命名空间不一样，其接口与 <code>Swoole\Lock</code> 完全一致。
+锁类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SWOOLE_MUTEX</td>
+<td>互斥锁</td>
+</tr>
+<tr>
+<td>SWOOLE_RWLOCK</td>
+<td>读写锁</td>
+</tr>
+<tr>
+<td>SWOOLE_SPINLOCK</td>
+<td>自旋锁</td>
+</tr>
+<tr>
+<td>SWOOLE_FILELOCK</td>
+<td>文件锁(废弃)</td>
+</tr>
+<tr>
+<td>SWOOLE_SEM</td>
+<td>信号量(废弃)</td>
+</tr>
+</tbody>
+</table>
+<p>!&gt; 请勿在<a href="/server/events?id=onreceive">onReceive</a>等回调函数中创建锁，否则内存会持续增长，造成内存泄漏。
+<a name="使用示例"></a></p>
+<h2>使用示例</h2>
+<pre><code class="language-php">$lock = new Swoole\Lock(SWOOLE_MUTEX);
+echo "[Master]create lock\n";
+$lock-&gt;lock();
+if (pcntl_fork() &gt; 0)
+{
+sleep(1);
+$lock-&gt;unlock();
+} 
+else
+{
+echo "[Child] Wait Lock\n";
+$lock-&gt;lock();
+echo "[Child] Get Lock\n";
+$lock-&gt;unlock();
+exit("[Child] exit\n");
+}
+echo "[Master]release lock\n";
+unset($lock);
+sleep(1);
+echo "[Master]exit\n";</code></pre>
+<p><a name="警告"></a></p>
+<h2>警告</h2>
+<p>!&gt; 在协程中无法使用锁，请谨慎使用，不要在<code>lock</code>和<code>unlock</code>操作中间使用可能引起协程切换的<code>API</code>。
+<a name="错误示例"></a></p>
+<h3>错误示例</h3>
+<p>!&gt; 此代码在协程模式下<code>100%</code>死锁 参考<a href="https://course.swoole-cloud.com/article/2">此文章</a></p>
+<pre><code class="language-php">$lock = new Swoole\Lock();
+$c = 2;
+while ($c--) {
+go(function () use ($lock) {
+  $lock-&gt;lock();
+  Co::sleep(1);
+  $lock-&gt;unlock();
+});
+}</code></pre>
+<p><a name="方法"></a></p>
+<h2>方法</h2>
+<p><a name="__construct"></a></p>
+<h3>__construct()</h3>
+<p>构造函数。</p>
+<pre><code class="language-php">Swoole\Lock::__construct(int $type = SWOOLE_MUTEX, string $lockfile = '');</code></pre>
+<p>!&gt; 不要循环创建/销毁锁的对象，否则会发生内存泄漏。</p>
+<ul>
+<li><strong>参数</strong> </li>
+<li><strong><code>int $type</code></strong>
+<ul>
+<li><strong>功能</strong>：锁的类型</li>
+<li><strong>默认值</strong>：<code>SWOOLE_MUTEX</code>【互斥锁】</li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong><code>string $lockfile</code></strong>
+<ul>
+<li><strong>功能</strong>：指定文件锁的路径【当类型为<code>SWOOLE_FILELOCK</code>时必须传入】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无
+!&gt; 每一种类型的锁支持的方法都不一样。如读写锁、文件锁可以支持<code>$lock-&gt;lock_read()</code>。另外除文件锁外，其他类型的锁必须在父进程内创建，这样<code>fork</code>出的子进程之间才可以互相争抢锁。
+<a name="lock"></a>
+<h3>lock()</h3>
+<p>加锁操作。如果有其他进程持有锁，那这里将进入阻塞，直到持有锁的进程<code>unlock()</code>释放锁。</p>
+<pre><code class="language-php">Swoole\Lock-&gt;lock(): bool</code></pre>
+<p><a name="trylock"></a></p>
+<h3>trylock()</h3>
+<p>加锁操作。与<code>lock</code>方法不同的是，<code>trylock()</code>不会阻塞，它会立即返回。</p>
+<pre><code class="language-php">Swoole\Lock-&gt;trylock(): bool</code></pre></li>
+</ul></li>
+<li><strong>返回值</strong></li>
+<li>加锁成功返回<code>true</code>，此时可以修改共享变量</li>
+<li>加锁失败返回<code>false</code>，表示有其他进程持有锁
+!&gt; <code>SWOOlE_SEM</code> 信号量没有<code>trylock</code>方法
+<a name="unlock"></a>
+<h3>unlock()</h3>
+<p>释放锁。</p>
+<pre><code class="language-php">Swoole\Lock-&gt;unlock(): bool</code></pre>
+<p><a name="lock_read"></a></p>
+<h3>lock_read()</h3>
+<p>只读加锁。</p>
+<pre><code class="language-php">Swoole\Lock-&gt;lock_read(): bool</code></pre></li>
+</ul>
+</li>
+<li>在持有读锁的过程中，其他进程依然可以获得读锁，可以继续发生读操作；</li>
+<li>但不能<code>$lock-&gt;lock()</code>或<code>$lock-&gt;trylock()</code>，这两个方法是获取独占锁，在独占锁加锁时，其他进程无法再进行任何加锁操作，包括读锁；</li>
+<li>当另外一个进程获得了独占锁(调用<code>$lock-&gt;lock()</code>/<code>$lock-&gt;trylock()</code>)时，<code>$lock-&gt;lock_read()</code>会发生阻塞，直到持有独占锁的进程释放锁。
+!&gt; 只有<code>SWOOLE_RWLOCK</code>和<code>SWOOLE_FILELOCK</code>类型的锁支持只读加锁
+<a name="trylock_read"></a>
+<h3>trylock_read()</h3>
+<p>加锁。此方法与<code>lock_read()</code>相同，但是非阻塞的。</p>
+<pre><code class="language-php">Swoole\Lock-&gt;trylock_read(): bool</code></pre>
+<p>!&gt; 调用会立即返回，必须检测返回值以确定是否拿到了锁。
+<a name="lockwait"></a></p>
+<h3>lockwait()</h3>
+<p>加锁操作。作用与<code>lock()</code>方法一致，但<code>lockwait()</code>可以设置超时时间。</p>
+<pre><code class="language-php">Swoole\Lock-&gt;lockwait(float $timeout = 1.0): bool</code></pre>
+<ul>
+<li><strong>参数</strong> </li>
+<li><strong><code>float $timeout</code></strong>
+<ul>
+<li><strong>功能</strong>：指定超时时间</li>
+<li><strong>值单位</strong>：秒【支持浮点型，如<code>1.5</code>表示<code>1s</code>+<code>500ms</code>】</li>
+<li><strong>默认值</strong>：<code>1</code></li>
+<li><strong>其它值</strong>：无</li>
+</ul></li>
+<li><strong>返回值</strong></li>
+<li>在规定的时间内未获得锁，返回<code>false</code></li>
+<li>加锁成功返回<code>true</code>
+!&gt; 只有<code>Mutex</code>类型的锁支持<code>lockwait</code></li>
+</ul></li>
+</ul>
+</body>
+</html>

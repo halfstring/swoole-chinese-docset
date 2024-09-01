@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>Coroutine\Scheduler</h1>
+<p>?&gt; 所有的<a href="/coroutine">协程</a>必须在<code>协程容器</code>里面<a href="/coroutine/coroutine?id=create">创建</a>，<code>Swoole</code>程序启动的时候大部分情况会自动创建<code>协程容器</code>，用<code>Swoole</code>启动程序的方式一共有三种：</p>
+<ul>
+<li>调用<a href="/server/init">异步风格</a>服务端程序的<a href="/server/methods?id=start">start</a>方法，此种启动方式会在事件回调中创建<code>协程容器</code>，参考<a href="/server/setting?id=enable_coroutine">enable_coroutine</a>。</li>
+<li>调用<code>Swoole</code>提供的2个进程管理模块<a href="/process/process">Process</a>和<a href="/process/process_pool">Process\Pool</a>的<a href="/process/process_pool?id=start">start</a>方法，此种启动方式会在进程启动的时候创建<code>协程容器</code>，参考这两个模块构造函数的<code>enable_coroutine</code>参数。</li>
+<li>
+<p>其他直接裸写协程的方式启动程序，需要先创建一个协程容器(<code>Coroutine\run()</code>函数，可以理解为java、c的<code>main</code>函数)，例如：</p>
+<ul>
+<li>
+<p><strong>启动一个全协程<code>HTTP</code>服务</strong></p>
+<pre><code class="language-php">use Swoole\Coroutine\Http\Server;
+use function Swoole\Coroutine\run;
+run(function () {
+$server = new Server('127.0.0.1', 9502, false);
+$server-&gt;handle('/', function ($request, $response) {
+$response-&gt;end("&lt;h1&gt;Index&lt;/h1&gt;");
+});
+$server-&gt;handle('/test', function ($request, $response) {
+$response-&gt;end("&lt;h1&gt;Test&lt;/h1&gt;");
+});
+$server-&gt;handle('/stop', function ($request, $response) use ($server) {
+$response-&gt;end("&lt;h1&gt;Stop&lt;/h1&gt;");
+$server-&gt;shutdown();
+});
+$server-&gt;start();
+});
+echo 1;//得不到执行</code></pre>
+</li>
+<li>
+<p><strong>添加2个协程并发的做一些事情</strong></p>
+<pre><code class="language-php">use Swoole\Coroutine;
+use function Swoole\Coroutine\run;
+run(function () {
+Coroutine::create(function() {
+var_dump(file_get_contents("http://www.xinhuanet.com/"));
+});
+Coroutine::create(function() {
+Coroutine::sleep(1);
+echo "done\n";
+});
+});
+echo 1;//可以得到执行</code></pre>
+<p>!&gt; 在<code>Swoole v4.4+</code>版本可用。
+!&gt; 不可以嵌套<code>Coroutine\run()</code>。<br />
+<code>Coroutine\run()</code>里面的逻辑如果有未处理的事件在<code>Coroutine\run()</code>之后就进行<a href="learn?id=什么是eventloop">EventLoop</a>，后面的代码将得不到执行，反之，如果没有事件了将继续向下执行，可以再次<code>Coroutine\run()</code>。
+上文的<code>Coroutine\run()</code>函数其实是对<code>Swoole\Coroutine\Scheduler</code>类(协程调度器类)的封装，想了解细节的同学可以看<code>Swoole\Coroutine\Scheduler</code>的方法：
+<a name="set"></a></p>
+<h3>set()</h3>
+<p>?&gt; <strong>设置协程运行时参数。</strong>
+?&gt; 是<code>Coroutine::set</code>方法的别名。请参考 <a href="/coroutine/coroutine?id=set">Coroutine::set</a> 文档</p>
+<pre><code class="language-php">Swoole\Coroutine\Scheduler-&gt;set(array $options): bool</code></pre>
+</li>
+<li>
+<p><strong>示例</strong></p>
+<pre><code class="language-php">$sch = new Swoole\Coroutine\Scheduler;
+$sch-&gt;set(['max_coroutine' =&gt; 100]);</code></pre>
+<p><a name="getOptions"></a></p>
+<h3>getOptions()</h3>
+<p>?&gt; <strong>获取设置的协程运行时参数。</strong> Swoole版本 &gt;= <code>v4.6.0</code> 可用
+?&gt; 是<code>Coroutine::getOptions</code>方法的别名。请参考 <a href="/coroutine/coroutine?id=getoptions">Coroutine::getOptions</a> 文档</p>
+<pre><code class="language-php">Swoole\Coroutine\Scheduler-&gt;getOptions(): null|array</code></pre>
+<p><a name="add"></a></p>
+<h3>add()</h3>
+<p>?&gt; <strong>添加任务。</strong> </p>
+<pre><code class="language-php">Swoole\Coroutine\Scheduler-&gt;add(callable $fn, ... $args): bool</code></pre>
+</li>
+<li>
+<p><strong>参数</strong> </p>
+</li>
+<li>
+<p><strong><code>callable $fn</code></strong></p>
+<ul>
+<li><strong>功能</strong>：回调函数</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul>
+</li>
+<li>
+<p><strong><code>... $args</code></strong></p>
+<ul>
+<li><strong>功能</strong>：可选参数，将传递给协程</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul>
+</li>
+<li>
+<p><strong>示例</strong></p>
+<pre><code class="language-php">use Swoole\Coroutine;
+$scheduler = new Coroutine\Scheduler;
+$scheduler-&gt;add(function ($a, $b) {
+Coroutine::sleep(1);
+echo assert($a == 'hello') . PHP_EOL;
+echo assert($b == 12345) . PHP_EOL;
+echo "Done.\n";
+}, "hello", 12345);
+$scheduler-&gt;start();</code></pre>
+</li>
+<li>
+<p><strong>注意</strong>
+!&gt; 与<code>go</code>函数不同，这里添加的协程不会立即执行，而是等待调用<code>start</code>方法时，一起启动并执行。如果程序中仅添加了协程，未调用<code>start</code>启动，协程函数<code>$fn</code>将不会被执行。
+<a name="parallel"></a></p>
+<h3>parallel()</h3>
+<p>?&gt; <strong>添加并行任务。</strong>
+?&gt; 与<code>add</code>方法不同，<code>parallel</code>方法会创建并行协程。在<code>start</code>时会同时启动<code>$num</code>个<code>$fn</code>协程，并行地执行。</p>
+<pre><code class="language-php">Swoole\Coroutine\Scheduler-&gt;parallel(int $num, callable $fn, ... $args): bool</code></pre>
+</li>
+<li>
+<p><strong>参数</strong> </p>
+</li>
+<li>
+<p><strong><code>int $num</code></strong></p>
+<ul>
+<li><strong>功能</strong>：启动协程的个数</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul>
+</li>
+<li>
+<p><strong><code>callable $fn</code></strong></p>
+<ul>
+<li><strong>功能</strong>：回调函数</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul>
+</li>
+<li>
+<p><strong><code>... $args</code></strong></p>
+<ul>
+<li><strong>功能</strong>：可选参数，将传递给协程</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+</ul>
+</li>
+<li>
+<p><strong>示例</strong></p>
+<pre><code class="language-php">use Swoole\Coroutine;
+$scheduler = new Coroutine\Scheduler;
+$scheduler-&gt;parallel(10, function ($t, $n) {
+Coroutine::sleep($t);
+echo "Co ".Coroutine::getCid()."\n";
+}, 0.05, 'A');
+$scheduler-&gt;start();</code></pre>
+<p><a name="start"></a></p>
+<h3>start()</h3>
+<p>?&gt; <strong>启动程序。</strong>
+?&gt; 遍历<code>add</code>和<code>parallel</code>方法添加的协程任务，并执行。</p>
+<pre><code class="language-php">Swoole\Coroutine\Scheduler-&gt;start(): bool</code></pre>
+</li>
+<li>
+<p><strong>返回值</strong></p>
+</li>
+<li>
+<p>启动成功，会执行所有添加的任务，所有协程退出时<code>start</code>会返回<code>true</code></p>
+</li>
+<li>
+<p>启动失败返回<code>false</code>，原因可能是已经启动了或者已经创建了其他调度器无法再次创建</p>
+</li>
+</ul>
+</li>
+</ul>
+</body>
+</html>

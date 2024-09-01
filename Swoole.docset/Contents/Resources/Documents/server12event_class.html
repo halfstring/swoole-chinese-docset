@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>Swoole\Server\Event</h1>
+<p>这里是对<code>Swoole\Server\Event</code>的详细介绍。
+<a name="属性"></a></p>
+<h2>属性</h2>
+<p><a name="$reactor_id"></a></p>
+<h3>$reactor_id</h3>
+<p>返回所在的<code>Reactor</code>线程id，该属性是一个<code>int</code>类型的整数。</p>
+<pre><code class="language-php">Swoole\Server\Event-&gt;reactor_id</code></pre>
+<p><a name="$fd"></a></p>
+<h3>$fd</h3>
+<p>返回该连接的文件描述符<code>fd</code>，该属性是一个<code>int</code>类型的整数。</p>
+<pre><code class="language-php">Swoole\Server\Event-&gt;fd</code></pre>
+<p><a name="$dispatch_time"></a></p>
+<h3>$dispatch_time</h3>
+<p>返回该请求数据到达时间<code>dispatch_time</code>，该属性是一个<code>double</code>类型。只有在<code>onReceive</code>事件里该属性才不为<code>0</code>。</p>
+<pre><code class="language-php">Swoole\Server\Event-&gt;dispatch_time</code></pre>
+<p><a name="$data"></a></p>
+<h3>$data</h3>
+<p>返回该客户端发送的数据<code>data</code>，该属性是一个<code>string</code>类型的字符串。只有在<code>onReceive</code>事件里该属性不为<code>null</code>。</p>
+<pre><code class="language-php">Swoole\Server\Event-&gt;data</code></pre>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>服务端(协程风格) <!-- {docsify-ignore-all} --></h1>
+<p><code>Swoole\Coroutine\Server</code> 与 <a href="/server/init">异步风格</a> 的服务端不同之处在于，<code>Swoole\Coroutine\Server</code> 是完全协程化实现的服务器，参考 <a href="/coroutine/server?id=完整示例">完整例子</a>。</p>
+<p><a name="优点："></a></p>
+<h2>优点：</h2>
+<ul>
+<li>不需要设置事件回调函数。建立连接、接收数据、发送数据、关闭连接都是顺序的，没有 <a href="/server/init">异步风格</a> 的并发问题，例如：
+<pre><code class="language-php">$serv = new Swoole\Server("127.0.0.1", 9501);
+//监听连接进入事件
+$serv-&gt;on('Connect', function ($serv, $fd) {
+$redis = new Redis();
+$redis-&gt;connect("127.0.0.1",6379);//此处OnConnect的协程会挂起
+Co::sleep(5);//此处sleep模拟connect比较慢的情况
+$redis-&gt;set($fd,"fd $fd connected");
+});
+//监听数据接收事件
+$serv-&gt;on('Receive', function ($serv, $fd, $reactor_id, $data) {
+$redis = new Redis();
+$redis-&gt;connect("127.0.0.1",6379);//此处onReceive的协程会挂起
+var_dump($redis-&gt;get($fd));//有可能onReceive的协程的redis连接先建立好了，上面的set还没有执行，此处get会是false，产生逻辑错误
+});
+//监听连接关闭事件
+$serv-&gt;on('Close', function ($serv, $fd) {
+echo "Client: Close.\n";
+});
+//启动服务器
+$serv-&gt;start();</code></pre>
+<p>上述<code>异步风格</code>的服务器，无法保证事件的顺序，即无法保证<code>onConnect</code>执行结束后才进入<code>onReceive</code>，因为在开启协程化后，<code>onConnect</code>和<code>onReceive</code>回调都会自动创建协程，遇到IO会产生<a href="/coroutine?id=协程调度">协程调度</a>，异步风格的无法保证调度顺序，而协程风格的服务端没有这个问题。  </p></li>
+<li>可以动态的开启关闭服务，异步风格的服务在<code>start()</code>被调用之后就什么也干不了了，而协程风格的可以动态开启关闭服务。<br />
+<a name="缺点："></a>
+<h2>缺点：</h2></li>
+<li>协程风格的服务不会自动创建多个进程，需要配合<a href="/process/process_pool">Process\Pool</a>模块使用才能利用多核。  </li>
+<li>协程风格服务其实是对<a href="/coroutine_client/socket">Co\Socket</a>模块的封装，所以用协程风格的需要对socket编程有一定经验。  </li>
+<li>目前封装层级没有异步风格服务器那么高，有些东西需要自己手动实现，比如<code>reload</code>功能需要自己监听信号来做逻辑。</li>
+</ul>
+</body>
+</html>

@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>Event</h1>
+<p><code>Swoole</code>扩展还提供了直接操作底层<code>epoll/kqueue</code>事件循环的接口。可将其他扩展创建的<code>socket</code>，<code>PHP</code>代码中<code>stream/socket</code>扩展创建的<code>socket</code>等加入到<code>Swoole</code>的<a href="/learn?id=什么是eventloop">EventLoop</a>中，
+否则第三方的$fd如果是同步IO会导致Swoole的EventLoop得不到执行，<a href="/learn?id=同步io转换成异步io">参考案例</a>。
+!&gt; <code>Event</code>模块比较底层，是<code>epoll</code>的初级封装，使用者最好有IO多路复用编程经验。
+<a name="事件优先级"></a></p>
+<h2>事件优先级</h2>
+<ol>
+<li>通过<code>Process::signal</code>设置的信号处理回调函数</li>
+<li>通过<code>Timer::tick</code>和<code>Timer::after</code>设置的定时器回调函数</li>
+<li>通过<code>Event::defer</code>设置的延迟执行函数</li>
+<li>通过<code>Event::cycle</code>设置的周期回调函数
+<a name="方法"></a>
+<h2>方法</h2>
+<p><a name="add"></a></p>
+<h3>add()</h3>
+<p>将一个<code>socket</code>加入到底层的<code>reactor</code>事件监听中。此函数可以用在<code>Server</code>或<code>Client</code>模式下。</p>
+<pre><code class="language-php">Swoole\Event::add(mixed $sock, callable $read_callback, callable $write_callback = null, int $flags = null): bool</code></pre>
+<p>!&gt; 在 <code>Server</code> 程序中使用时，必须在 <code>Worker</code> 进程启动后使用。在 <code>Server::start</code> 之前不得调用任何异步 <code>IO</code> 接口</p>
+<ul>
+<li><strong>参数</strong> </li>
+<li><strong><code>mixed $sock</code></strong></li>
+<li><strong>功能</strong>：文件描述符、<code>stream</code>资源、<code>sockets</code>资源、<code>object</code></li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong><code>callable $read_callback</code></strong></li>
+<li><strong>功能</strong>：可读事件回调函数</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong><code>callable $write_callback</code></strong></li>
+<li><strong>功能</strong>：为可写事件回调函数【此参数可以是字符串函数名、对象+方法、类静态方法或匿名函数，当此<code>socket</code>可读或者可写时回调指定的函数。】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong><code>int $flags</code></strong></li>
+<li><strong>功能</strong>：事件类型的掩码【可选择关闭/开启可读可写事件，如<code>SWOOLE_EVENT_READ</code>、<code>SWOOLE_EVENT_WRITE</code>或者<code>SWOOLE_EVENT_READ|SWOOLE_EVENT_WRITE</code>】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li>
+<table>
+<thead>
+<tr>
+<th><strong>$sock 4种类型</strong>
+类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>int</td>
+<td>文件描述符，包括<code>Swoole\Client-&gt;$sock</code>、<code>Swoole\Process-&gt;$pipe</code>或者其他<code>fd</code></td>
+</tr>
+<tr>
+<td>stream资源</td>
+<td><code>stream_socket_client</code>/<code>fsockopen</code>创建的资源</td>
+</tr>
+<tr>
+<td>sockets资源</td>
+<td><code>sockets</code>扩展中<code>socket_create</code>创建的资源，需要在编译时加入 <a href="/environment?id=编译选项">./configure --enable-sockets</a></td>
+</tr>
+<tr>
+<td>object</td>
+<td><code>Swoole\Process</code>或<code>Swoole\Client</code>，底层自动转换为<a href="/learn?id=什么是IPC">UnixSocket</a>（<code>Process</code>）或客户端连接的<code>socket</code>（<code>Swoole\Client</code>）</td>
+</tr>
+</tbody>
+</table>
+</li>
+<li><strong>返回值</strong></li>
+<li>添加事件监听成功成功返回<code>true</code></li>
+<li>添加失败返回<code>false</code>，请使用<code>swoole_last_error</code>获取错误码</li>
+<li>已添加过的<code>socket</code>不能重复添加，可以使用<code>swoole_event_set</code>修改<code>socket</code>对应的回调函数和事件类型
+!&gt; 使用<code>Swoole\Event::add</code>将<code>socket</code>加入到事件监听后，底层会自动将该<code>socket</code>设置为非阻塞模式</li>
+<li><strong>使用示例</strong>
+<pre><code class="language-php">$fp = stream_socket_client("tcp://www.qq.com:80", $errno, $errstr, 30);
+fwrite($fp,"GET / HTTP/1.1\r\nHost: www.qq.com\r\n\r\n");
+Swoole\Event::add($fp, function($fp) {
+$resp = fread($fp, 8192);
+//socket处理完成后，从epoll事件中移除socket
+Swoole\Event::del($fp);
+fclose($fp);
+});
+echo "Finish\n";  //Swoole\Event::add 不会阻塞进程，这行代码会顺序执行</code></pre></li>
+<li><strong>回调函数</strong></li>
+<li>在可读<code>($read_callback)</code>事件回调函数中必须使用<code>fread</code>、<code>recv</code>等函数读取<code>socket</code>缓存区中的数据，否则事件会持续触发，如果不希望继续读取必须使用<code>Swoole\Event::del</code>移除事件监听</li>
+<li>在可写<code>($write_callback)</code>事件回调函数中，写入<code>socket</code>之后必须调用<code>Swoole\Event::del</code>移除事件监听，否则可写事件会持续触发</li>
+<li>执行<code>fread</code>、<code>socekt_recv</code>、<code>socket_read</code>、<code>Swoole\Client::recv</code>返回<code>false</code>，并且错误码为<code>EAGAIN</code>时表示当前<code>socket</code>接收缓存区内没有任何数据，这时需要加入可读监听等待<a href="/learn?id=什么是eventloop">EventLoop</a>通知</li>
+<li>执行<code>fwrite</code>、<code>socket_write</code>、<code>socket_send</code>、<code>Swoole\Client::send</code>操作返回<code>false</code>，并且错误码为<code>EAGAIN</code>时表示当前<code>socket</code>发送缓存区已满，暂时不能发送数据。需要监听可写事件等待<a href="/learn?id=什么是eventloop">EventLoop</a>通知
+<a name="set"></a>
+<h3>set()</h3>
+<p>修改事件监听的回调函数和掩码。</p>
+<pre><code class="language-php">Swoole\Event::set($fd, mixed $read_callback, mixed $write_callback, int $flags): bool</code></pre></li>
+<li><strong>参数</strong> </li>
+<li>参数与<a href="/event?id=add">Event::add</a>完全相同。如果传入<code>$fd</code>在<a href="/learn?id=什么是eventloop">EventLoop</a>中不存在返回<code>false</code>。</li>
+<li>当<code>$read_callback</code>不为<code>null</code>时，将修改可读事件回调函数为指定的函数</li>
+<li>当<code>$write_callback</code>不为<code>null</code>时，将修改可写事件回调函数为指定的函数</li>
+<li><code>$flags</code>可关闭/开启，可写（<code>SWOOLE_EVENT_READ</code>）和可读（<code>SWOOLE_EVENT_WRITE</code>）事件的监听<br />
+!&gt; 注意如果监听了<code>SWOOLE_EVENT_READ</code>事件，而当前并未设置<code>read_callback</code>，底层会直接返回<code>false</code>，添加失败。<code>SWOOLE_EVENT_WRITE</code>同理。</li>
+<li><strong>状态变更</strong></li>
+<li>使用<code>Event::add</code>或<code>Event::set</code>设置了可读事件回调，但并未监听<code>SWOOLE_EVENT_READ</code>可读事件，这时底层仅保存回调函数的信息，并不会产生任何事件回调。</li>
+<li>可以使用<code>Event::set($fd, null, null, SWOOLE_EVENT_READ | SWOOLE_EVENT_WRITE)</code>，修改监听的事件类型，这时底层会触发可读事件。</li>
+<li><strong>释放回调函数</strong>
+!&gt; 注意<code>Event::set</code>只能替换回调函数，但并不能释放事件回调函数。如：<code>Event::set($fd, null, null, SWOOLE_EVENT_READ | SWOOLE_EVENT_WRITE)</code>，参数中传入的<code>read_callback</code>和<code>write_callback</code>为<code>null</code>，表示不对<code>Event::add</code>设置的回调函数进行修改，而不是将事件回调函数设为<code>null</code>。
+只有调用<code>Event::del</code>清除事件监听时，底层才会释放<code>read_callback</code>和<code>write_callback</code>事件回调函数。
+<a name="isset"></a>
+<h3>isset()</h3>
+<p>检测传入的<code>$fd</code>是否已加入了事件监听。</p>
+<pre><code class="language-php">Swoole\Event::isset(mixed $fd, int $events = SWOOLE_EVENT_READ | SWOOLE_EVENT_WRITE): bool</code></pre></li>
+<li><strong>参数</strong> </li>
+<li><strong><code>mixed $fd</code></strong></li>
+<li><strong>功能</strong>：任意的socket文件描述符【参考 <a href="/event?id=add">Event::add</a> 文档】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong><code>int $events</code></strong></li>
+<li><strong>功能</strong>：检测的事件类型</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li>
+<table>
+<thead>
+<tr>
+<th><strong>$events</strong>
+事件类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SWOOLE_EVENT_READ</code></td>
+<td>是否监听了可读事件</td>
+</tr>
+<tr>
+<td><code>SWOOLE_EVENT_WRITE</code></td>
+<td>是否监听了可写事件</td>
+</tr>
+<tr>
+<td><code>SWOOLE_EVENT_READ \| SWOOLE_EVENT_WRITE</code></td>
+<td>监听可读或可写事件</td>
+</tr>
+</tbody>
+</table>
+</li>
+<li><strong>使用示例</strong>
+<pre><code class="language-php">use Swoole\Event;
+$fp = stream_socket_client("tcp://www.qq.com:80", $errno, $errstr, 30);
+fwrite($fp,"GET / HTTP/1.1\r\nHost: www.qq.com\r\n\r\n");
+Event::add($fp, function($fp) {
+$resp = fread($fp, 8192);
+Swoole\Event::del($fp);
+fclose($fp);
+}, null, SWOOLE_EVENT_READ);
+var_dump(Event::isset($fp, SWOOLE_EVENT_READ)); //返回 true
+var_dump(Event::isset($fp, SWOOLE_EVENT_WRITE)); //返回 false
+var_dump(Event::isset($fp, SWOOLE_EVENT_READ | SWOOLE_EVENT_WRITE)); //返回 true</code></pre>
+<p><a name="write"></a></p>
+<h3>write()</h3>
+<p>用于PHP自带<code>stream/sockets</code>扩展创建的socket，使用<code>fwrite/socket_send</code>等函数向对端发送数据。当发送的数据量较大，socket写缓存区已满，就会发送阻塞等待或者返回<a href="/other/errno?id=linux">EAGAIN</a>错误。
+<code>Event::write</code>函数可以将<code>stream/sockets</code>资源的数据发送变成<strong>异步</strong>的，当缓冲区满了或者返回<a href="/other/errno?id=linux">EAGAIN</a>，Swoole底层会将数据加入到发送队列，并监听可写。socket可写时Swoole底层会自动写入</p>
+<pre><code class="language-php">Swoole\Event::write(mixed $fd, miexd $data): bool</code></pre></li>
+<li><strong>参数</strong> </li>
+<li><strong><code>mixed $fd</code></strong></li>
+<li><strong>功能</strong>：任意的socket文件描述符【参考 <a href="/event?id=add">Event::add</a> 文档】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong><code>miexd $data</code></strong></li>
+<li><strong>功能</strong>：要发送的数据 【发送数据的长度不得超过<code>Socket</code>缓存区尺寸】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无
+!&gt; <code>Event::write</code>不能用于<code>SSL/TLS</code>等有隧道加密的<code>stream/sockets</code>资源<br />
+<code>Event::write</code>操作成功后，会自动将该<code>$socket</code>设置为非阻塞模式</li>
+<li><strong>使用示例</strong>
+<pre><code class="language-php">use Swoole\Event;
+$fp = stream_socket_client('tcp://127.0.0.1:9501');
+$data = str_repeat('A', 1024 * 1024*2);
+Event::add($fp, function($fp) {
+echo fread($fp);
+});
+Event::write($fp, $data);</code></pre>
+<p><a name="SOCKET缓存区已满后，Swoole的底层逻辑"></a></p>
+<h4>SOCKET缓存区已满后，Swoole的底层逻辑</h4>
+<p>持续写入<code>SOCKET</code>如果对端读取不够快，那<code>SOCKET</code>缓存区会塞满。<code>Swoole</code>底层会将数据存到内存缓存区中，直到可写事件触发再写入<code>SOCKET</code>。
+如果内存缓存区也被写满了，此时<code>Swoole</code>底层会抛出<code>pipe buffer overflow, reactor will block.</code>错误，并进入阻塞等待。
+!&gt; 缓存塞满返回<code>false</code>是原子操作，只会出现全部写入成功或者全部失败
+<a name="del"></a></p>
+<h3>del()</h3>
+<p>从<code>reactor</code>中移除监听的<code>socket</code>。 <code>Event::del</code>应当与<code>Event::add</code>成对使用。</p>
+<pre><code class="language-php">Swoole\Event::del(mixed $sock): bool</code></pre>
+<p>!&gt; 必须在<code>socket</code>的<code>close</code>操作前使用<code>Event::del</code>移除事件监听，否则可能会产生内存泄漏</p></li>
+<li><strong>参数</strong> </li>
+<li><strong><code>mixed $sock</code></strong></li>
+<li><strong>功能</strong>：<code>socket</code>的文件描述符</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无
+<a name="exit"></a>
+<h3>exit()</h3>
+<p>退出事件轮询。
+!&gt; 此函数仅在<code>Client</code>程序中有效</p>
+<pre><code class="language-php">Swoole\Event::exit(): void</code></pre>
+<p><a name="defer"></a></p>
+<h3>defer()</h3>
+<p>在下一个事件循环开始时执行函数。 </p>
+<pre><code class="language-php">Swoole\Event::defer(mixed $callback_function);</code></pre>
+<p>!&gt; <code>Event::defer</code>的回调函数会在当前<code>EventLoop</code>的事件循环结束、下一次事件循环开始前执行。</p></li>
+<li><strong>参数</strong> </li>
+<li><strong><code>mixed $callback_function</code></strong></li>
+<li><strong>功能</strong>：时间到期后所执行的函数 【必须是可以调用的。回调函数不接受任何参数，可以使用匿名函数的<code>use</code>语法传递参数到回调函数中；在<code>$callback_function</code>函数执行过程中添加新的<code>defer</code>任务，仍然会在本轮事件循环内执行完成】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong>使用示例</strong>
+<pre><code class="language-php">Swoole\Event::defer(function(){
+echo "After EventLoop\n";
+});</code></pre>
+<p><a name="cycle"></a></p>
+<h3>cycle()</h3>
+<p>定义事件循环周期执行函数。此函数会在每一轮事件循环结束时调用。 </p>
+<pre><code class="language-php">Swoole\Event::cycle(callable $callback, bool $before = false): bool</code></pre></li>
+<li><strong>参数</strong> </li>
+<li><strong><code>callable $callback_function</code></strong></li>
+<li><strong>功能</strong>：要设置的回调函数 【<code>$callback</code>为<code>null</code>时表示清除<code>cycle</code>函数，已设置cycle函数，重新设置时会覆盖上一次的设定】</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无</li>
+<li><strong><code>bool $before</code></strong></li>
+<li><strong>功能</strong>：在<a href="/learn?id=什么是eventloop">EventLoop</a>之前调用该函数</li>
+<li><strong>默认值</strong>：无</li>
+<li><strong>其它值</strong>：无
+!&gt; 可以同时存在<code>before=true</code>和<code>before=false</code>两个回调函数。</li>
+<li><strong>使用示例</strong>
+<pre><code class="language-php">Swoole\Timer::tick(2000, function ($id) {
+var_dump($id);
+});
+Swoole\Event::cycle(function () {
+echo "hello [1]\n";
+Swoole\Event::cycle(function () {
+echo "hello [2]\n";
+Swoole\Event::cycle(null);
+});
+});</code></pre>
+<p><a name="wait"></a></p>
+<h3>wait()</h3>
+<p>启动事件监听。
+!&gt; 请将此函数放置于PHP程序末尾</p>
+<pre><code class="language-php">Swoole\Event::wait();</code></pre></li>
+<li><strong>使用示例</strong>
+<pre><code class="language-php">Swoole\Timer::tick(1000, function () {
+echo "hello\n";
+});
+Swoole\Event::wait();</code></pre>
+<p><a name="dispatch"></a></p>
+<h3>dispatch()</h3>
+<p>启动事件监听。
+!&gt; 仅执行一次<code>reactor-&gt;wait</code>操作，在<code>Linux</code>平台下相当手动调用一次<code>epoll_wait</code>。与<code>Event::dispatch</code>不同的是，<code>Event::wait</code>在底层内部维持了循环。</p>
+<pre><code class="language-php">Swoole\Event::dispatch();</code></pre></li>
+<li><strong>使用示例</strong>
+<pre><code class="language-php">while(true)
+{
+Event::dispatch();
+}</code></pre>
+<p>此函数的目的是兼容一些框架，如<code>amp</code>，它在框架内部自行控制<code>reactor</code>的循环，而使用<code>Event::wait</code>，Swoole底层维持了控制权，就无法让出给框架方。</p></li>
+</ul></li>
+</ol>
+</body>
+</html>

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>Swoole4 文档</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <meta name="description" content="由Swoole官方提供的Swoole4系列全量新文档">
+    <meta name="keywords" content="php,协程,swoole,swoole4,wiki,swoole文档,swoole手册,swoole4文档,swoole扩展">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <link rel="stylesheet" href="css/Word2Chm.css" type="text/css" />
+   <link rel="stylesheet" href="css/default.css" type="text/css" />
+             <link rel="stylesheet" href="css/noframe.css" type="text/css" />
+      <link rel="stylesheet" href="css/bootstrap.css" type="text/css" />
+</head>
+<body>
+<h1>函数列表</h1>
+<p>Swoole 除了网络通信相关的函数外，还提供了一些获取系统信息的函数供PHP程序使用。
+<a name="swoole_set_process_name"></a></p>
+<h2>swoole_set_process_name()</h2>
+<p>用于设置进程的名称。修改进程名称后，通过ps命令看到的将不再是<code>php your_file.php</code>，而是设定的字符串。
+此函数接受一个字符串参数。
+此函数与PHP5.5提供的<a href="https://www.php.net/manual/zh/function.cli-set-process-title.php">cli_set_process_title</a>功能是相同的。但<code>swoole_set_process_name</code>可用于PHP5.2之上的任意版本。<code>swoole_set_process_name</code>兼容性比<code>cli_set_process_title</code>要差，如果存在<code>cli_set_process_title</code>函数则优先使用<code>cli_set_process_title</code>。</p>
+<pre><code class="language-php">function swoole_set_process_name(string $name): void</code></pre>
+<p>使用示例：</p>
+<pre><code class="language-php">swoole_set_process_name("swoole server");</code></pre>
+<p><a name="如何为Swoole Server重命名各个进程名称 <!-- {docsify-ignore} -->"></a></p>
+<h3>如何为Swoole Server重命名各个进程名称 <!-- {docsify-ignore} --></h3>
+<ul>
+<li><a href="/server/events?id=onstart">onStart</a>调用时修改主进程名称</li>
+<li><a href="/server/events?id=onmanagerstart">onManagerStart</a>调用时修改管理进程(<code>manager</code>)的名称</li>
+<li><a href="/server/events?id=onworkerstart">onWorkerStart</a>调用时修改worker进程名称</li>
+</ul>
+<p>!&gt; 低版本Linux内核和Mac OSX不支持进程重命名<br />
+<a name="swoole_strerror"></a></p>
+<h2>swoole_strerror()</h2>
+<p>将错误码转换成错误信息。
+函数原型：</p>
+<pre><code class="language-php">function swoole_strerror(int $errno, int $error_type = 1): string</code></pre>
+<p>错误类型:</p>
+<ul>
+<li><code>1</code>：标准的<code>Unix Errno</code>，由系统调用错误产生，如<code>EAGAIN</code>、<code>ETIMEDOUT</code>等</li>
+<li><code>2</code>：<code>getaddrinfo</code>错误码，由<code>DNS</code>操作产生</li>
+<li><code>9</code>：<code>Swoole</code>底层错误码，使用<code>swoole_last_error()</code>得到
+使用示例：
+<pre><code class="language-php">var_dump(swoole_strerror(swoole_last_error(), 9));</code></pre>
+<p><a name="swoole_version"></a></p>
+<h2>swoole_version()</h2>
+<p>获取swoole扩展的版本号，如<code>1.6.10</code></p>
+<pre><code class="language-php">function swoole_version(): string</code></pre>
+<p>使用示例：</p>
+<pre><code class="language-php">var_dump(SWOOLE_VERSION); //全局变量SWOOLE_VERSION同样表示swoole扩展版本
+var_dump(swoole_version());
+/**
+返回值：
+string(6) "1.9.23"
+string(6) "1.9.23"
+**/</code></pre>
+<p><a name="swoole_errno"></a></p>
+<h2>swoole_errno()</h2>
+<p>获取最近一次系统调用的错误码，等同于<code>C/C++</code>的<code>errno</code>变量。</p>
+<pre><code class="language-php">function swoole_errno(): int</code></pre>
+<p>错误码的值与操作系统有关。可使用<code>swoole_strerror</code>将错误转换为错误信息。
+<a name="swoole_get_local_ip"></a></p>
+<h2>swoole_get_local_ip()</h2>
+<p>此函数用于获取本机所有网络接口的IP地址。</p>
+<pre><code class="language-php">function swoole_get_local_ip(): array</code></pre>
+<p>使用示例：</p>
+<pre><code class="language-php">// 获取本机所有网络接口的IP地址
+$list = swoole_get_local_ip();
+print_r($list);
+/**
+返回值
+Array
+(
+  [eno1] =&gt; 10.10.28.228
+  [br-1e72ecd47449] =&gt; 172.20.0.1
+  [docker0] =&gt; 172.17.0.1
+)
+**/</code></pre>
+<p>!&gt;注意</p></li>
+<li>目前只返回IPv4地址，返回结果会过滤掉本地loop地址127.0.0.1。</li>
+<li>结果数组是以interface名称为key的关联数组。比如 <code>array("eth0" =&gt; "192.168.1.100")</code></li>
+<li>此函数会实时调用<code>ioctl</code>系统调用获取接口信息，底层无缓存
+<a name="swoole_clear_dns_cache"></a>
+<h2>swoole_clear_dns_cache()</h2>
+<p>清除swoole内置的DNS缓存，对<code>swoole_client</code>和<code>swoole_async_dns_lookup</code>有效。</p>
+<pre><code class="language-php">function swoole_clear_dns_cache()</code></pre>
+<p><a name="swoole_get_local_mac"></a></p>
+<h2>swoole_get_local_mac()</h2>
+<p>获取本机网卡<code>Mac</code>地址。</p>
+<pre><code class="language-php">function swoole_get_local_mac(): array</code></pre></li>
+<li>调用成功返回所有网卡的<code>Mac</code>地址
+<pre><code class="language-php">array(4) {
+["lo"]=&gt;
+string(17) "00:00:00:00:00:00"
+["eno1"]=&gt;
+string(17) "64:00:6A:65:51:32"
+["docker0"]=&gt;
+string(17) "02:42:21:9B:12:05"
+["vboxnet0"]=&gt;
+string(17) "0A:00:27:00:00:00"
+}</code></pre>
+<p><a name="swoole_cpu_num"></a></p>
+<h2>swoole_cpu_num()</h2>
+<p>获取本机CPU核数。</p>
+<pre><code class="language-php">function swoole_cpu_num(): int</code></pre></li>
+<li>调用成功返回CPU核数，例如：
+<pre><code class="language-shell">php -r "echo swoole_cpu_num();"</code></pre>
+<p><a name="swoole_last_error"></a></p>
+<h2>swoole_last_error()</h2>
+<p>获取最近一次Swoole底层的错误码。</p>
+<pre><code class="language-php">function swoole_last_error(): int</code></pre>
+<p>可使用<code>swoole_strerror(swoole_last_error(), 9)</code>将错误转换为错误信息, 完整错误信息列表看 <a href="/other/errno?id=swoole">Swoole错误码列表</a>
+<a name="swoole_mime_type_add"></a></p>
+<h2>swoole_mime_type_add()</h2>
+<p>添加新的mime类型到内置的mime类型表上。</p>
+<pre><code class="language-php">function swoole_mime_type_add(string $suffix, string $mime_type): bool</code></pre>
+<p><a name="swoole_mime_type_set"></a></p>
+<h2>swoole_mime_type_set()</h2>
+<p>修改某个mime类型, 失败(如不存在)返回<code>false</code>。</p>
+<pre><code class="language-php">function swoole_mime_type_set(string $suffix, string $mime_type): bool</code></pre>
+<p><a name="swoole_mime_type_delete"></a></p>
+<h2>swoole_mime_type_delete()</h2>
+<p>删除某个mime类型, 失败(如不存在)返回<code>false</code>。</p>
+<pre><code class="language-php">function swoole_mime_type_delete(string $suffix): bool</code></pre>
+<p><a name="swoole_mime_type_get"></a></p>
+<h2>swoole_mime_type_get()</h2>
+<p>获取文件名对应的mime类型。</p>
+<pre><code class="language-php">function swoole_mime_type_get(string $filename): string</code></pre>
+<p><a name="swoole_mime_type_exists"></a></p>
+<h2>swoole_mime_type_exists()</h2>
+<p>获取后缀对应的mime类型是否存在。</p>
+<pre><code class="language-php">function swoole_mime_type_exists(string $suffix): bool</code></pre>
+<p><a name="swoole_substr_json_decode"></a></p>
+<h2>swoole_substr_json_decode()</h2>
+<p>零拷贝 JSON 反序列化，除去<code>$offset</code>和<code>$length</code>以外，其他参数和 <a href="https://www.php.net/manual/en/function.json-decode.php">json_decode</a> 一致。
+!&gt; Swoole 版本 &gt;= <code>v4.5.6</code> 可用，从<code>v4.5.7</code>版本开始需要在编译时增加<a href="/environment?id=通用参数">--enable-swoole-json</a>参数启用。使用场景参考<a href="https://wenda.swoole.com/detail/107587">Swoole 4.5.6 支持零拷贝 JSON 或 PHP 反序列化</a></p>
+<pre><code class="language-php">function swoole_substr_json_decode(string $packet, int $offset, int $length, bool $assoc = false, int $depth = 512, int $options = 0)</code></pre>
+<ul>
+<li><strong>示例</strong>
+<pre><code class="language-php">$val = json_encode(['hello' =&gt; 'swoole']);
+$str = pack('N', strlen($val)) . $val . "\r\n";
+$l = strlen($str) - 6;
+var_dump(json_decode(substr($str, 4, $l), true));
+var_dump(swoole_substr_json_decode($str, 4, $l, true));</code></pre>
+<p><a name="swoole_substr_unserialize"></a></p>
+<h2>swoole_substr_unserialize()</h2>
+<p>零拷贝 PHP 反序列化，除去<code>$offset</code>和<code>$length</code>以外，其他参数和 <a href="https://www.php.net/manual/en/function.unserialize.php">unserialize</a> 一致。
+!&gt; Swoole 版本 &gt;= <code>v4.5.6</code> 可用。使用场景参考<a href="https://wenda.swoole.com/detail/107587">Swoole 4.5.6 支持零拷贝 JSON 或 PHP 反序列化</a></p>
+<pre><code class="language-php">function swoole_substr_unserialize(string $packet, int $offset, int $length, array $options= [])</code></pre></li>
+<li><strong>示例</strong>
+<pre><code class="language-php">$val = serialize('hello');
+$str = pack('N', strlen($val)) . $val . "\r\n";
+$l = strlen($str) - 6;
+var_dump(unserialize(substr($str, 4, $l)));
+var_dump(swoole_substr_unserialize($str, 4, $l));</code></pre>
+<p><a name="swoole_error_log"></a></p>
+<h2>swoole_error_log()</h2>
+<p>输出错误信息到日志中。<code>$level</code>为<a href="/consts?id=日志等级">日志等级</a>。
+!&gt; Swoole 版本 &gt;= <code>v4.5.8</code> 可用</p>
+<pre><code class="language-php">function swoole_error_log(int $level, string $msg)</code></pre>
+<p><a name="swoole_clear_error"></a></p>
+<h2>swoole_clear_error()</h2>
+<p>清除 socket 的错误或者最后的错误代码上的错误。
+!&gt; Swoole 版本 &gt;= <code>v4.6.0</code> 可用</p>
+<pre><code class="language-php">function swoole_clear_error()</code></pre>
+<p><a name="swoole_coroutine_socketpair"></a></p>
+<h2>swoole_coroutine_socketpair()</h2>
+<p>协程版本的 <a href="https://www.php.net/manual/en/function.socket-create-pair.php">socket_create_pair</a> 。
+!&gt; Swoole 版本 &gt;= <code>v4.6.0</code> 可用</p>
+<pre><code class="language-php">function swoole_coroutine_socketpair(int $domain , int $type , int $protocol): array|bool</code></pre>
+<p><a name="swoole_async_set"></a></p>
+<h2>swoole_async_set</h2>
+<p>此函数可以设置异步<code>IO</code>相关的选项。</p>
+<pre><code class="language-php">function swoole_async_set(array $settings)</code></pre></li>
+</ul></li>
+<li>enable_signalfd 开启和关闭<code>signalfd</code>特性的使用</li>
+<li>enable_coroutine 开关内置协程，<a href="/server/setting?id=enable_coroutine">详见</a></li>
+<li>aio_core_worker_num 设置 AIO 最小进程数</li>
+<li>aio_worker_num 设置 AIO 最大进程数
+<a name="swoole_error_log_ex"></a>
+<h2>swoole_error_log_ex()</h2>
+<p>写入指定等级和错误码的日志。</p>
+<pre><code class="language-php">function swoole_error_log_ex(int $level, int $error, string $msg)</code></pre>
+<p>!&gt; Swoole 版本 &gt;= <code>v4.8.1</code> 可用
+<a name="swoole_ignore_error"></a></p>
+<h2>swoole_ignore_error()</h2>
+<p>忽略指定的错误码的错误日志。</p>
+<pre><code class="language-php">function swoole_ignore_error(int $error)</code></pre>
+<p>!&gt; Swoole 版本 &gt;= <code>v4.8.1</code> 可用</p></li>
+</ul>
+</body>
+</html>
