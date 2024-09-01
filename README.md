@@ -8,9 +8,9 @@ Swoole Chinese Docset for Dash
 
 [Swooke Wiki](http://wiki.swoole.com/)
 
-![demo](https://github.com/halfstring/swoole-chinese-docset/blob/master/demo.gif)
+![demo](./demo.gif)
 
-![dash-demo](https://github.com/halfstring/swoole-chinese-docset/blob/master/dash-demo.png)
+![dash-demo](./dash-demo.png)
 
 
 ## CHANGELOG
