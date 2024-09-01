@@ -2,8 +2,6 @@
 
 Swoole Chinese Docset for Dash
 
-`swoole 4 is supported`
-
 [generation method](./src/README.md)
 
 [Swooke Wiki](http://wiki.swoole.com/)
